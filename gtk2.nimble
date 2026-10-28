@@ -9,5 +9,5 @@ requires "nim >= 2.0.0"
 import std/distros
 foreignDep "gtk+"
 
-task testBindings, "Check core GTK2 and bundled Cairo/X11 bindings without opening windows":
+task testBindings, "Check core GTK2 and bundled Cairo/X11/FreeType bindings without opening windows":
   exec "nim check --path:src tests/tbindings.nim"

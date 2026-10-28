@@ -1,10 +1,17 @@
 # Compile/check only: importing these modules must not require external Nim
-# Cairo or X11 packages, nor open a window or load optional native libraries.
-import gtk2, cairo
+# Cairo, X11 or FreeType packages, nor open a window or load native libraries.
+import gtk2, cairo, cairoft, freetype
 
 static:
   doAssert declared(gtk2.PWidget)
   doAssert declared(cairo.Context)
+  doAssert declared(freetype.FT_Face)
+  doAssert compiles(block:
+    let face: freetype.FT_Face = nil
+    let fontFace: cairo.PFontFace = cairoft.ftFontFaceCreateForFtFace(face, 0)
+    let lockedFace: freetype.FT_Face = cairoft.ftScaledFontLockFace(nil)
+    discard fontFace
+    discard lockedFace)
 
 when defined(posix) and not defined(macosx):
   import gdk2x, cairoxlib, x, xlib, xutil

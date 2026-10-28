@@ -2,9 +2,9 @@
 # Installation
 
 Requires Nim 2.0 or newer (tested with Nim 2.3.1) and the native GTK2 libraries.
-Cairo and X11 Nim bindings are bundled; no separate Nimble packages are needed
-for the core GTK2 bindings. Native Cairo and X11 libraries are still required
-when used. See [bundled binding details and licenses](third_party/README.md)
+Cairo, X11 and FreeType Nim bindings are bundled; no separate Nimble packages
+are needed for these bindings. Native Cairo, X11 and FreeType libraries are
+still required when used. See [bundled binding details and licenses](third_party/README.md)
 for provenance and optional adapter dependencies.
 
 Install directly from this repository using [Nimble](https://github.com/nim-lang/nimble),
@@ -24,8 +24,8 @@ requires "nim >= 2.0.0", "https://github.com/dykatz/nim-gtk2.git#head"
 
 # Validation
 
-Run `nimble testBindings` to check the core bindings and the bundled Cairo/X11
-integration without opening windows. To compile an example from this checkout:
+Run `nimble testBindings` to check the core bindings and the bundled
+Cairo/X11/FreeType integration without opening windows. To compile an example from this checkout:
 
 ```sh
 nim c --path:src examples/ex1.nim
