@@ -7636,6 +7636,8 @@ when defined(gtk2DisableMain):
 else:
   proc main*(){.cdecl, dynlib: lib, importc: "gtk_main".}
 proc init*(argc, argv: pointer){.cdecl, dynlib: lib, importc: "gtk_init".}
+proc init_check*(argc, argv: pointer): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_init_check".}
 proc main_level*(): guint{.cdecl, dynlib: lib, importc: "gtk_main_level".}
 proc main_quit*(){.cdecl, dynlib: lib, importc: "gtk_main_quit".}
 proc main_iteration*(): gboolean{.cdecl, dynlib: lib,

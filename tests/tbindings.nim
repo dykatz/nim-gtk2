@@ -1,8 +1,9 @@
 # Compile/check only: importing these modules must not require external Nim
 # Cairo, X11 or FreeType packages, nor open a window or load native libraries.
-import gtk2, cairo, cairoft, freetype
+import gtk2, cairo, cairoft, freetype, gtk2ui
 
 static:
+  doAssert declared(gtk2ui.newWindow)
   doAssert declared(gtk2.PWidget)
   doAssert declared(cairo.Context)
   doAssert declared(freetype.FT_Face)

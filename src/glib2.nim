@@ -1066,6 +1066,8 @@ proc notify*(anObject: PGObject, property_name: cstring){.cdecl,
     dynlib: gobjectlib, importc: "g_object_notify".}
 proc thaw_notify*(anObject: PGObject){.cdecl, dynlib: gobjectlib,
     importc: "g_object_thaw_notify".}
+proc g_object_ref_sink*(anObject: gpointer): gpointer {.cdecl,
+    dynlib: gobjectlib, importc: "g_object_ref_sink".}
 proc g_object_ref*(anObject: gpointer): gpointer{.cdecl, dynlib: gobjectlib,
     importc: "g_object_ref".}
 proc g_object_unref*(anObject: gpointer){.cdecl, dynlib: gobjectlib,

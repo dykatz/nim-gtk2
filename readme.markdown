@@ -22,6 +22,17 @@ If you wish to add this wrapper as a dependency to your nimble package then add 
 requires "nim >= 2.0.0", "https://github.com/dykatz/nim-gtk2.git#head"
 ```
 
+# Ergonomic API
+
+For new applications, `import gtk2ui` provides a small gtkmm-inspired layer:
+typed widgets, Nim properties, layout helpers, and closure-based signals.
+The raw bindings remain available unchanged. See the
+[API guide and ownership rules](docs/gtk2ui.md) and
+[`examples/ergonomic.nim`](examples/ergonomic.nim).
+
+Requires ARC or ORC (Nim 2's default). Run `nimble testUi` for hidden-widget
+integration tests; a display is required, but no visible windows are opened.
+
 # Validation
 
 Run `nimble testBindings` to check the core bindings and the bundled

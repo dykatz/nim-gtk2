@@ -11,3 +11,6 @@ foreignDep "gtk+"
 
 task testBindings, "Check core GTK2 and bundled Cairo/X11/FreeType bindings without opening windows":
   exec "nim check --path:src tests/tbindings.nim"
+
+task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
+  exec "nim r --path:src tests/tgtk2ui.nim"
