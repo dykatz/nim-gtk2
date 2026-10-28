@@ -4,7 +4,10 @@ description = "Wrapper for gtk2, a feature rich toolkit for creating graphical u
 license = "MIT"
 srcDir = "src"
 
-requires "nim > 0.9.2, cairo"
+requires "nim >= 2.0.0"
 
 import std/distros
 foreignDep "gtk+"
+
+task testBindings, "Check core GTK2 and bundled Cairo/X11 bindings without opening windows":
+  exec "nim check --path:src tests/tbindings.nim"

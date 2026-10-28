@@ -17,7 +17,7 @@ else:
 
 proc x11_drawable_get_xdisplay*(drawable: gdk2.PDrawable): xlib.PDisplay  {.cdecl,
  dynlib: lib, importc: "gdk_x11_drawable_get_xdisplay".}
-proc x11_drawable_get_xid*(drawable: gdk2.PDrawable): TXID  {.cdecl,
+proc x11_drawable_get_xid*(drawable: gdk2.PDrawable): XID  {.cdecl,
  dynlib: lib, importc: "gdk_x11_drawable_get_xid".}
 proc x11_window_get_drawable_impl*(window: gdk2.PWindow): gdk2.PDrawable {.cdecl,
  dynlib: lib, importc: "gdk_x11_window_get_drawable_impl".}
@@ -79,17 +79,17 @@ proc DISPLAY_XDISPLAY*(display: gdk2.PDisplay): xlib.PDisplay =
   result = x11_display_get_xdisplay(display)
 proc WINDOW_XDISPLAY*(win: gdk2.PWindow): xlib.PDisplay  =
   result = x11_drawable_get_xdisplay(x11_window_get_drawable_impl(win))
-proc WINDOW_XID*(win: gdk2.PWindow): TXID =
+proc WINDOW_XID*(win: gdk2.PWindow): XID =
   result = x11_drawable_get_xid(win)
-proc WINDOW_XWINDOW*(win: gdk2.PWindow): TXID =
+proc WINDOW_XWINDOW*(win: gdk2.PWindow): XID =
   result = x11_drawable_get_xid(win)
 proc PIXMAP_XDISPLAY*(win: gdk2.PPixmap): xlib.PDisplay =
   result = x11_drawable_get_xdisplay(x11_pixmap_get_drawable_impl(win))
-proc PIXMAP_XID*(win: gdk2.PDrawable): TXID =
+proc PIXMAP_XID*(win: gdk2.PDrawable): XID =
   result = x11_drawable_get_xid(win)
 proc DRAWABLE_XDISPLAY*(win: gdk2.PDrawable): xlib.PDisplay =
   result = x11_drawable_get_xdisplay(win)
-proc DRAWABLE_XID*(win: gdk2.PDrawable): TXID =
+proc DRAWABLE_XID*(win: gdk2.PDrawable): XID =
   result = x11_drawable_get_xid(win)
 proc SCREEN_XDISPLAY*(screen: gdk2.PScreen): xlib.PDisplay =
   result = x11_display_get_xdisplay(gdk2.get_display(screen))
