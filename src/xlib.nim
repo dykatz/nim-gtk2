@@ -8,7 +8,7 @@ type
   cunsigned* = cint
   Pcint* = ptr cint
   PPcint* = ptr Pcint
-  PPcuchar* = ptr ptr cuchar
+  PPcuchar* = ptr ptr uint8
   PWideChar* = ptr int16
   PPChar* = ptr cstring
   PPPChar* = ptr ptr cstring
@@ -36,9 +36,6 @@ type
   PStatus* = ptr Status
   Status* = cint
 
-{.deprecated: [TXPointer: XPointer].}
-{.deprecated: [TXBool: XBool].}
-{.deprecated: [TStatus: Status].}
 
 const
   QueuedAlready* = 0
@@ -725,9 +722,9 @@ type
     display*: PDisplay
     resourceid*: XID
     serial*: culong
-    error_code*: cuchar
-    request_code*: cuchar
-    minor_code*: cuchar
+    error_code*: uint8
+    request_code*: uint8
+    minor_code*: uint8
 
   PXAnyEvent* = ptr XAnyEvent
   XAnyEvent*{.final.} = object
@@ -795,79 +792,6 @@ type
     xcookie*: XGenericEventCookie
     pad: array[0..23, clong]
 
-{.deprecated: [TXExtData: XExtData].}
-{.deprecated: [TXExtCodes: XExtCodes].}
-{.deprecated: [TXPixmapFormatValues: XPixmapFormatValues].}
-{.deprecated: [TXGCValues: XGCValues].}
-{.deprecated: [TXGC: XGC].}
-{.deprecated: [TGC: GC].}
-{.deprecated: [TVisual: Visual].}
-{.deprecated: [TDepth: Depth].}
-{.deprecated: [TXDisplay: XDisplay].}
-{.deprecated: [TScreen: Screen].}
-{.deprecated: [TScreenFormat: ScreenFormat].}
-{.deprecated: [TXSetWindowAttributes: XSetWindowAttributes].}
-{.deprecated: [TXWindowAttributes: XWindowAttributes].}
-{.deprecated: [TXHostAddress: XHostAddress].}
-{.deprecated: [TXServerInterpretedAddress: XServerInterpretedAddress].}
-{.deprecated: [TF: F].}
-{.deprecated: [TXImage: XImage].}
-{.deprecated: [TXWindowChanges: XWindowChanges].}
-{.deprecated: [TXColor: XColor].}
-{.deprecated: [TXSegment: XSegment].}
-{.deprecated: [TXPoint: XPoint].}
-{.deprecated: [TXRectangle: XRectangle].}
-{.deprecated: [TXArc: XArc].}
-{.deprecated: [TXKeyboardControl: XKeyboardControl].}
-{.deprecated: [TXKeyboardState: XKeyboardState].}
-{.deprecated: [TXTimeCoord: XTimeCoord].}
-{.deprecated: [TXModifierKeymap: XModifierKeymap].}
-{.deprecated: [TDisplay: Display].}
-{.deprecated: [TPrivate: Private].}
-{.deprecated: [TXrmHashBucketRec: XrmHashBucketRec].}
-{.deprecated: [TXPrivDisplay: XPrivDisplay].}
-{.deprecated: [TXKeyEvent: XKeyEvent].}
-{.deprecated: [TXKeyPressedEvent: XKeyPressedEvent].}
-{.deprecated: [TXKeyReleasedEvent: XKeyReleasedEvent].}
-{.deprecated: [TXButtonEvent: XButtonEvent].}
-{.deprecated: [TXButtonPressedEvent: XButtonPressedEvent].}
-{.deprecated: [TXButtonReleasedEvent: XButtonReleasedEvent].}
-{.deprecated: [TXMotionEvent: XMotionEvent].}
-{.deprecated: [TXPointerMovedEvent: XPointerMovedEvent].}
-{.deprecated: [TXCrossingEvent: XCrossingEvent].}
-{.deprecated: [TXEnterWindowEvent: XEnterWindowEvent].}
-{.deprecated: [TXLeaveWindowEvent: XLeaveWindowEvent].}
-{.deprecated: [TXFocusChangeEvent: XFocusChangeEvent].}
-{.deprecated: [TXFocusInEvent: XFocusInEvent].}
-{.deprecated: [TXFocusOutEvent: XFocusOutEvent].}
-{.deprecated: [TXKeymapEvent: XKeymapEvent].}
-{.deprecated: [TXExposeEvent: XExposeEvent].}
-{.deprecated: [TXGraphicsExposeEvent: XGraphicsExposeEvent].}
-{.deprecated: [TXNoExposeEvent: XNoExposeEvent].}
-{.deprecated: [TXVisibilityEvent: XVisibilityEvent].}
-{.deprecated: [TXCreateWindowEvent: XCreateWindowEvent].}
-{.deprecated: [TXDestroyWindowEvent: XDestroyWindowEvent].}
-{.deprecated: [TXUnmapEvent: XUnmapEvent].}
-{.deprecated: [TXMapEvent: XMapEvent].}
-{.deprecated: [TXMapRequestEvent: XMapRequestEvent].}
-{.deprecated: [TXReparentEvent: XReparentEvent].}
-{.deprecated: [TXConfigureEvent: XConfigureEvent].}
-{.deprecated: [TXGravityEvent: XGravityEvent].}
-{.deprecated: [TXResizeRequestEvent: XResizeRequestEvent].}
-{.deprecated: [TXConfigureRequestEvent: XConfigureRequestEvent].}
-{.deprecated: [TXCirculateEvent: XCirculateEvent].}
-{.deprecated: [TXCirculateRequestEvent: XCirculateRequestEvent].}
-{.deprecated: [TXPropertyEvent: XPropertyEvent].}
-{.deprecated: [TXSelectionClearEvent: XSelectionClearEvent].}
-{.deprecated: [TXSelectionRequestEvent: XSelectionRequestEvent].}
-{.deprecated: [TXSelectionEvent: XSelectionEvent].}
-{.deprecated: [TXColormapEvent: XColormapEvent].}
-{.deprecated: [TXClientMessageData: XClientMessageData].}
-{.deprecated: [TXClientMessageEvent: XClientMessageEvent].}
-{.deprecated: [TXMappingEvent: XMappingEvent].}
-{.deprecated: [TXErrorEvent: XErrorEvent].}
-{.deprecated: [TXAnyEvent: XAnyEvent].}
-{.deprecated: [TXEvent: XEvent].}
 
 type
   PXCharStruct* = ptr XCharStruct
@@ -914,8 +838,8 @@ type
 
   PXChar2b* = ptr XChar2b
   XChar2b*{.final.} = object
-    byte1*: cuchar
-    byte2*: cuchar
+    byte1*: uint8
+    byte2*: uint8
 
   PXTextItem16* = ptr XTextItem16
   XTextItem16*{.final.} = object
@@ -962,19 +886,6 @@ type
     delta*: cint
     font_set*: XFontSet
 
-{.deprecated: [TXCharStruct: XCharStruct].}
-{.deprecated: [TXFontProp: XFontProp].}
-{.deprecated: [TXFontStruct: XFontStruct].}
-{.deprecated: [TXTextItem: XTextItem].}
-{.deprecated: [TXChar2b: XChar2b].}
-{.deprecated: [TXTextItem16: XTextItem16].}
-{.deprecated: [TXEDataObject: XEDataObject].}
-{.deprecated: [TXFontSetExtents: XFontSetExtents].}
-{.deprecated: [TXOM: XOM].}
-{.deprecated: [TXOC: XOC].}
-{.deprecated: [TXFontSet: XFontSet].}
-{.deprecated: [TXmbTextItem: XmbTextItem].}
-{.deprecated: [TXwcTextItem: XwcTextItem].}
 
 const
   XNRequiredCharSet* = "requiredCharSet"
@@ -1029,17 +940,6 @@ type
     count_styles*: cushort
     supported_styles*: PXIMStyle
 
-{.deprecated: [TXOMCharSetList: XOMCharSetList].}
-{.deprecated: [TXOrientation: XOrientation].}
-{.deprecated: [TXOMOrientation: XOMOrientation].}
-{.deprecated: [TXOMFontInfo: XOMFontInfo].}
-{.deprecated: [TXIM: XIM].}
-{.deprecated: [TXIC: XIC].}
-{.deprecated: [TXIMProc: XIMProc].}
-{.deprecated: [TXICProc: XICProc].}
-{.deprecated: [TXIDProc: XIDProc].}
-{.deprecated: [TXIMStyle: XIMStyle].}
-{.deprecated: [TXIMStyles: XIMStyles].}
 
 const
   XIMPreeditArea* = 0x00000001
@@ -1116,10 +1016,6 @@ type
   PXIMFeedback* = ptr XIMFeedback
   XIMFeedback* = culong
 
-{.deprecated: [TXVaNestedList: XVaNestedList].}
-{.deprecated: [TXIMCallback: XIMCallback].}
-{.deprecated: [TXICCallback: XICCallback].}
-{.deprecated: [TXIMFeedback: XIMFeedback].}
 
 const
   XIMReverse* = 1
@@ -1143,8 +1039,6 @@ type
   PXIMPreeditState* = ptr XIMPreeditState
   XIMPreeditState* = culong
 
-{.deprecated: [TXIMText: XIMText].}
-{.deprecated: [TXIMPreeditState: XIMPreeditState].}
 
 const
   XIMPreeditUnKnown* = 0
@@ -1159,8 +1053,6 @@ type
   PXIMResetState* = ptr XIMResetState
   XIMResetState* = culong
 
-{.deprecated: [TXIMPreeditStateNotifyCallbackStruct: XIMPreeditStateNotifyCallbackStruct].}
-{.deprecated: [TXIMResetState: XIMResetState].}
 
 const
   XIMInitialState* = 1
@@ -1170,7 +1062,6 @@ type
   PXIMStringConversionFeedback* = ptr XIMStringConversionFeedback
   XIMStringConversionFeedback* = culong
 
-{.deprecated: [TXIMStringConversionFeedback: XIMStringConversionFeedback].}
 
 const
   XIMStringConversionLeftEdge* = 0x00000001
@@ -1194,9 +1085,6 @@ type
   PXIMStringConversionType* = ptr XIMStringConversionType
   XIMStringConversionType* = cushort
 
-{.deprecated: [TXIMStringConversionText: XIMStringConversionText].}
-{.deprecated: [TXIMStringConversionPosition: XIMStringConversionPosition].}
-{.deprecated: [TXIMStringConversionType: XIMStringConversionType].}
 
 const
   XIMStringConversionBuffer* = 0x00000001
@@ -1208,7 +1096,6 @@ type
   PXIMStringConversionOperation* = ptr XIMStringConversionOperation
   XIMStringConversionOperation* = cushort
 
-{.deprecated: [TXIMStringConversionOperation: XIMStringConversionOperation].}
 
 const
   XIMStringConversionSubstitution* = 0x00000001
@@ -1269,16 +1156,6 @@ type
   PXIMHotKeyState* = ptr XIMHotKeyState
   XIMHotKeyState* = culong
 
-{.deprecated: [TXIMCaretDirection: XIMCaretDirection].}
-{.deprecated: [TXIMStringConversionCallbackStruct: XIMStringConversionCallbackStruct].}
-{.deprecated: [TXIMPreeditDrawCallbackStruct: XIMPreeditDrawCallbackStruct].}
-{.deprecated: [TXIMCaretStyle: XIMCaretStyle].}
-{.deprecated: [TXIMPreeditCaretCallbackStruct: XIMPreeditCaretCallbackStruct].}
-{.deprecated: [TXIMStatusDataType: XIMStatusDataType].}
-{.deprecated: [TXIMStatusDrawCallbackStruct: XIMStatusDrawCallbackStruct].}
-{.deprecated: [TXIMHotKeyTrigger: XIMHotKeyTrigger].}
-{.deprecated: [TXIMHotKeyTriggers: XIMHotKeyTriggers].}
-{.deprecated: [TXIMHotKeyState: XIMHotKeyState].}
 
 const
   XIMHotKeyStateON* = 0x00000001
@@ -1290,7 +1167,6 @@ type
     count_values*: cushort
     supported_values*: PPChar
 
-{.deprecated: [TXIMValuesList: XIMValuesList].}
 
 
 type
@@ -1426,12 +1302,10 @@ proc XScreenNumberOfScreen*(para1: PScreen): cint{.libx11.}
 
 type
   XErrorHandler* = proc (para1: PDisplay, para2: PXErrorEvent): cint{.cdecl.}
-{.deprecated: [TXErrorHandler: XErrorHandler].}
 
 proc XSetErrorHandler*(para1: XErrorHandler): XErrorHandler{.libx11.}
 type
   XIOErrorHandler* = proc (para1: PDisplay): cint{.cdecl.}
-{.deprecated: [TXIOErrorHandler: XIOErrorHandler].}
 
 proc XSetIOErrorHandler*(para1: XIOErrorHandler): XIOErrorHandler{.libx11.}
 proc XListPixmapFormats*(para1: PDisplay, para2: Pcint): PXPixmapFormatValues{.
@@ -1975,7 +1849,6 @@ proc XUnregisterIMInstantiateCallback*(para1: PDisplay,
 type
   XConnectionWatchProc* = proc (para1: PDisplay, para2: XPointer, para3: cint,
                                  para4: XBool, para5: PXPointer){.cdecl.}
-{.deprecated: [TXConnectionWatchProc: XConnectionWatchProc].}
 
 proc XInternalConnectionNumbers*(para1: PDisplay, para2: PPcint, para3: Pcint): Status{.
     libx11.}

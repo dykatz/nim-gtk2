@@ -45,10 +45,6 @@ type
   PPictFormat* = ptr PictFormat
   PictFormat* = int32
 
-{.deprecated: [TGlyph: Glyph].}
-{.deprecated: [TGlyphSet: GlyphSet].}
-{.deprecated: [TPicture: Picture].}
-{.deprecated: [TPictFormat: PictFormat].}
 
 const
   RENDER_NAME* = "RENDER"
@@ -141,8 +137,6 @@ type
     direct*: XRenderDirectFormat
     colormap*: Colormap
 
-{.deprecated: [TXRenderDirectFormat: XRenderDirectFormat].}
-{.deprecated: [TXRenderPictFormat: XRenderPictFormat].}
 
 const
   PictFormatID* = 1 shl 0
@@ -218,12 +212,6 @@ type
     blue*: cushort
     alpha*: cushort
 
-{.deprecated: [TXRenderVisual: XRenderVisual].}
-{.deprecated: [TXRenderDepth: XRenderDepth].}
-{.deprecated: [TXRenderScreen: XRenderScreen].}
-{.deprecated: [TXRenderInfo: XRenderInfo].}
-{.deprecated: [TXRenderPictureAttributes: XRenderPictureAttributes].}
-{.deprecated: [TXGlyphInfo: XGlyphInfo].}
 
 proc XRenderQueryExtension*(dpy: PDisplay, event_basep: ptr int32,
                             error_basep: ptr int32): XBool{.libxrender.}

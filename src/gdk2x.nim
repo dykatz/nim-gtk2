@@ -1,6 +1,5 @@
-{.deadCodeElim: on.}
-import gdk2, glib2, gdk2pixbuf, pango, cairo
-import x, xlib , xutil
+import gdk2, glib2
+import x, xlib
 
 when defined(win32):
   const

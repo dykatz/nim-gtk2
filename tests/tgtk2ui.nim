@@ -58,6 +58,43 @@ suite "gtkmm-inspired Nim API":
     check button.isDestroyed
     expect ValueError: discard button.text
 
+  test "entry editing respects Unicode selections and emits activate":
+    let entry = newEntry("before")
+    defer: entry.destroy()
+    entry.selectAll()
+    entry.insertText("λπ")
+    check entry.text == "λπ"
+    entry.backspace()
+    check entry.text == "λ"
+    entry.selectAll()
+    entry.backspace()
+    check entry.text == ""
+    entry.insertText("42")
+    check entry.text == "42"
+    var activated = false
+    entry.onActivate(proc () = activated = true)
+    g.g_signal_emit_by_name(cast[pointer](entry.raw), "activate")
+    check activated
+
+  test "ProgressBar and Toolbar still work with private legacy ABI slots":
+    let window = newWindow()
+    defer: window.destroy()
+    let layout = newVBox()
+    window.add(layout)
+    let progress = rawGtk.progress_bar_new()
+    let toolbar = rawGtk.toolbar_new()
+    # Parenting sinks the floating references and window.destroy releases them.
+    rawGtk.pack_start(layout.raw, cast[rawGtk.PWidget](progress),
+      g.gbool(false), g.gbool(false), 0)
+    rawGtk.pack_start(layout.raw, cast[rawGtk.PWidget](toolbar),
+      g.gbool(false), g.gbool(false), 0)
+    rawGtk.set_fraction(progress, 0.5)
+    rawGtk.set_text(progress, "Halfway")
+    check rawGtk.get_fraction(progress) == 0.5
+    check $rawGtk.get_text(progress) == "Halfway"
+    check rawGtk.get_parent(cast[rawGtk.PWidget](toolbar)) ==
+      cast[rawGtk.PWidget](layout.raw)
+
   test "native destruction invalidates every wrapper copy":
     let button = newButton("raw")
     let alias = button

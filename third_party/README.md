@@ -16,7 +16,12 @@ Local changes: `cairoxlib.nim` uses the current X11 type names `Drawable` and
 `gdk2x` adapter likewise uses `XID` instead of `TXID`. `cairoft.nim` imports
 `freetype` and uses its `FT_Face` pointer type in place of the unavailable
 `freetypeh` module's `TFT_Face`. The FreeType sources are otherwise unmodified
-and retain their upstream directory structure.
+and retain their upstream directory structure. Cairo adapters use explicit
+`ptr` types instead of deprecated pointer aliases. Cairo's obsolete type aliases
+are removed, and `cairo.checkStatus` raises a typed, catchable `CairoError`.
+The core X11 modules (`x`, `xlib`, `xutil`, `xrender`) no longer contain old
+rename pragmas; Xlib's unsigned byte fields use `uint8` instead of `cuchar`.
+See [raw binding modernization](../docs/modern-bindings.md).
 X11 modules live directly in `src/` to support the existing unqualified imports
 in `gdk2x` and `cairoxlib`.
 

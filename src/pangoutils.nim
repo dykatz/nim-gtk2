@@ -1,4 +1,3 @@
-{.deadCodeElim: on.}
 import 
   glib2, pango
 
@@ -6,7 +5,7 @@ proc split_file_list*(str: cstring): PPchar{.cdecl, dynlib: lib,
     importc: "pango_split_file_list".}
 proc trim_string*(str: cstring): cstring{.cdecl, dynlib: lib, 
     importc: "pango_trim_string".}
-proc read_line*(stream: TFile, str: PGString): gint{.cdecl, dynlib: lib, 
+proc read_line*(stream: File, str: PGString): gint{.cdecl, dynlib: lib,
     importc: "pango_read_line".}
 proc skip_space*(pos: PPchar): gboolean{.cdecl, dynlib: lib, 
     importc: "pango_skip_space".}

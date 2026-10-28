@@ -13,7 +13,8 @@ var
 
 proc clickedMe(o: var PButton, l: PLabel) =
   inc counter
-  l.setText "You clicked me " & $counter & " times"
+  let message = "You clicked me " & $counter & " times"
+  l.setText message.cstring
 
 nim_init()
 win.setTitle "Click me"

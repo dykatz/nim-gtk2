@@ -1,4 +1,5 @@
-{.deadCodeElim: on.}
+## GTK2 raw bindings, excluding GTK2-deprecated and GTK_ENABLE_BROKEN widgets.
+## See docs/deprecated-widgets.md for the removal inventory and ABI exceptions.
 {.push gcsafe.}
 import
   glib2, atk, pango, gdk2pixbuf, gdk2
@@ -43,8 +44,6 @@ type
   TAttachOptions* = int32
   PButtonBoxStyle* = ptr TButtonBoxStyle
   TButtonBoxStyle* = int32
-  PCurveType* = ptr TCurveType
-  TCurveType* = int32
   PDeleteType* = ptr TDeleteType
   TDeleteType* = int32
   PDirectionType* = ptr TDirectionType
@@ -60,8 +59,6 @@ type
   TJustification* = int32
   PMenuDirectionType* = ptr TMenuDirectionType
   TMenuDirectionType* = int32
-  PMetricType* = ptr TMetricType
-  TMetricType* = int32
   PMovementStep* = ptr TMovementStep
   TMovementStep* = int32
   POrientation* = ptr TOrientation
@@ -110,9 +107,9 @@ type
   TSortType* = int32
   PStyle* = ptr TStyle
   PPGtkTreeModel* = ptr PTreeModel
-  TTreeModel = object
+  TTreeModel {.pure, final, incompleteStruct.} = object
   PTreeModel* = ptr TTreeModel
-  TTreePath = object
+  TTreePath {.pure, final, incompleteStruct.} = object
   PTreePath* = ptr TTreePath
   PTreeIter* = ptr TTreeIter
   PSelectionData* = ptr TSelectionData
@@ -871,195 +868,7 @@ type
                              user_data_or_owner: gpointer){.cdecl.}
   TClipboardClearFunc* = proc (clipboard: PClipboard,
                                user_data_or_owner: gpointer){.cdecl.}
-  PCList* = ptr TCList
-  PCListColumn* = ptr TCListColumn
-  PCListRow* = ptr TCListRow
-  PCell* = ptr TCell
-  PCellType* = ptr TCellType
-  TCellType* = enum
-    CELL_EMPTY, CELL_TEXT, CELL_PIXMAP, CELL_PIXTEXT, CELL_WIDGET
-  PCListDragPos* = ptr TCListDragPos
-  TCListDragPos* = enum
-    CLIST_DRAG_NONE, CLIST_DRAG_BEFORE, CLIST_DRAG_INTO, CLIST_DRAG_AFTER
-  PButtonAction* = ptr TButtonAction
-  TButtonAction* = int32
-  TCListCompareFunc* = proc (clist: PCList, ptr1: gconstpointer,
-                             ptr2: gconstpointer): gint{.cdecl.}
-  PCListCellInfo* = ptr TCListCellInfo
-  TCListCellInfo*{.final, pure.} = object
-    row*: gint
-    column*: gint
-
-  PCListDestInfo* = ptr TCListDestInfo
-  TCListDestInfo*{.final, pure.} = object
-    cell*: TCListCellInfo
-    insert_pos*: TCListDragPos
-
-  TCList* = object of TContainer
-    CList_flags*: guint16
-    row_mem_chunk*: PGMemChunk
-    cell_mem_chunk*: PGMemChunk
-    freeze_count*: guint
-    internal_allocation*: gdk2.TRectangle
-    rows*: gint
-    row_height*: gint
-    row_list*: PGList
-    row_list_end*: PGList
-    columns*: gint
-    column_title_area*: gdk2.TRectangle
-    title_window*: gdk2.PWindow
-    column*: PCListColumn
-    clist_window*: gdk2.PWindow
-    clist_window_width*: gint
-    clist_window_height*: gint
-    hoffset*: gint
-    voffset*: gint
-    shadow_type*: TShadowType
-    selection_mode*: TSelectionMode
-    selection*: PGList
-    selection_end*: PGList
-    undo_selection*: PGList
-    undo_unselection*: PGList
-    undo_anchor*: gint
-    button_actions*: array[0..4, guint8]
-    drag_button*: guint8
-    click_cell*: TCListCellInfo
-    hadjustment*: PAdjustment
-    vadjustment*: PAdjustment
-    xor_gc*: gdk2.PGC
-    fg_gc*: gdk2.PGC
-    bg_gc*: gdk2.PGC
-    cursor_drag*: gdk2.PCursor
-    x_drag*: gint
-    focus_row*: gint
-    focus_header_column*: gint
-    anchor*: gint
-    anchor_state*: TStateType
-    drag_pos*: gint
-    htimer*: gint
-    vtimer*: gint
-    sort_type*: TSortType
-    compare*: TCListCompareFunc
-    sort_column*: gint
-    drag_highlight_row*: gint
-    drag_highlight_pos*: TCListDragPos
-
-  PCListClass* = ptr TCListClass
-  TCListClass* = object of TContainerClass
-    set_scroll_adjustments*: proc (clist: PCList, hadjustment: PAdjustment,
-                                   vadjustment: PAdjustment){.cdecl.}
-    refresh*: proc (clist: PCList){.cdecl.}
-    select_row*: proc (clist: PCList, row: gint, column: gint, event: gdk2.PEvent){.
-        cdecl.}
-    unselect_row*: proc (clist: PCList, row: gint, column: gint,
-                         event: gdk2.PEvent){.cdecl.}
-    row_move*: proc (clist: PCList, source_row: gint, dest_row: gint){.cdecl.}
-    click_column*: proc (clist: PCList, column: gint){.cdecl.}
-    resize_column*: proc (clist: PCList, column: gint, width: gint){.cdecl.}
-    toggle_focus_row*: proc (clist: PCList){.cdecl.}
-    select_all*: proc (clist: PCList){.cdecl.}
-    unselect_all*: proc (clist: PCList){.cdecl.}
-    undo_selection*: proc (clist: PCList){.cdecl.}
-    start_selection*: proc (clist: PCList){.cdecl.}
-    end_selection*: proc (clist: PCList){.cdecl.}
-    extend_selection*: proc (clist: PCList, scroll_type: TScrollType,
-                             position: gfloat, auto_start_selection: gboolean){.
-        cdecl.}
-    scroll_horizontal*: proc (clist: PCList, scroll_type: TScrollType,
-                              position: gfloat){.cdecl.}
-    scroll_vertical*: proc (clist: PCList, scroll_type: TScrollType,
-                            position: gfloat){.cdecl.}
-    toggle_add_mode*: proc (clist: PCList){.cdecl.}
-    abort_column_resize*: proc (clist: PCList){.cdecl.}
-    resync_selection*: proc (clist: PCList, event: gdk2.PEvent){.cdecl.}
-    selection_find*: proc (clist: PCList, row_number: gint,
-                           row_list_element: PGList): PGList{.cdecl.}
-    draw_row*: proc (clist: PCList, area: gdk2.PRectangle, row: gint,
-                     clist_row: PCListRow){.cdecl.}
-    draw_drag_highlight*: proc (clist: PCList, target_row: PCListRow,
-                                target_row_number: gint, drag_pos: TCListDragPos){.
-        cdecl.}
-    clear*: proc (clist: PCList){.cdecl.}
-    fake_unselect_all*: proc (clist: PCList, row: gint){.cdecl.}
-    sort_list*: proc (clist: PCList){.cdecl.}
-    insert_row*: proc (clist: PCList, row: gint): gint{.cdecl, varargs.}
-    remove_row*: proc (clist: PCList, row: gint){.cdecl.}
-    set_cell_contents*: proc (clist: PCList, clist_row: PCListRow, column: gint,
-                              thetype: TCellType, text: cstring,
-                              spacing: guint8, pixmap: gdk2.PPixmap,
-                              mask: gdk2.PBitmap){.cdecl.}
-    cell_size_request*: proc (clist: PCList, clist_row: PCListRow, column: gint,
-                              requisition: PRequisition){.cdecl.}
-
-  PGPtrArray = pointer
   PGArray = pointer
-  TCListColumn*{.final, pure.} = object
-    title*: cstring
-    area*: gdk2.TRectangle
-    button*: PWidget
-    window*: gdk2.PWindow
-    width*: gint
-    min_width*: gint
-    max_width*: gint
-    justification*: TJustification
-    flag0*: guint16
-
-  TCListRow*{.final, pure.} = object
-    cell*: PCell
-    state*: TStateType
-    foreground*: gdk2.TColor
-    background*: gdk2.TColor
-    style*: PStyle
-    data*: gpointer
-    destroy*: TDestroyNotify
-    flag0*: guint16
-
-  PCellText* = ptr TCellText
-  TCellText*{.final, pure.} = object
-    `type`*: TCellType
-    vertical*: gint16
-    horizontal*: gint16
-    style*: PStyle
-    text*: cstring
-
-  PCellPixmap* = ptr TCellPixmap
-  TCellPixmap*{.final, pure.} = object
-    `type`*: TCellType
-    vertical*: gint16
-    horizontal*: gint16
-    style*: PStyle
-    pixmap*: gdk2.PPixmap
-    mask*: gdk2.PBitmap
-
-  PCellPixText* = ptr TCellPixText
-  TCellPixText*{.final, pure.} = object
-    `type`*: TCellType
-    vertical*: gint16
-    horizontal*: gint16
-    style*: PStyle
-    text*: cstring
-    spacing*: guint8
-    pixmap*: gdk2.PPixmap
-    mask*: gdk2.PBitmap
-
-  PCellWidget* = ptr TCellWidget
-  TCellWidget*{.final, pure.} = object
-    `type`*: TCellType
-    vertical*: gint16
-    horizontal*: gint16
-    style*: PStyle
-    widget*: PWidget
-
-  TCell*{.final, pure.} = object
-    `type`*: TCellType
-    vertical*: gint16
-    horizontal*: gint16
-    style*: PStyle
-    text*: cstring
-    spacing*: guint8
-    pixmap*: gdk2.PPixmap
-    mask*: gdk2.PBitmap
-
   PDialogFlags* = ptr TDialogFlags
   TDialogFlags* = int32
   PResponseType* = ptr TResponseType
@@ -1117,85 +926,6 @@ type
   THBox* = object of TBox
   PHBoxClass* = ptr THBoxClass
   THBoxClass* = object of TBoxClass
-  PCombo* = ptr TCombo
-  TCombo* = object of THBox
-    entry*: PWidget
-    button*: PWidget
-    popup*: PWidget
-    popwin*: PWidget
-    list*: PWidget
-    entry_change_id*: guint
-    list_change_id*: guint
-    Combo_flag0*: guint16
-    current_button*: guint16
-    activate_id*: guint
-
-  PComboClass* = ptr TComboClass
-  TComboClass* = object of THBoxClass
-    reserved231: proc (){.cdecl.}
-    reserved232: proc (){.cdecl.}
-    reserved233: proc (){.cdecl.}
-    reserved234: proc (){.cdecl.}
-
-  PCTreePos* = ptr TCTreePos
-  TCTreePos* = enum
-    CTREE_POS_BEFORE, CTREE_POS_AS_CHILD, CTREE_POS_AFTER
-  PCTreeLineStyle* = ptr TCTreeLineStyle
-  TCTreeLineStyle* = enum
-    CTREE_LINES_NONE, CTREE_LINES_SOLID, CTREE_LINES_DOTTED, CTREE_LINES_TABBED
-  PCTreeExpanderStyle* = ptr TCTreeExpanderStyle
-  TCTreeExpanderStyle* = enum
-    CTREE_EXPANDER_NONE, CTREE_EXPANDER_SQUARE, CTREE_EXPANDER_TRIANGLE,
-    CTREE_EXPANDER_CIRCULAR
-  PCTreeExpansionType* = ptr TCTreeExpansionType
-  TCTreeExpansionType* = enum
-    CTREE_EXPANSION_EXPAND, CTREE_EXPANSION_EXPAND_RECURSIVE,
-    CTREE_EXPANSION_COLLAPSE, CTREE_EXPANSION_COLLAPSE_RECURSIVE,
-    CTREE_EXPANSION_TOGGLE, CTREE_EXPANSION_TOGGLE_RECURSIVE
-  PCTree* = ptr TCTree
-  PCTreeNode* = ptr TCTreeNode
-  TCTreeFunc* = proc (ctree: PCTree, node: PCTreeNode, data: gpointer){.cdecl.}
-  TCTreeGNodeFunc* = proc (ctree: PCTree, depth: guint, gnode: PGNode,
-                           cnode: PCTreeNode, data: gpointer): gboolean{.cdecl.}
-  TCTreeCompareDragFunc* = proc (ctree: PCTree, source_node: PCTreeNode,
-                                 new_parent: PCTreeNode, new_sibling: PCTreeNode): gboolean{.
-      cdecl.}
-  TCTree* = object of TCList
-    lines_gc*: gdk2.PGC
-    tree_indent*: gint
-    tree_spacing*: gint
-    tree_column*: gint
-    CTree_flag0*: guint16
-    drag_compare*: TCTreeCompareDragFunc
-
-  PCTreeClass* = ptr TCTreeClass
-  TCTreeClass* = object of TCListClass
-    tree_select_row*: proc (ctree: PCTree, row: PCTreeNode, column: gint){.cdecl.}
-    tree_unselect_row*: proc (ctree: PCTree, row: PCTreeNode, column: gint){.
-        cdecl.}
-    tree_expand*: proc (ctree: PCTree, node: PCTreeNode){.cdecl.}
-    tree_collapse*: proc (ctree: PCTree, node: PCTreeNode){.cdecl.}
-    tree_move*: proc (ctree: PCTree, node: PCTreeNode, new_parent: PCTreeNode,
-                      new_sibling: PCTreeNode){.cdecl.}
-    change_focus_row_expansion*: proc (ctree: PCTree,
-                                       action: TCTreeExpansionType){.cdecl.}
-
-  PCTreeRow* = ptr TCTreeRow
-  TCTreeRow*{.final, pure.} = object
-    row*: TCListRow
-    parent*: PCTreeNode
-    sibling*: PCTreeNode
-    children*: PCTreeNode
-    pixmap_closed*: gdk2.PPixmap
-    mask_closed*: gdk2.PBitmap
-    pixmap_opened*: gdk2.PPixmap
-    mask_opened*: gdk2.PBitmap
-    level*: guint16
-    CTreeRow_flag0*: guint16
-
-  TCTreeNode*{.final, pure.} = object
-    list*: TGList
-
   PDrawingArea* = ptr TDrawingArea
   TDrawingArea* = object of TWidget
     draw_data*: gpointer
@@ -1209,31 +939,6 @@ type
 
   Tctlpoint* = array[0..1, gfloat]
   Pctlpoint* = ptr Tctlpoint
-  PCurve* = ptr TCurve
-  TCurve* = object of TDrawingArea
-    cursor_type*: gint
-    min_x*: gfloat
-    max_x*: gfloat
-    min_y*: gfloat
-    max_y*: gfloat
-    pixmap*: gdk2.PPixmap
-    curve_type*: TCurveType
-    height*: gint
-    grab_point*: gint
-    last*: gint
-    num_points*: gint
-    point*: gdk2.PPoint
-    num_ctlpoints*: gint
-    ctlpoint*: Pctlpoint
-
-  PCurveClass* = ptr TCurveClass
-  TCurveClass* = object of TDrawingAreaClass
-    curve_type_changed*: proc (curve: PCurve){.cdecl.}
-    reserved251: proc (){.cdecl.}
-    reserved252: proc (){.cdecl.}
-    reserved253: proc (){.cdecl.}
-    reserved254: proc (){.cdecl.}
-
   PDestDefaults* = ptr TDestDefaults
   TDestDefaults* = int32
   PTargetFlags* = ptr TTargetFlags
@@ -1403,38 +1108,6 @@ type
   TEventBox* = object of TBin
   PEventBoxClass* = ptr TEventBoxClass
   TEventBoxClass* = object of TBinClass
-  PFileSelection* = ptr TFileSelection
-  TFileSelection* = object of TDialog
-    dir_list*: PWidget
-    file_list*: PWidget
-    selection_entry*: PWidget
-    selection_text*: PWidget
-    main_vbox*: PWidget
-    ok_button*: PWidget
-    cancel_button*: PWidget
-    help_button*: PWidget
-    history_pulldown*: PWidget
-    history_menu*: PWidget
-    history_list*: PGList
-    fileop_dialog*: PWidget
-    fileop_entry*: PWidget
-    fileop_file*: cstring
-    cmpl_state*: gpointer
-    fileop_c_dir*: PWidget
-    fileop_del_file*: PWidget
-    fileop_ren_file*: PWidget
-    button_area*: PWidget
-    FileSelection_action_area*: PWidget
-    selected_names*: PGPtrArray
-    last_selected*: cstring
-
-  PFileSelectionClass* = ptr TFileSelectionClass
-  TFileSelectionClass* = object of TDialogClass
-    reserved301: proc (){.cdecl.}
-    reserved302: proc (){.cdecl.}
-    reserved303: proc (){.cdecl.}
-    reserved304: proc (){.cdecl.}
-
   PFixed* = ptr TFixed
   TFixed* = object of TContainer
     children*: PGList
@@ -1488,22 +1161,6 @@ type
     reserved322: proc (){.cdecl.}
     reserved323: proc (){.cdecl.}
     reserved324: proc (){.cdecl.}
-
-  PGammaCurve* = ptr TGammaCurve
-  TGammaCurve* = object of TVBox
-    table*: PWidget
-    curve*: PWidget
-    button*: array[0..4, PWidget]
-    gamma*: gfloat
-    gamma_dialog*: PWidget
-    gamma_text*: PWidget
-
-  PGammaCurveClass* = ptr TGammaCurveClass
-  TGammaCurveClass* = object of TVBoxClass
-    reserved331: proc (){.cdecl.}
-    reserved332: proc (){.cdecl.}
-    reserved333: proc (){.cdecl.}
-    reserved334: proc (){.cdecl.}
 
   PHandleBox* = ptr THandleBox
   THandleBox* = object of TBin
@@ -1566,40 +1223,6 @@ type
   THPaned* = object of TPaned
   PHPanedClass* = ptr THPanedClass
   THPanedClass* = object of TPanedClass
-  PRulerMetric* = ptr TRulerMetric
-  PRuler* = ptr TRuler
-  TRuler* = object of TWidget
-    backing_store*: gdk2.PPixmap
-    non_gr_exp_gc*: gdk2.PGC
-    metric*: PRulerMetric
-    xsrc*: gint
-    ysrc*: gint
-    slider_size*: gint
-    lower*: gdouble
-    upper*: gdouble
-    position*: gdouble
-    max_size*: gdouble
-
-  PRulerClass* = ptr TRulerClass
-  TRulerClass* = object of TWidgetClass
-    draw_ticks*: proc (ruler: PRuler){.cdecl.}
-    draw_pos*: proc (ruler: PRuler){.cdecl.}
-    reserved361: proc (){.cdecl.}
-    reserved362: proc (){.cdecl.}
-    reserved363: proc (){.cdecl.}
-    reserved364: proc (){.cdecl.}
-
-  TRulerMetric*{.final, pure.} = object
-    metric_name*: cstring
-    abbrev*: cstring
-    pixels_per_unit*: gdouble
-    ruler_scale*: array[0..9, gdouble]
-    subdivide*: array[0..4, gint]
-
-  PHRuler* = ptr THRuler
-  THRuler* = object of TRuler
-  PHRulerClass* = ptr THRulerClass
-  THRulerClass* = object of TRulerClass
   PRcContext* = pointer
   PSettings* = ptr TSettings
   TSettings* = object of TGObject
@@ -1942,9 +1565,9 @@ type
     frame_timeout*: guint
 
   PImageType* = ptr TImageType
-  TImageType* = enum
+  TImageType* {.size: sizeof(cint).} = enum
     IMAGE_EMPTY, IMAGE_PIXMAP, IMAGE_IMAGE, IMAGE_PIXBUF, IMAGE_STOCK,
-    IMAGE_ICON_SET, IMAGE_ANIMATION
+    IMAGE_ICON_SET, IMAGE_ANIMATION, IMAGE_ICON_NAME, IMAGE_GICON
   PImage* = ptr TImage
   TImage* = object of TMisc
     storage_type*: TImageType
@@ -1987,27 +1610,6 @@ type
     reserved452: proc (){.cdecl.}
     reserved453: proc (){.cdecl.}
     reserved454: proc (){.cdecl.}
-
-  PInputDialog* = ptr TInputDialog
-  TInputDialog* = object of TDialog
-    axis_list*: PWidget
-    axis_listbox*: PWidget
-    mode_optionmenu*: PWidget
-    close_button*: PWidget
-    save_button*: PWidget
-    axis_items*: array[0..(gdk2.AXIS_LAST) - 1, PWidget]
-    current_device*: gdk2.PDevice
-    keys_list*: PWidget
-    keys_listbox*: PWidget
-
-  PInputDialogClass* = ptr TInputDialogClass
-  TInputDialogClass* = object of TDialogClass
-    enable_device*: proc (inputd: PInputDialog, device: gdk2.PDevice){.cdecl.}
-    disable_device*: proc (inputd: PInputDialog, device: gdk2.PDevice){.cdecl.}
-    reserved461: proc (){.cdecl.}
-    reserved462: proc (){.cdecl.}
-    reserved463: proc (){.cdecl.}
-    reserved464: proc (){.cdecl.}
 
   PInvisible* = ptr TInvisible
   TInvisible* = object of TWidget
@@ -2080,27 +1682,6 @@ type
     reserved482: proc (){.cdecl.}
     reserved483: proc (){.cdecl.}
     reserved484: proc (){.cdecl.}
-
-  PList* = ptr TList
-  TList* = object of TContainer
-    children*: PGList
-    selection*: PGList
-    undo_selection*: PGList
-    undo_unselection*: PGList
-    last_focus_child*: PWidget
-    undo_focus_child*: PWidget
-    htimer*: guint
-    vtimer*: guint
-    anchor*: gint
-    drag_pos*: gint
-    anchor_state*: TStateType
-    List_flag0*: guint16
-
-  PListClass* = ptr TListClass
-  TListClass* = object of TContainerClass
-    selection_changed*: proc (list: PList){.cdecl.}
-    select_child*: proc (list: PList, child: PWidget){.cdecl.}
-    unselect_child*: proc (list: PList, child: PWidget){.cdecl.}
 
   TTreeModelForeachFunc* = proc (model: PTreeModel, path: PTreePath,
                                  iter: PTreeIter, data: gpointer): gboolean{.
@@ -2226,10 +1807,10 @@ type
     reserved514: proc (){.cdecl.}
 
   PMessageType* = ptr TMessageType
-  TMessageType* = enum
-    MESSAGE_INFO, MESSAGE_WARNING, MESSAGE_QUESTION, MESSAGE_ERROR
+  TMessageType* {.size: sizeof(cint).} = enum
+    MESSAGE_INFO, MESSAGE_WARNING, MESSAGE_QUESTION, MESSAGE_ERROR, MESSAGE_OTHER
   PButtonsType* = ptr TButtonsType
-  TButtonsType* = enum
+  TButtonsType* {.size: sizeof(cint).} = enum
     BUTTONS_NONE, BUTTONS_OK, BUTTONS_CLOSE, BUTTONS_CANCEL, BUTTONS_YES_NO,
     BUTTONS_OK_CANCEL
   PMessageDialog* = ptr TMessageDialog
@@ -2277,62 +1858,6 @@ type
     reserved533: proc (){.cdecl.}
     reserved534: proc (){.cdecl.}
 
-  POldEditable* = ptr TOldEditable
-  TOldEditable* = object of TWidget
-    current_pos*: guint
-    selection_start_pos*: guint
-    selection_end_pos*: guint
-    OldEditable_flag0*: guint16
-    clipboard_text*: cstring
-
-  TTextFunction* = proc (editable: POldEditable, time: guint32){.cdecl.}
-  POldEditableClass* = ptr TOldEditableClass
-  TOldEditableClass* = object of TWidgetClass
-    activate*: proc (editable: POldEditable){.cdecl.}
-    set_editable*: proc (editable: POldEditable, is_editable: gboolean){.cdecl.}
-    move_cursor*: proc (editable: POldEditable, x: gint, y: gint){.cdecl.}
-    move_word*: proc (editable: POldEditable, n: gint){.cdecl.}
-    move_page*: proc (editable: POldEditable, x: gint, y: gint){.cdecl.}
-    move_to_row*: proc (editable: POldEditable, row: gint){.cdecl.}
-    move_to_column*: proc (editable: POldEditable, row: gint){.cdecl.}
-    kill_char*: proc (editable: POldEditable, direction: gint){.cdecl.}
-    kill_word*: proc (editable: POldEditable, direction: gint){.cdecl.}
-    kill_line*: proc (editable: POldEditable, direction: gint){.cdecl.}
-    cut_clipboard*: proc (editable: POldEditable){.cdecl.}
-    copy_clipboard*: proc (editable: POldEditable){.cdecl.}
-    paste_clipboard*: proc (editable: POldEditable){.cdecl.}
-    update_text*: proc (editable: POldEditable, start_pos: gint, end_pos: gint){.
-        cdecl.}
-    get_chars*: proc (editable: POldEditable, start_pos: gint, end_pos: gint): cstring{.
-        cdecl.}
-    set_selection*: proc (editable: POldEditable, start_pos: gint, end_pos: gint){.
-        cdecl.}
-    set_position*: proc (editable: POldEditable, position: gint){.cdecl.}
-
-  POptionMenu* = ptr TOptionMenu
-  TOptionMenu* = object of TButton
-    menu*: PWidget
-    menu_item*: PWidget
-    width*: guint16
-    height*: guint16
-
-  POptionMenuClass* = ptr TOptionMenuClass
-  TOptionMenuClass* = object of TButtonClass
-    changed*: proc (option_menu: POptionMenu){.cdecl.}
-    reserved541: proc (){.cdecl.}
-    reserved542: proc (){.cdecl.}
-    reserved543: proc (){.cdecl.}
-    reserved544: proc (){.cdecl.}
-
-  PPixmap* = ptr TPixmap
-  TPixmap* = object of TMisc
-    pixmap*: gdk2.PPixmap
-    mask*: gdk2.PBitmap
-    pixmap_insensitive*: gdk2.PPixmap
-    Pixmap_flag0*: guint16
-
-  PPixmapClass* = ptr TPixmapClass
-  TPixmapClass* = object of TMiscClass
   PPlug* = ptr TPlug
   TPlug* = object of TWindow
     socket_window*: gdk2.PWindow
@@ -2349,43 +1874,21 @@ type
     reserved553: proc (){.cdecl.}
     reserved554: proc (){.cdecl.}
 
-  PPreview* = ptr TPreview
-  TPreview* = object of TWidget
-    buffer*: Pguchar
-    buffer_width*: guint16
-    buffer_height*: guint16
-    bpp*: guint16
-    rowstride*: guint16
-    dither*: gdk2.TRgbDither
-    Preview_flag0*: guint16
+  # GtkProgress is deprecated but embedded in GtkProgressBar's C layout.
+  # Retain only private ABI storage, never a public GtkProgress binding.
+  ProgressLayoutPtr = ptr ProgressLayout
+  ProgressLayout = object of TWidget
+    adjustment: PAdjustment
+    offscreen_pixmap: gdk2.PPixmap
+    format: cstring
+    x_align: gfloat
+    y_align: gfloat
+    Progress_flag0: guint16
 
-  PPreviewInfo* = ptr TPreviewInfo
-  TPreviewInfo*{.final, pure.} = object
-    lookup*: Pguchar
-    gamma*: gdouble
-
-  PDitherInfo* = ptr TDitherInfo
-  TDitherInfo*{.final, pure.} = object
-    c*: array[0..3, guchar]
-
-  PPreviewClass* = ptr TPreviewClass
-  TPreviewClass* = object of TWidgetClass
-    info*: TPreviewInfo
-
-  PProgress* = ptr TProgress
-  TProgress* = object of TWidget
-    adjustment*: PAdjustment
-    offscreen_pixmap*: gdk2.PPixmap
-    format*: cstring
-    x_align*: gfloat
-    y_align*: gfloat
-    Progress_flag0*: guint16
-
-  PProgressClass* = ptr TProgressClass
-  TProgressClass* = object of TWidgetClass
-    paint*: proc (progress: PProgress){.cdecl.}
-    update*: proc (progress: PProgress){.cdecl.}
-    act_mode_enter*: proc (progress: PProgress){.cdecl.}
+  ProgressClassLayout = object of TWidgetClass
+    paint: proc (progress: ProgressLayoutPtr){.cdecl.}
+    update: proc (progress: ProgressLayoutPtr){.cdecl.}
+    act_mode_enter: proc (progress: ProgressLayoutPtr){.cdecl.}
     reserved561: proc (){.cdecl.}
     reserved562: proc (){.cdecl.}
     reserved563: proc (){.cdecl.}
@@ -2399,7 +1902,7 @@ type
     PROGRESS_LEFT_TO_RIGHT, PROGRESS_RIGHT_TO_LEFT, PROGRESS_BOTTOM_TO_TOP,
     PROGRESS_TOP_TO_BOTTOM
   PProgressBar* = ptr TProgressBar
-  TProgressBar* = object of TProgress
+  TProgressBar* = object of ProgressLayout
     bar_style*: TProgressBarStyle
     orientation*: TProgressBarOrientation
     blocks*: guint
@@ -2411,7 +1914,7 @@ type
     ProgressBar_flag0*: guint16
 
   PProgressBarClass* = ptr TProgressBarClass
-  TProgressBarClass* = object of TProgressClass
+  TProgressBarClass* = object of ProgressClassLayout
     reserved571: proc (){.cdecl.}
     reserved572: proc (){.cdecl.}
     reserved573: proc (){.cdecl.}
@@ -2627,59 +2130,6 @@ type
     reserved652: proc (){.cdecl.}
     reserved653: proc (){.cdecl.}
     reserved654: proc (){.cdecl.}
-
-  PTextFont* = pointer
-  PPropertyMark* = ptr TPropertyMark
-  TPropertyMark*{.final, pure.} = object
-    `property`*: PGList
-    offset*: guint
-    index*: guint
-
-  PText* = ptr TText
-  TText* = object of TOldEditable
-    text_area*: gdk2.PWindow
-    hadj*: PAdjustment
-    vadj*: PAdjustment
-    gc*: gdk2.PGC
-    line_wrap_bitmap*: gdk2.PPixmap
-    line_arrow_bitmap*: gdk2.PPixmap
-    text*: Pguchar
-    text_len*: guint
-    gap_position*: guint
-    gap_size*: guint
-    text_end*: guint
-    line_start_cache*: PGList
-    first_line_start_index*: guint
-    first_cut_pixels*: guint
-    first_onscreen_hor_pixel*: guint
-    first_onscreen_ver_pixel*: guint
-    Text_flag0*: guint16
-    freeze_count*: guint
-    text_properties*: PGList
-    text_properties_end*: PGList
-    point*: TPropertyMark
-    scratch_buffer*: Pguchar
-    scratch_buffer_len*: guint
-    last_ver_value*: gint
-    cursor_pos_x*: gint
-    cursor_pos_y*: gint
-    cursor_mark*: TPropertyMark
-    cursor_char*: gdk2.TWChar
-    cursor_char_offset*: gchar
-    cursor_virtual_x*: gint
-    cursor_drawn_level*: gint
-    current_line*: PGList
-    tab_stops*: PGList
-    default_tab_width*: gint
-    current_font*: PTextFont
-    timer*: gint
-    button*: guint
-    bg_gc*: gdk2.PGC
-
-  PTextClass* = ptr TTextClass
-  TTextClass* = object of TOldEditableClass
-    set_scroll_adjustments*: proc (text: PText, hadjustment: PAdjustment,
-                                   vadjustment: PAdjustment){.cdecl.}
 
   PTextSearchFlags* = ptr TTextSearchFlags
   TTextSearchFlags* = int32
@@ -3043,54 +2493,6 @@ type
     reserved717: proc (){.cdecl.}
     reserved718: proc (){.cdecl.}
 
-  PTipsQuery* = ptr TTipsQuery
-  TTipsQuery* = object of TLabel
-    TipsQuery_flag0*: guint16
-    label_inactive*: cstring
-    label_no_tip*: cstring
-    caller*: PWidget
-    last_crossed*: PWidget
-    query_cursor*: gdk2.PCursor
-
-  PTipsQueryClass* = ptr TTipsQueryClass
-  TTipsQueryClass* = object of TLabelClass
-    start_query*: proc (tips_query: PTipsQuery){.cdecl.}
-    stop_query*: proc (tips_query: PTipsQuery){.cdecl.}
-    widget_entered*: proc (tips_query: PTipsQuery, widget: PWidget,
-                           tip_text: cstring, tip_private: cstring){.cdecl.}
-    widget_selected*: proc (tips_query: PTipsQuery, widget: PWidget,
-                            tip_text: cstring, tip_private: cstring,
-                            event: gdk2.PEventButton): gint{.cdecl.}
-    reserved721: proc (){.cdecl.}
-    reserved722: proc (){.cdecl.}
-    reserved723: proc (){.cdecl.}
-    reserved724: proc (){.cdecl.}
-
-  PTooltips* = ptr TTooltips
-  PTooltipsData* = ptr TTooltipsData
-  TTooltipsData*{.final, pure.} = object
-    tooltips*: PTooltips
-    widget*: PWidget
-    tip_text*: cstring
-    tip_private*: cstring
-
-  TTooltips* = object of TObject
-    tip_window*: PWidget
-    tip_label*: PWidget
-    active_tips_data*: PTooltipsData
-    tips_data_list*: PGList
-    Tooltips_flag0*: uint32
-    flag1*: guint16
-    timer_tag*: gint
-    last_popdown*: TGTimeVal
-
-  PTooltipsClass* = ptr TTooltipsClass
-  TTooltipsClass* = object of TObjectClass
-    reserved1: proc (){.cdecl.}
-    reserved2: proc (){.cdecl.}
-    reserved3: proc (){.cdecl.}
-    reserved4: proc (){.cdecl.}
-
   PToolbarChildType* = ptr TToolbarChildType
   TToolbarChildType* = enum
     TOOLBAR_CHILD_SPACE, TOOLBAR_CHILD_BUTTON, TOOLBAR_CHILD_TOGGLEBUTTON,
@@ -3112,7 +2514,7 @@ type
     orientation*: TOrientation
     Toolbar_style*: TToolbarStyle
     icon_size*: TIconSize
-    tooltips*: PTooltips
+    legacyTooltips: pointer # Private ABI slot, not a GtkTooltips API.
     button_maxw*: gint
     button_maxh*: gint
     style_set_connection*: guint
@@ -3132,23 +2534,6 @@ type
   PTreeViewMode* = ptr TTreeViewMode
   TTreeViewMode* = enum
     TREE_VIEW_LINE, TREE_VIEW_ITEM
-  PTree* = ptr TTree
-  TTree* = object of TContainer
-    children*: PGList
-    root_tree*: PTree
-    tree_owner*: PWidget
-    selection*: PGList
-    level*: guint
-    indent_value*: guint
-    current_indent*: guint
-    Tree_flag0*: guint16
-
-  PTreeClass* = ptr TTreeClass
-  TTreeClass* = object of TContainerClass
-    selection_changed*: proc (tree: PTree){.cdecl.}
-    select_child*: proc (tree: PTree, child: PWidget){.cdecl.}
-    unselect_child*: proc (tree: PTree, child: PWidget){.cdecl.}
-
   PTreeDragSource* = pointer
   PTreeDragDest* = pointer
   PTreeDragSourceIface* = ptr TTreeDragSourceIface
@@ -3166,20 +2551,6 @@ type
                                selection_data: PSelectionData): gboolean{.cdecl.}
     row_drop_possible*: proc (drag_dest: PTreeDragDest, dest_path: PTreePath,
                               selection_data: PSelectionData): gboolean{.cdecl.}
-
-  PTreeItem* = ptr TTreeItem
-  TTreeItem* = object of TItem
-    subtree*: PWidget
-    pixmaps_box*: PWidget
-    plus_pix_widget*: PWidget
-    minus_pix_widget*: PWidget
-    pixmaps*: PGList
-    TreeItem_flag0*: guint16
-
-  PTreeItemClass* = ptr TTreeItemClass
-  TTreeItemClass* = object of TItemClass
-    expand*: proc (tree_item: PTreeItem){.cdecl.}
-    collapse*: proc (tree_item: PTreeItem){.cdecl.}
 
   PTreeSelection* = ptr TTreeSelection
   TTreeSelectionFunc* = proc (selection: PTreeSelection, model: PTreeModel,
@@ -3290,7 +2661,8 @@ type
     offset*: gint
     children*: PRBTree
 
-  PTreeRowReference* = pointer
+  TreeRowReference* {.pure, final, incompleteStruct.} = object
+  PTreeRowReference* = ptr TreeRowReference
   PTreeViewFlags* = ptr TTreeViewFlags
   TTreeViewFlags* = int32
   TTreeViewSearchDialogPositionFunc* = proc (tree_view: PTreeView,
@@ -3431,10 +2803,6 @@ type
   TVPaned* = object of TPaned
   PVPanedClass* = ptr TVPanedClass
   TVPanedClass* = object of TPanedClass
-  PVRuler* = ptr TVRuler
-  TVRuler* = object of TRuler
-  PVRulerClass* = ptr TVRulerClass
-  TVRulerClass* = object of TRulerClass
   PVScale* = ptr TVScale
   TVScale* = object of TScale
   PVScaleClass* = ptr TVScaleClass
@@ -3583,6 +2951,8 @@ proc show*(widget: PWidget){.cdecl, dynlib: lib,
                                     importc: "gtk_widget_show".}
 proc show_now*(widget: PWidget){.cdecl, dynlib: lib,
                                         importc: "gtk_widget_show_now".}
+proc get_visible*(widget: PWidget): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_widget_get_visible".}
 proc hide*(widget: PWidget){.cdecl, dynlib: lib,
                                     importc: "gtk_widget_hide".}
 proc show_all*(widget: PWidget){.cdecl, dynlib: lib,
@@ -3660,6 +3030,10 @@ proc get_name*(widget: PWidget): cstring{.cdecl, dynlib: lib,
     importc: "gtk_widget_get_name".}
 proc set_state*(widget: PWidget, state: TStateType){.cdecl, dynlib: lib,
     importc: "gtk_widget_set_state".}
+proc set_can_default*(widget: PWidget, can_default: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_widget_set_can_default".}
+proc get_sensitive*(widget: PWidget): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_widget_get_sensitive".}
 proc set_sensitive*(widget: PWidget, sensitive: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_widget_set_sensitive".}
 proc set_app_paintable*(widget: PWidget, app_paintable: gboolean){.cdecl,
@@ -4467,6 +3841,15 @@ proc set_upper*(adjustment: PAdjustment, val: gdouble){.cdecl,
     dynlib: lib, importc: "gtk_adjustment_set_upper".}
 proc get_page_size*(adjustment: PAdjustment): gdouble{.cdecl,
     dynlib: lib, importc: "gtk_adjustment_get_page_size".}
+proc get_lower*(adjustment: PAdjustment): gdouble {.cdecl, dynlib: lib,
+    importc: "gtk_adjustment_get_lower".}
+proc get_step_increment*(adjustment: PAdjustment): gdouble {.cdecl, dynlib: lib,
+    importc: "gtk_adjustment_get_step_increment".}
+proc get_page_increment*(adjustment: PAdjustment): gdouble {.cdecl, dynlib: lib,
+    importc: "gtk_adjustment_get_page_increment".}
+proc configure*(adjustment: PAdjustment, value, lower, upper, step_increment,
+                page_increment, page_size: gdouble) {.cdecl, dynlib: lib,
+    importc: "gtk_adjustment_configure".}
 proc TYPE_ALIGNMENT*(): GType
 proc ALIGNMENT*(obj: pointer): PAlignment
 proc ALIGNMENT_CLASS*(klass: pointer): PAlignmentClass
@@ -5165,227 +4548,11 @@ proc wait_for_text*(clipboard: PClipboard): cstring{.cdecl,
 proc wait_is_text_available*(clipboard: PClipboard): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_clipboard_wait_is_text_available".}
 const
-  CLIST_IN_DRAG* = 1 shl 0
-  CLIST_ROW_HEIGHT_SET* = 1 shl 1
-  CLIST_SHOW_TITLES* = 1 shl 2
-  CLIST_ADD_MODE* = 1 shl 4
-  CLIST_AUTO_SORT* = 1 shl 5
-  CLIST_AUTO_RESIZE_BLOCKED* = 1 shl 6
-  CLIST_REORDERABLE* = 1 shl 7
-  CLIST_USE_DRAG_ICONS* = 1 shl 8
-  CLIST_DRAW_DRAG_LINE* = 1 shl 9
-  CLIST_DRAW_DRAG_RECT* = 1 shl 10
   BUTTON_IGNORED* = 0
   BUTTON_SELECTS* = 1 shl 0
   BUTTON_DRAGS* = 1 shl 1
   BUTTON_EXPANDS* = 1 shl 2
 
-const
-  bm_TGtkCListColumn_visible* = 0x0001'u16
-  bp_TGtkCListColumn_visible* = 0'u16
-  bm_TGtkCListColumn_width_set* = 0x0002'u16
-  bp_TGtkCListColumn_width_set* = 1'u16
-  bm_TGtkCListColumn_resizeable* = 0x0004'u16
-  bp_TGtkCListColumn_resizeable* = 2'u16
-  bm_TGtkCListColumn_auto_resize* = 0x0008'u16
-  bp_TGtkCListColumn_auto_resize* = 3'u16
-  bm_TGtkCListColumn_button_passive* = 0x0010'u16
-  bp_TGtkCListColumn_button_passive* = 4'u16
-  bm_TGtkCListRow_fg_set* = 0x0001'u16
-  bp_TGtkCListRow_fg_set* = 0'u16
-  bm_TGtkCListRow_bg_set* = 0x0002'u16
-  bp_TGtkCListRow_bg_set* = 1'u16
-  bm_TGtkCListRow_selectable* = 0x0004'u16
-  bp_TGtkCListRow_selectable* = 2'u16
-
-proc TYPE_CLIST*(): GType
-proc CLIST*(obj: pointer): PCList
-proc CLIST_CLASS*(klass: pointer): PCListClass
-proc IS_CLIST*(obj: pointer): bool
-proc IS_CLIST_CLASS*(klass: pointer): bool
-proc CLIST_GET_CLASS*(obj: pointer): PCListClass
-proc CLIST_FLAGS*(clist: pointer): guint16
-proc SET_FLAG*(clist: PCList, flag: guint16)
-proc UNSET_FLAG*(clist: PCList, flag: guint16)
-#proc GTK_CLIST_IN_DRAG_get*(clist: pointer): bool
-#proc GTK_CLIST_ROW_HEIGHT_SET_get*(clist: pointer): bool
-#proc GTK_CLIST_SHOW_TITLES_get*(clist: pointer): bool
-#proc GTK_CLIST_ADD_MODE_get*(clist: pointer): bool
-#proc GTK_CLIST_AUTO_SORT_get*(clist: pointer): bool
-#proc GTK_CLIST_AUTO_RESIZE_BLOCKED_get*(clist: pointer): bool
-#proc GTK_CLIST_REORDERABLE_get*(clist: pointer): bool
-#proc GTK_CLIST_USE_DRAG_ICONS_get*(clist: pointer): bool
-#proc GTK_CLIST_DRAW_DRAG_LINE_get*(clist: pointer): bool
-#proc GTK_CLIST_DRAW_DRAG_RECT_get*(clist: pointer): bool
-#proc GTK_CLIST_ROW_get*(glist: PGList): PGtkCListRow
-#proc GTK_CELL_TEXT_get*(cell: pointer): PGtkCellText
-#proc GTK_CELL_PIXMAP_get*(cell: pointer): PGtkCellPixmap
-#proc GTK_CELL_PIXTEXT_get*(cell: pointer): PGtkCellPixText
-#proc GTK_CELL_WIDGET_get*(cell: pointer): PGtkCellWidget
-
-proc visible*(a: PCListColumn): guint
-proc set_visible*(a: PCListColumn, `visible`: guint)
-proc width_set*(a: PCListColumn): guint
-proc set_width_set*(a: PCListColumn, `width_set`: guint)
-proc resizeable*(a: PCListColumn): guint
-proc set_resizeable*(a: PCListColumn, `resizeable`: guint)
-proc auto_resize*(a: PCListColumn): guint
-proc set_auto_resize*(a: PCListColumn, `auto_resize`: guint)
-proc button_passive*(a: PCListColumn): guint
-proc set_button_passive*(a: PCListColumn, `button_passive`: guint)
-proc fg_set*(a: PCListRow): guint
-proc set_fg_set*(a: PCListRow, `fg_set`: guint)
-proc bg_set*(a: PCListRow): guint
-proc set_bg_set*(a: PCListRow, `bg_set`: guint)
-proc selectable*(a: PCListRow): guint
-proc set_selectable*(a: PCListRow, `selectable`: guint)
-proc clist_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_clist_get_type".}
-proc clist_new*(columns: gint): PCList{.cdecl, dynlib: lib,
-                                        importc: "gtk_clist_new".}
-proc set_hadjustment*(clist: PCList, adjustment: PAdjustment){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_hadjustment".}
-proc set_vadjustment*(clist: PCList, adjustment: PAdjustment){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_vadjustment".}
-proc get_hadjustment*(clist: PCList): PAdjustment{.cdecl, dynlib: lib,
-    importc: "gtk_clist_get_hadjustment".}
-proc get_vadjustment*(clist: PCList): PAdjustment{.cdecl, dynlib: lib,
-    importc: "gtk_clist_get_vadjustment".}
-proc set_shadow_type*(clist: PCList, thetype: TShadowType){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_shadow_type".}
-proc set_selection_mode*(clist: PCList, mode: TSelectionMode){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_selection_mode".}
-proc set_reorderable*(clist: PCList, reorderable: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_reorderable".}
-proc set_use_drag_icons*(clist: PCList, use_icons: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_use_drag_icons".}
-proc set_button_actions*(clist: PCList, button: guint,
-                               button_actions: guint8){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_button_actions".}
-proc freeze*(clist: PCList){.cdecl, dynlib: lib,
-                                   importc: "gtk_clist_freeze".}
-proc thaw*(clist: PCList){.cdecl, dynlib: lib, importc: "gtk_clist_thaw".}
-proc column_titles_show*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_column_titles_show".}
-proc column_titles_hide*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_column_titles_hide".}
-proc column_title_active*(clist: PCList, column: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_column_title_active".}
-proc column_title_passive*(clist: PCList, column: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_column_title_passive".}
-proc column_titles_active*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_column_titles_active".}
-proc column_titles_passive*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_column_titles_passive".}
-proc set_column_title*(clist: PCList, column: gint, title: cstring){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_column_title".}
-proc get_column_title*(clist: PCList, column: gint): cstring{.cdecl,
-    dynlib: lib, importc: "gtk_clist_get_column_title".}
-proc set_column_widget*(clist: PCList, column: gint, widget: PWidget){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_column_widget".}
-proc get_column_widget*(clist: PCList, column: gint): PWidget{.cdecl,
-    dynlib: lib, importc: "gtk_clist_get_column_widget".}
-proc set_column_justification*(clist: PCList, column: gint,
-                                     justification: TJustification){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_column_justification".}
-proc set_column_visibility*(clist: PCList, column: gint, visible: gboolean){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_column_visibility".}
-proc set_column_resizeable*(clist: PCList, column: gint,
-                                  resizeable: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_column_resizeable".}
-proc set_column_auto_resize*(clist: PCList, column: gint,
-                                   auto_resize: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_column_auto_resize".}
-proc columns_autosize*(clist: PCList): gint{.cdecl, dynlib: lib,
-    importc: "gtk_clist_columns_autosize".}
-proc optimal_column_width*(clist: PCList, column: gint): gint{.cdecl,
-    dynlib: lib, importc: "gtk_clist_optimal_column_width".}
-proc set_column_width*(clist: PCList, column: gint, width: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_column_width".}
-proc set_column_min_width*(clist: PCList, column: gint, min_width: gint){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_column_min_width".}
-proc set_column_max_width*(clist: PCList, column: gint, max_width: gint){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_column_max_width".}
-proc set_row_height*(clist: PCList, height: guint){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_row_height".}
-proc moveto*(clist: PCList, row: gint, column: gint, row_align: gfloat,
-                   col_align: gfloat){.cdecl, dynlib: lib,
-                                       importc: "gtk_clist_moveto".}
-proc row_is_visible*(clist: PCList, row: gint): TVisibility{.cdecl,
-    dynlib: lib, importc: "gtk_clist_row_is_visible".}
-proc get_cell_type*(clist: PCList, row: gint, column: gint): TCellType{.
-    cdecl, dynlib: lib, importc: "gtk_clist_get_cell_type".}
-proc set_text*(clist: PCList, row: gint, column: gint, text: cstring){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_text".}
-proc get_text*(clist: PCList, row: gint, column: gint, text: PPgchar): gint{.
-    cdecl, dynlib: lib, importc: "gtk_clist_get_text".}
-proc set_pixmap*(clist: PCList, row: gint, column: gint,
-                       pixmap: gdk2.PPixmap, mask: gdk2.PBitmap){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_pixmap".}
-proc get_pixmap*(clist: PCList, row: gint, column: gint,
-                       pixmap: var gdk2.PPixmap, mask: var gdk2.PBitmap): gint{.
-    cdecl, dynlib: lib, importc: "gtk_clist_get_pixmap".}
-proc set_pixtext*(clist: PCList, row: gint, column: gint, text: cstring,
-                        spacing: guint8, pixmap: gdk2.PPixmap, mask: gdk2.PBitmap){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_pixtext".}
-proc set_foreground*(clist: PCList, row: gint, color: gdk2.PColor){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_foreground".}
-proc set_background*(clist: PCList, row: gint, color: gdk2.PColor){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_background".}
-proc set_cell_style*(clist: PCList, row: gint, column: gint, style: PStyle){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_cell_style".}
-proc get_cell_style*(clist: PCList, row: gint, column: gint): PStyle{.
-    cdecl, dynlib: lib, importc: "gtk_clist_get_cell_style".}
-proc set_row_style*(clist: PCList, row: gint, style: PStyle){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_row_style".}
-proc get_row_style*(clist: PCList, row: gint): PStyle{.cdecl, dynlib: lib,
-    importc: "gtk_clist_get_row_style".}
-proc set_shift*(clist: PCList, row: gint, column: gint, vertical: gint,
-                      horizontal: gint){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_shift".}
-proc set_selectable*(clist: PCList, row: gint, selectable: gboolean){.
-    cdecl, dynlib: lib, importc: "gtk_clist_set_selectable".}
-proc get_selectable*(clist: PCList, row: gint): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_clist_get_selectable".}
-proc remove*(clist: PCList, row: gint){.cdecl, dynlib: lib,
-    importc: "gtk_clist_remove".}
-proc set_row_data*(clist: PCList, row: gint, data: gpointer){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_row_data".}
-proc set_row_data_full*(clist: PCList, row: gint, data: gpointer,
-                              destroy: TDestroyNotify){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_row_data_full".}
-proc get_row_data*(clist: PCList, row: gint): gpointer{.cdecl,
-    dynlib: lib, importc: "gtk_clist_get_row_data".}
-proc find_row_from_data*(clist: PCList, data: gpointer): gint{.cdecl,
-    dynlib: lib, importc: "gtk_clist_find_row_from_data".}
-proc select_row*(clist: PCList, row: gint, column: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_select_row".}
-proc unselect_row*(clist: PCList, row: gint, column: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_unselect_row".}
-proc undo_selection*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_undo_selection".}
-proc clear*(clist: PCList){.cdecl, dynlib: lib, importc: "gtk_clist_clear".}
-proc get_selection_info*(clist: PCList, x: gint, y: gint, row: Pgint,
-                               column: Pgint): gint{.cdecl, dynlib: lib,
-    importc: "gtk_clist_get_selection_info".}
-proc select_all*(clist: PCList){.cdecl, dynlib: lib,
-                                       importc: "gtk_clist_select_all".}
-proc unselect_all*(clist: PCList){.cdecl, dynlib: lib,
-    importc: "gtk_clist_unselect_all".}
-proc swap_rows*(clist: PCList, row1: gint, row2: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_swap_rows".}
-proc row_move*(clist: PCList, source_row: gint, dest_row: gint){.cdecl,
-    dynlib: lib, importc: "gtk_clist_row_move".}
-proc set_compare_func*(clist: PCList, cmp_func: TCListCompareFunc){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_compare_func".}
-proc set_sort_column*(clist: PCList, column: gint){.cdecl, dynlib: lib,
-    importc: "gtk_clist_set_sort_column".}
-proc set_sort_type*(clist: PCList, sort_type: TSortType){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_sort_type".}
-proc sort*(clist: PCList){.cdecl, dynlib: lib, importc: "gtk_clist_sort".}
-proc set_auto_sort*(clist: PCList, auto_sort: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_clist_set_auto_sort".}
-proc create_cell_layout*(clist: PCList, clist_row: PCListRow, column: gint): pango.PLayout{.
-    cdecl, dynlib: lib, importc: "_gtk_clist_create_cell_layout".}
 const
   DIALOG_MODAL* = cint(1 shl 0)
   DIALOG_DESTROY_WITH_PARENT* = cint(1 shl 1)
@@ -5411,6 +4578,10 @@ proc DIALOG_GET_CLASS*(obj: pointer): PDialogClass
 proc dialog_get_type*(): TType{.cdecl, dynlib: lib,
                                 importc: "gtk_dialog_get_type".}
 proc dialog_new*(): PDialog{.cdecl, dynlib: lib, importc: "gtk_dialog_new".}
+proc get_content_area*(dialog: PDialog): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_dialog_get_content_area".}
+proc get_action_area*(dialog: PDialog): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_dialog_get_action_area".}
 proc add_action_widget*(dialog: PDialog, child: PWidget,
                                response_id: gint){.cdecl, dynlib: lib,
     importc: "gtk_dialog_add_action_widget".}
@@ -5429,8 +4600,6 @@ proc response*(dialog: PDialog, response_id: gint){.cdecl, dynlib: lib,
     importc: "gtk_dialog_response".}
 proc run*(dialog: PDialog): gint{.cdecl, dynlib: lib,
     importc: "gtk_dialog_run".}
-proc show_about_dialog*(parent: PWindow, firstPropertyName: cstring){.cdecl,
-    dynlib: lib, importc: "gtk_show_about_dialog", varargs.}
 proc TYPE_VBOX*(): GType
 proc VBOX*(obj: pointer): PVBox
 proc VBOX_CLASS*(klass: pointer): PVBoxClass
@@ -5510,247 +4679,6 @@ proc HBOX_GET_CLASS*(obj: pointer): PHBoxClass
 proc hbox_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_hbox_get_type".}
 proc hbox_new*(homogeneous: gboolean, spacing: gint): PHBox{.cdecl, dynlib: lib,
     importc: "gtk_hbox_new".}
-const
-  bm_TGtkCombo_value_in_list* = 0x0001'u16
-  bp_TGtkCombo_value_in_list* = 0'u16
-  bm_TGtkCombo_ok_if_empty* = 0x0002'u16
-  bp_TGtkCombo_ok_if_empty* = 1'u16
-  bm_TGtkCombo_case_sensitive* = 0x0004'u16
-  bp_TGtkCombo_case_sensitive* = 2'u16
-  bm_TGtkCombo_use_arrows* = 0x0008'u16
-  bp_TGtkCombo_use_arrows* = 3'u16
-  bm_TGtkCombo_use_arrows_always* = 0x0010'u16
-  bp_TGtkCombo_use_arrows_always* = 4'u16
-
-proc TYPE_COMBO*(): GType
-proc COMBO*(obj: pointer): PCombo
-proc COMBO_CLASS*(klass: pointer): PComboClass
-proc IS_COMBO*(obj: pointer): bool
-proc IS_COMBO_CLASS*(klass: pointer): bool
-proc COMBO_GET_CLASS*(obj: pointer): PComboClass
-proc value_in_list*(a: PCombo): guint
-proc set_value_in_list*(a: PCombo, `value_in_list`: guint)
-proc ok_if_empty*(a: PCombo): guint
-proc set_ok_if_empty*(a: PCombo, `ok_if_empty`: guint)
-proc case_sensitive*(a: PCombo): guint
-proc set_case_sensitive*(a: PCombo, `case_sensitive`: guint)
-proc use_arrows*(a: PCombo): guint
-proc set_use_arrows*(a: PCombo, `use_arrows`: guint)
-proc use_arrows_always*(a: PCombo): guint
-proc set_use_arrows_always*(a: PCombo, `use_arrows_always`: guint)
-proc combo_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_combo_get_type".}
-proc combo_new*(): PCombo{.cdecl, dynlib: lib, importc: "gtk_combo_new".}
-proc set_value_in_list*(combo: PCombo, val: gboolean,
-                              ok_if_empty: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_combo_set_value_in_list".}
-proc set_use_arrows*(combo: PCombo, val: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_combo_set_use_arrows".}
-proc set_use_arrows_always*(combo: PCombo, val: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_combo_set_use_arrows_always".}
-proc set_case_sensitive*(combo: PCombo, val: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_combo_set_case_sensitive".}
-proc set_item_string*(combo: PCombo, item: PItem, item_value: cstring){.
-    cdecl, dynlib: lib, importc: "gtk_combo_set_item_string".}
-proc set_popdown_strings*(combo: PCombo, strings: PGList){.cdecl,
-    dynlib: lib, importc: "gtk_combo_set_popdown_strings".}
-proc disable_activate*(combo: PCombo){.cdecl, dynlib: lib,
-    importc: "gtk_combo_disable_activate".}
-const
-  bm_TGtkCTree_line_style* = 0x0003'u16
-  bp_TGtkCTree_line_style* = 0'u16
-  bm_TGtkCTree_expander_style* = 0x000C'u16
-  bp_TGtkCTree_expander_style* = 2'u16
-  bm_TGtkCTree_show_stub* = 0x0010'u16
-  bp_TGtkCTree_show_stub* = 4'u16
-  bm_TGtkCTreeRow_is_leaf* = 0x0001'u16
-  bp_TGtkCTreeRow_is_leaf* = 0'u16
-  bm_TGtkCTreeRow_expanded* = 0x0002'u16
-  bp_TGtkCTreeRow_expanded* = 1'u16
-
-proc TYPE_CTREE*(): GType
-proc CTREE*(obj: pointer): PCTree
-proc CTREE_CLASS*(klass: pointer): PCTreeClass
-proc IS_CTREE*(obj: pointer): bool
-proc IS_CTREE_CLASS*(klass: pointer): bool
-proc CTREE_GET_CLASS*(obj: pointer): PCTreeClass
-proc CTREE_ROW*(node: ByteAddress): PCTreeRow
-proc CTREE_NODE*(node: ByteAddress): PCTreeNode
-proc CTREE_NODE_NEXT*(nnode: ByteAddress): PCTreeNode
-proc CTREE_NODE_PREV*(pnode: ByteAddress): PCTreeNode
-proc CTREE_FUNC*(fun: ByteAddress): TCTreeFunc
-proc TYPE_CTREE_NODE*(): GType
-proc line_style*(a: PCTree): guint
-proc set_line_style*(a: PCTree, `line_style`: guint)
-proc expander_style*(a: PCTree): guint
-proc set_expander_style*(a: PCTree, `expander_style`: guint)
-proc show_stub*(a: PCTree): guint
-proc set_show_stub*(a: PCTree, `show_stub`: guint)
-proc is_leaf*(a: PCTreeRow): guint
-proc set_is_leaf*(a: PCTreeRow, `is_leaf`: guint)
-proc expanded*(a: PCTreeRow): guint
-proc set_expanded*(a: PCTreeRow, `expanded`: guint)
-proc ctree_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_ctree_get_type".}
-proc ctree_new*(columns: gint, tree_column: gint): PCTree{.cdecl, dynlib: lib,
-    importc: "gtk_ctree_new".}
-proc insert_node*(ctree: PCTree, parent: PCTreeNode, sibling: PCTreeNode,
-                        text: openarray[cstring], spacing: guint8,
-                        pixmap_closed: gdk2.PPixmap, mask_closed: gdk2.PBitmap,
-                        pixmap_opened: gdk2.PPixmap, mask_opened: gdk2.PBitmap,
-                        is_leaf: gboolean, expanded: gboolean): PCTreeNode{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_insert_node".}
-proc remove_node*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_remove_node".}
-proc insert_gnode*(ctree: PCTree, parent: PCTreeNode, sibling: PCTreeNode,
-                         gnode: PGNode, fun: TCTreeGNodeFunc, data: gpointer): PCTreeNode{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_insert_gnode".}
-proc export_to_gnode*(ctree: PCTree, parent: PGNode, sibling: PGNode,
-                            node: PCTreeNode, fun: TCTreeGNodeFunc,
-                            data: gpointer): PGNode{.cdecl, dynlib: lib,
-    importc: "gtk_ctree_export_to_gnode".}
-proc post_recursive*(ctree: PCTree, node: PCTreeNode, fun: TCTreeFunc,
-                           data: gpointer){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_post_recursive".}
-proc post_recursive_to_depth*(ctree: PCTree, node: PCTreeNode,
-                                    depth: gint, fun: TCTreeFunc,
-                                    data: gpointer){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_post_recursive_to_depth".}
-proc pre_recursive*(ctree: PCTree, node: PCTreeNode, fun: TCTreeFunc,
-                          data: gpointer){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_pre_recursive".}
-proc pre_recursive_to_depth*(ctree: PCTree, node: PCTreeNode,
-                                   depth: gint, fun: TCTreeFunc,
-                                   data: gpointer){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_pre_recursive_to_depth".}
-proc is_viewable*(ctree: PCTree, node: PCTreeNode): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_ctree_is_viewable".}
-proc last*(ctree: PCTree, node: PCTreeNode): PCTreeNode{.cdecl,
-    dynlib: lib, importc: "gtk_ctree_last".}
-proc find_node_ptr*(ctree: PCTree, ctree_row: PCTreeRow): PCTreeNode{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_find_node_ptr".}
-proc node_nth*(ctree: PCTree, row: guint): PCTreeNode{.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_nth".}
-proc find*(ctree: PCTree, node: PCTreeNode, child: PCTreeNode): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_find".}
-proc is_ancestor*(ctree: PCTree, node: PCTreeNode, child: PCTreeNode): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_is_ancestor".}
-proc find_by_row_data*(ctree: PCTree, node: PCTreeNode, data: gpointer): PCTreeNode{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_find_by_row_data".}
-proc find_all_by_row_data*(ctree: PCTree, node: PCTreeNode,
-                                 data: gpointer): PGList{.cdecl, dynlib: lib,
-    importc: "gtk_ctree_find_all_by_row_data".}
-proc find_by_row_data_custom*(ctree: PCTree, node: PCTreeNode,
-                                    data: gpointer, fun: TGCompareFunc): PCTreeNode{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_find_by_row_data_custom".}
-proc find_all_by_row_data_custom*(ctree: PCTree, node: PCTreeNode,
-                                        data: gpointer, fun: TGCompareFunc): PGList{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_find_all_by_row_data_custom".}
-proc is_hot_spot*(ctree: PCTree, x: gint, y: gint): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_ctree_is_hot_spot".}
-proc move*(ctree: PCTree, node: PCTreeNode, new_parent: PCTreeNode,
-                 new_sibling: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_move".}
-proc expand*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_expand".}
-proc expand_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_expand_recursive".}
-proc expand_to_depth*(ctree: PCTree, node: PCTreeNode, depth: gint){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_expand_to_depth".}
-proc collapse*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_collapse".}
-proc collapse_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_collapse_recursive".}
-proc collapse_to_depth*(ctree: PCTree, node: PCTreeNode, depth: gint){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_collapse_to_depth".}
-proc toggle_expansion*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_toggle_expansion".}
-proc toggle_expansion_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_toggle_expansion_recursive".}
-proc select*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_select".}
-proc select_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_select_recursive".}
-proc unselect*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_unselect".}
-proc unselect_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_unselect_recursive".}
-proc real_select_recursive*(ctree: PCTree, node: PCTreeNode, state: gint){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_real_select_recursive".}
-proc node_set_text*(ctree: PCTree, node: PCTreeNode, column: gint,
-                          text: cstring){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_text".}
-proc node_set_pixmap*(ctree: PCTree, node: PCTreeNode, column: gint,
-                            pixmap: gdk2.PPixmap, mask: gdk2.PBitmap){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_node_set_pixmap".}
-proc node_set_pixtext*(ctree: PCTree, node: PCTreeNode, column: gint,
-                             text: cstring, spacing: guint8, pixmap: gdk2.PPixmap,
-                             mask: gdk2.PBitmap){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_pixtext".}
-proc set_node_info*(ctree: PCTree, node: PCTreeNode, text: cstring,
-                          spacing: guint8, pixmap_closed: gdk2.PPixmap,
-                          mask_closed: gdk2.PBitmap, pixmap_opened: gdk2.PPixmap,
-                          mask_opened: gdk2.PBitmap, is_leaf: gboolean,
-                          expanded: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_set_node_info".}
-proc node_set_shift*(ctree: PCTree, node: PCTreeNode, column: gint,
-                           vertical: gint, horizontal: gint){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_node_set_shift".}
-proc node_set_selectable*(ctree: PCTree, node: PCTreeNode,
-                                selectable: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_selectable".}
-proc node_get_selectable*(ctree: PCTree, node: PCTreeNode): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_get_selectable".}
-proc node_get_cell_type*(ctree: PCTree, node: PCTreeNode, column: gint): TCellType{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_get_cell_type".}
-proc node_get_text*(ctree: PCTree, node: PCTreeNode, column: gint,
-                          text: PPgchar): gboolean{.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_get_text".}
-proc node_set_row_style*(ctree: PCTree, node: PCTreeNode, style: PStyle){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_set_row_style".}
-proc node_get_row_style*(ctree: PCTree, node: PCTreeNode): PStyle{.cdecl,
-    dynlib: lib, importc: "gtk_ctree_node_get_row_style".}
-proc node_set_cell_style*(ctree: PCTree, node: PCTreeNode, column: gint,
-                                style: PStyle){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_cell_style".}
-proc node_get_cell_style*(ctree: PCTree, node: PCTreeNode, column: gint): PStyle{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_get_cell_style".}
-proc node_set_foreground*(ctree: PCTree, node: PCTreeNode,
-                                color: gdk2.PColor){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_foreground".}
-proc node_set_background*(ctree: PCTree, node: PCTreeNode,
-                                color: gdk2.PColor){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_node_set_background".}
-proc node_set_row_data*(ctree: PCTree, node: PCTreeNode, data: gpointer){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_set_row_data".}
-proc node_set_row_data_full*(ctree: PCTree, node: PCTreeNode,
-                                   data: gpointer, destroy: TDestroyNotify){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_set_row_data_full".}
-proc node_get_row_data*(ctree: PCTree, node: PCTreeNode): gpointer{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_get_row_data".}
-proc node_moveto*(ctree: PCTree, node: PCTreeNode, column: gint,
-                        row_align: gfloat, col_align: gfloat){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_node_moveto".}
-proc node_is_visible*(ctree: PCTree, node: PCTreeNode): TVisibility{.
-    cdecl, dynlib: lib, importc: "gtk_ctree_node_is_visible".}
-proc set_indent*(ctree: PCTree, indent: gint){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_set_indent".}
-proc set_spacing*(ctree: PCTree, spacing: gint){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_set_spacing".}
-proc set_show_stub*(ctree: PCTree, show_stub: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_set_show_stub".}
-proc set_line_style*(ctree: PCTree, line_style: TCTreeLineStyle){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_set_line_style".}
-proc set_expander_style*(ctree: PCTree,
-                               expander_style: TCTreeExpanderStyle){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_set_expander_style".}
-proc set_drag_compare_func*(ctree: PCTree, cmp_func: TCTreeCompareDragFunc){.
-    cdecl, dynlib: lib, importc: "gtk_ctree_set_drag_compare_func".}
-proc sort_node*(ctree: PCTree, node: PCTreeNode){.cdecl, dynlib: lib,
-    importc: "gtk_ctree_sort_node".}
-proc sort_recursive*(ctree: PCTree, node: PCTreeNode){.cdecl,
-    dynlib: lib, importc: "gtk_ctree_sort_recursive".}
-proc ctree_set_reorderable*(t: pointer, r: bool)
-proc ctree_node_get_type*(): GType{.cdecl, dynlib: lib,
-                                    importc: "gtk_ctree_node_get_type".}
 proc TYPE_DRAWING_AREA*(): GType
 proc DRAWING_AREA*(obj: pointer): PDrawingArea
 proc DRAWING_AREA_CLASS*(klass: pointer): PDrawingAreaClass
@@ -5761,22 +4689,6 @@ proc drawing_area_get_type*(): TType{.cdecl, dynlib: lib,
                                       importc: "gtk_drawing_area_get_type".}
 proc drawing_area_new*(): PDrawingArea{.cdecl, dynlib: lib,
                                         importc: "gtk_drawing_area_new".}
-proc TYPE_CURVE*(): GType
-proc CURVE*(obj: pointer): PCurve
-proc CURVE_CLASS*(klass: pointer): PCurveClass
-proc IS_CURVE*(obj: pointer): bool
-proc IS_CURVE_CLASS*(klass: pointer): bool
-proc CURVE_GET_CLASS*(obj: pointer): PCurveClass
-proc curve_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_curve_get_type".}
-proc curve_new*(): PCurve{.cdecl, dynlib: lib, importc: "gtk_curve_new".}
-proc reset*(curve: PCurve){.cdecl, dynlib: lib, importc: "gtk_curve_reset".}
-proc set_gamma*(curve: PCurve, gamma: gfloat){.cdecl, dynlib: lib,
-    importc: "gtk_curve_set_gamma".}
-proc set_range*(curve: PCurve, min_x: gfloat, max_x: gfloat,
-                      min_y: gfloat, max_y: gfloat){.cdecl, dynlib: lib,
-    importc: "gtk_curve_set_range".}
-proc set_curve_type*(curve: PCurve, thetype: TCurveType){.cdecl,
-    dynlib: lib, importc: "gtk_curve_set_curve_type".}
 const
   DEST_DEFAULT_MOTION* = 1 shl 0
   DEST_DEFAULT_HIGHLIGHT* = 1 shl 1
@@ -6182,9 +5094,6 @@ const
   BUTTONBOX_EDGE* = 2
   BUTTONBOX_START* = 3
   BUTTONBOX_END* = 4
-  CURVE_TYPE_LINEAR* = 0
-  CURVE_TYPE_SPLINE* = 1
-  CURVE_TYPE_FREE* = 2
   DELETE_CHARS* = 0
   DELETE_WORD_ENDS* = 1
   DELETE_WORDS* = 2
@@ -6221,9 +5130,6 @@ const
   MENU_DIR_CHILD* = 1
   MENU_DIR_NEXT* = 2
   MENU_DIR_PREV* = 3
-  PIXELS* = 0
-  INCHES* = 1
-  CENTIMETERS* = 2
   MOVEMENT_LOGICAL_POSITIONS* = 0
   MOVEMENT_VISUAL_POSITIONS* = 1
   MOVEMENT_WORDS* = 2
@@ -6257,8 +5163,6 @@ const
   POS_RIGHT* = 1
   POS_TOP* = 2
   POS_BOTTOM* = 3
-  PREVIEW_COLOR* = 0
-  PREVIEW_GRAYSCALE* = 1
   RELIEF_NORMAL* = 0
   RELIEF_HALF* = 1
   RELIEF_NONE* = 2
@@ -6320,6 +5224,7 @@ const
   WRAP_NONE* = 0
   WRAP_CHAR* = 1
   WRAP_WORD* = 2
+  WRAP_WORD_CHAR* = 3
   SORT_ASCENDING* = 0
   SORT_DESCENDING* = 1
 
@@ -6348,32 +5253,6 @@ const
 
 proc fnmatch*(`pattern`: char, `string`: char, `flags`: gint): gint{.cdecl,
     dynlib: lib, importc: "fnmatch".}
-proc TYPE_FILE_SELECTION*(): GType
-proc FILE_SELECTION*(obj: pointer): PFileSelection
-proc FILE_SELECTION_CLASS*(klass: pointer): PFileSelectionClass
-proc IS_FILE_SELECTION*(obj: pointer): bool
-proc IS_FILE_SELECTION_CLASS*(klass: pointer): bool
-proc FILE_SELECTION_GET_CLASS*(obj: pointer): PFileSelectionClass
-proc file_selection_get_type*(): TType{.cdecl, dynlib: lib,
-                                        importc: "gtk_file_selection_get_type".}
-proc file_selection_new*(title: cstring): PFileSelection{.cdecl, dynlib: lib,
-    importc: "gtk_file_selection_new".}
-proc set_filename*(filesel: PFileSelection, filename: cstring){.
-    cdecl, dynlib: lib, importc: "gtk_file_selection_set_filename".}
-proc get_filename*(filesel: PFileSelection): cstring{.cdecl,
-    dynlib: lib, importc: "gtk_file_selection_get_filename".}
-proc complete*(filesel: PFileSelection, pattern: cstring){.cdecl,
-    dynlib: lib, importc: "gtk_file_selection_complete".}
-proc show_fileop_buttons*(filesel: PFileSelection){.cdecl,
-    dynlib: lib, importc: "gtk_file_selection_show_fileop_buttons".}
-proc hide_fileop_buttons*(filesel: PFileSelection){.cdecl,
-    dynlib: lib, importc: "gtk_file_selection_hide_fileop_buttons".}
-proc get_selections*(filesel: PFileSelection): PPgchar{.cdecl,
-    dynlib: lib, importc: "gtk_file_selection_get_selections".}
-proc set_select_multiple*(filesel: PFileSelection,
-    select_multiple: gboolean){.cdecl, dynlib: lib, importc: "gtk_file_selection_set_select_multiple".}
-proc get_select_multiple*(filesel: PFileSelection): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_file_selection_get_select_multiple".}
 proc TYPE_FIXED*(): GType
 proc FIXED*(obj: pointer): PFixed
 proc FIXED_CLASS*(klass: pointer): PFixedClass
@@ -6427,16 +5306,6 @@ proc dialog_get_preview_text*(fsd: PFontSelectionDialog): cstring{.
 proc dialog_set_preview_text*(fsd: PFontSelectionDialog,
     text: cstring){.cdecl, dynlib: lib,
                     importc: "gtk_font_selection_dialog_set_preview_text".}
-proc TYPE_GAMMA_CURVE*(): GType
-proc GAMMA_CURVE*(obj: pointer): PGammaCurve
-proc GAMMA_CURVE_CLASS*(klass: pointer): PGammaCurveClass
-proc IS_GAMMA_CURVE*(obj: pointer): bool
-proc IS_GAMMA_CURVE_CLASS*(klass: pointer): bool
-proc GAMMA_CURVE_GET_CLASS*(obj: pointer): PGammaCurveClass
-proc gamma_curve_get_type*(): TType{.cdecl, dynlib: lib,
-                                     importc: "gtk_gamma_curve_get_type".}
-proc gamma_curve_new*(): PGammaCurve{.cdecl, dynlib: lib,
-                                      importc: "gtk_gamma_curve_new".}
 proc gc_get*(depth: gint, colormap: gdk2.PColormap, values: gdk2.PGCValues,
              values_mask: gdk2.TGCValuesMask): gdk2.PGC{.cdecl, dynlib: lib,
     importc: "gtk_gc_get".}
@@ -6545,6 +5414,10 @@ proc pack1*(paned: PPaned, child: PWidget, resize: gboolean,
 proc pack2*(paned: PPaned, child: PWidget, resize: gboolean,
                   shrink: gboolean){.cdecl, dynlib: lib,
                                      importc: "gtk_paned_pack2".}
+proc get_child1*(paned: PPaned): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_paned_get_child1".}
+proc get_child2*(paned: PPaned): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_paned_get_child2".}
 proc get_position*(paned: PPaned): gint{.cdecl, dynlib: lib,
     importc: "gtk_paned_get_position".}
 proc set_position*(paned: PPaned, position: gint){.cdecl, dynlib: lib,
@@ -6571,36 +5444,6 @@ proc HPANED_GET_CLASS*(obj: pointer): PHPanedClass
 proc hpaned_get_type*(): TType{.cdecl, dynlib: lib,
                                 importc: "gtk_hpaned_get_type".}
 proc hpaned_new*(): PHPaned{.cdecl, dynlib: lib, importc: "gtk_hpaned_new".}
-proc TYPE_RULER*(): GType
-proc RULER*(obj: pointer): PRuler
-proc RULER_CLASS*(klass: pointer): PRulerClass
-proc IS_RULER*(obj: pointer): bool
-proc IS_RULER_CLASS*(klass: pointer): bool
-proc RULER_GET_CLASS*(obj: pointer): PRulerClass
-proc ruler_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_ruler_get_type".}
-proc set_metric*(ruler: PRuler, metric: TMetricType){.cdecl, dynlib: lib,
-    importc: "gtk_ruler_set_metric".}
-proc set_range*(ruler: PRuler, lower: gdouble, upper: gdouble,
-                      position: gdouble, max_size: gdouble){.cdecl, dynlib: lib,
-    importc: "gtk_ruler_set_range".}
-proc draw_ticks*(ruler: PRuler){.cdecl, dynlib: lib,
-                                       importc: "gtk_ruler_draw_ticks".}
-proc draw_pos*(ruler: PRuler){.cdecl, dynlib: lib,
-                                     importc: "gtk_ruler_draw_pos".}
-proc get_metric*(ruler: PRuler): TMetricType{.cdecl, dynlib: lib,
-    importc: "gtk_ruler_get_metric".}
-proc get_range*(ruler: PRuler, lower: Pgdouble, upper: Pgdouble,
-                      position: Pgdouble, max_size: Pgdouble){.cdecl,
-    dynlib: lib, importc: "gtk_ruler_get_range".}
-proc TYPE_HRULER*(): GType
-proc HRULER*(obj: pointer): PHRuler
-proc HRULER_CLASS*(klass: pointer): PHRulerClass
-proc IS_HRULER*(obj: pointer): bool
-proc IS_HRULER_CLASS*(klass: pointer): bool
-proc HRULER_GET_CLASS*(obj: pointer): PHRulerClass
-proc hruler_get_type*(): TType{.cdecl, dynlib: lib,
-                                importc: "gtk_hruler_get_type".}
-proc hruler_new*(): PHRuler{.cdecl, dynlib: lib, importc: "gtk_hruler_new".}
 proc TYPE_SETTINGS*(): GType
 proc SETTINGS*(obj: pointer): PSettings
 proc SETTINGS_CLASS*(klass: pointer): PSettingsClass
@@ -7146,6 +5989,15 @@ proc set_from_icon_set*(image: PImage, icon_set: PIconSet, size: TIconSize){.
     cdecl, dynlib: lib, importc: "gtk_image_set_from_icon_set".}
 proc set_from_animation*(image: PImage, animation: gdk2pixbuf.PPixbufAnimation){.
     cdecl, dynlib: lib, importc: "gtk_image_set_from_animation".}
+proc clear*(image: PImage) {.cdecl, dynlib: lib, importc: "gtk_image_clear".}
+proc set_from_icon_name*(image: PImage, icon_name: cstring, size: TIconSize) {.cdecl,
+    dynlib: lib, importc: "gtk_image_set_from_icon_name".}
+proc get_icon_name*(image: PImage, icon_name: ptr cstring, size: PIconSize) {.cdecl,
+    dynlib: lib, importc: "gtk_image_get_icon_name".}
+proc set_pixel_size*(image: PImage, pixel_size: gint) {.cdecl, dynlib: lib,
+    importc: "gtk_image_set_pixel_size".}
+proc get_pixel_size*(image: PImage): gint {.cdecl, dynlib: lib,
+    importc: "gtk_image_get_pixel_size".}
 proc get_storage_type*(image: PImage): TImageType{.cdecl, dynlib: lib,
     importc: "gtk_image_get_storage_type".}
 proc get_pixbuf*(image: PImage): gdk2pixbuf.PPixbuf{.cdecl, dynlib: lib,
@@ -7207,16 +6059,6 @@ proc im_multicontext_new*(): PIMContext{.cdecl, dynlib: lib,
 proc append_menuitems*(context: PIMMulticontext,
                                        menushell: PMenuShell){.cdecl,
     dynlib: lib, importc: "gtk_im_multicontext_append_menuitems".}
-proc TYPE_INPUT_DIALOG*(): GType
-proc INPUT_DIALOG*(obj: pointer): PInputDialog
-proc INPUT_DIALOG_CLASS*(klass: pointer): PInputDialogClass
-proc IS_INPUT_DIALOG*(obj: pointer): bool
-proc IS_INPUT_DIALOG_CLASS*(klass: pointer): bool
-proc INPUT_DIALOG_GET_CLASS*(obj: pointer): PInputDialogClass
-proc input_dialog_get_type*(): TType{.cdecl, dynlib: lib,
-                                      importc: "gtk_input_dialog_get_type".}
-proc input_dialog_new*(): PInputDialog{.cdecl, dynlib: lib,
-                                        importc: "gtk_input_dialog_new".}
 proc TYPE_INVISIBLE*(): GType
 proc INVISIBLE*(obj: pointer): PInvisible
 proc INVISIBLE_CLASS*(klass: pointer): PInvisibleClass
@@ -7326,71 +6168,6 @@ const
   bm_TGtkList_add_mode* = 0x0008'u16
   bp_TGtkList_add_mode* = 3'u16
 
-proc TYPE_LIST*(): GType
-proc LIST*(obj: pointer): PList
-proc LIST_CLASS*(klass: pointer): PListClass
-proc IS_LIST*(obj: pointer): bool
-proc IS_LIST_CLASS*(klass: pointer): bool
-proc LIST_GET_CLASS*(obj: pointer): PListClass
-proc selection_mode*(a: PList): guint
-
-proc drag_selection*(a: PList): guint
-proc set_drag_selection*(a: PList, `drag_selection`: guint)
-proc add_mode*(a: PList): guint
-proc set_add_mode*(a: PList, `add_mode`: guint)
-proc list_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_list_get_type".}
-proc list_new*(): PList{.cdecl, dynlib: lib, importc: "gtk_list_new".}
-proc insert_items*(list: PList, items: PGList, position: gint){.cdecl,
-    dynlib: lib, importc: "gtk_list_insert_items".}
-proc append_items*(list: PList, items: PGList){.cdecl, dynlib: lib,
-    importc: "gtk_list_append_items".}
-proc prepend_items*(list: PList, items: PGList){.cdecl, dynlib: lib,
-    importc: "gtk_list_prepend_items".}
-proc remove_items*(list: PList, items: PGList){.cdecl, dynlib: lib,
-    importc: "gtk_list_remove_items".}
-proc remove_items_no_unref*(list: PList, items: PGList){.cdecl,
-    dynlib: lib, importc: "gtk_list_remove_items_no_unref".}
-proc clear_items*(list: PList, start: gint, theEnd: gint){.cdecl,
-    dynlib: lib, importc: "gtk_list_clear_items".}
-proc select_item*(list: PList, item: gint){.cdecl, dynlib: lib,
-    importc: "gtk_list_select_item".}
-proc unselect_item*(list: PList, item: gint){.cdecl, dynlib: lib,
-    importc: "gtk_list_unselect_item".}
-proc select_child*(list: PList, child: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_list_select_child".}
-proc unselect_child*(list: PList, child: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_list_unselect_child".}
-proc child_position*(list: PList, child: PWidget): gint{.cdecl,
-    dynlib: lib, importc: "gtk_list_child_position".}
-proc set_selection_mode*(list: PList, mode: TSelectionMode){.cdecl,
-    dynlib: lib, importc: "gtk_list_set_selection_mode".}
-proc extend_selection*(list: PList, scroll_type: TScrollType,
-                            position: gfloat, auto_start_selection: gboolean){.
-    cdecl, dynlib: lib, importc: "gtk_list_extend_selection".}
-proc start_selection*(list: PList){.cdecl, dynlib: lib,
-    importc: "gtk_list_start_selection".}
-proc end_selection*(list: PList){.cdecl, dynlib: lib,
-                                       importc: "gtk_list_end_selection".}
-proc select_all*(list: PList){.cdecl, dynlib: lib,
-                                    importc: "gtk_list_select_all".}
-proc unselect_all*(list: PList){.cdecl, dynlib: lib,
-                                      importc: "gtk_list_unselect_all".}
-proc scroll_horizontal*(list: PList, scroll_type: TScrollType,
-                             position: gfloat){.cdecl, dynlib: lib,
-    importc: "gtk_list_scroll_horizontal".}
-proc scroll_vertical*(list: PList, scroll_type: TScrollType,
-                           position: gfloat){.cdecl, dynlib: lib,
-    importc: "gtk_list_scroll_vertical".}
-proc toggle_add_mode*(list: PList){.cdecl, dynlib: lib,
-    importc: "gtk_list_toggle_add_mode".}
-proc toggle_focus_row*(list: PList){.cdecl, dynlib: lib,
-    importc: "gtk_list_toggle_focus_row".}
-proc toggle_row*(list: PList, item: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_list_toggle_row".}
-proc undo_selection*(list: PList){.cdecl, dynlib: lib,
-                                        importc: "gtk_list_undo_selection".}
-proc end_drag_selection*(list: PList){.cdecl, dynlib: lib,
-    importc: "gtk_list_end_drag_selection".}
 const
   TREE_MODEL_ITERS_PERSIST* = 1 shl 0
   TREE_MODEL_LIST_ONLY* = 1 shl 1
@@ -7443,6 +6220,8 @@ proc row_reference_new*(model: PTreeModel, path: PTreePath): PTreeRowReference{.
 proc tree_row_reference_new_proxy*(proxy: PGObject, model: PTreeModel,
                                    path: PTreePath): PTreeRowReference{.cdecl,
     dynlib: lib, importc: "gtk_tree_row_reference_new_proxy".}
+proc reference_get_model*(reference: PTreeRowReference): PTreeModel {.cdecl,
+    dynlib: lib, importc: "gtk_tree_row_reference_get_model".}
 proc reference_get_path*(reference: PTreeRowReference): PTreePath{.
     cdecl, dynlib: lib, importc: "gtk_tree_row_reference_get_path".}
 proc reference_valid*(reference: PTreeRowReference): gboolean{.cdecl,
@@ -7566,7 +6345,7 @@ proc tree_model_sort_convert_child_path_to_path*(
     tree_model_sort: PTreeModelSort, child_path: PTreePath): PTreePath{.cdecl,
     dynlib: lib, importc: "gtk_tree_model_sort_convert_child_path_to_path".}
 proc tree_model_sort_convert_child_iter_to_iter*(
-    tree_model_sort: PTreeModelSort, sort_iter: PTreeIter, child_iter: PTreeIter){.
+    tree_model_sort: PTreeModelSort, sort_iter: PTreeIter, child_iter: PTreeIter): gboolean {.
     cdecl, dynlib: lib,
     importc: "gtk_tree_model_sort_convert_child_iter_to_iter".}
 proc tree_model_sort_convert_path_to_child_path*(
@@ -7575,6 +6354,25 @@ proc tree_model_sort_convert_path_to_child_path*(
 proc tree_model_sort_convert_iter_to_child_iter*(
     tree_model_sort: PTreeModelSort, child_iter: PTreeIter,
     sorted_iter: PTreeIter){.cdecl, dynlib: lib, importc: "gtk_tree_model_sort_convert_iter_to_child_iter".}
+type TreeModelFilter* {.pure, final, incompleteStruct.} = object
+
+proc tree_model_filter_get_type*(): GType {.cdecl, dynlib: lib,
+    importc: "gtk_tree_model_filter_get_type".}
+proc tree_model_filter_new*(child: PTreeModel, root: PTreePath): PTreeModel {.cdecl,
+    dynlib: lib, importc: "gtk_tree_model_filter_new".}
+proc tree_model_filter_set_visible_column*(filter: ptr TreeModelFilter, column: gint) {.cdecl,
+    dynlib: lib, importc: "gtk_tree_model_filter_set_visible_column".}
+proc tree_model_filter_get_model*(filter: ptr TreeModelFilter): PTreeModel {.cdecl,
+    dynlib: lib, importc: "gtk_tree_model_filter_get_model".}
+proc tree_model_filter_convert_child_path_to_path*(filter: ptr TreeModelFilter,
+    path: PTreePath): PTreePath {.cdecl, dynlib: lib,
+    importc: "gtk_tree_model_filter_convert_child_path_to_path".}
+proc tree_model_filter_convert_path_to_child_path*(filter: ptr TreeModelFilter,
+    path: PTreePath): PTreePath {.cdecl, dynlib: lib,
+    importc: "gtk_tree_model_filter_convert_path_to_child_path".}
+proc tree_model_filter_refilter*(filter: ptr TreeModelFilter) {.cdecl, dynlib: lib,
+    importc: "gtk_tree_model_filter_refilter".}
+
 proc sort_reset_default_sort_func*(tree_model_sort: PTreeModelSort){.
     cdecl, dynlib: lib, importc: "gtk_tree_model_sort_reset_default_sort_func".}
 proc sort_clear_cache*(tree_model_sort: PTreeModelSort){.cdecl,
@@ -7595,13 +6393,19 @@ proc list_store_get_type*(): TType{.cdecl, dynlib: lib,
                                     importc: "gtk_list_store_get_type".}
 proc list_store_newv*(n_columns: gint, types: PGType): PListStore{.cdecl,
     dynlib: lib, importc: "gtk_list_store_newv".}
+proc set_valuesv*(store: PListStore, iter: PTreeIter, columns: Pgint,
+                 values: PGValue, count: gint) {.cdecl, dynlib: lib,
+    importc: "gtk_list_store_set_valuesv".}
+proc insert_with_valuesv*(store: PListStore, iter: PTreeIter, position: gint,
+                         columns: Pgint, values: PGValue, count: gint) {.cdecl,
+    dynlib: lib, importc: "gtk_list_store_insert_with_valuesv".}
 proc set_column_types*(list_store: PListStore, n_columns: gint,
                                   types: PGType){.cdecl, dynlib: lib,
     importc: "gtk_list_store_set_column_types".}
 proc set_value*(list_store: PListStore, iter: PTreeIter,
                            column: gint, value: PGValue){.cdecl, dynlib: lib,
     importc: "gtk_list_store_set_value".}
-proc remove*(list_store: PListStore, iter: PTreeIter){.cdecl,
+proc remove*(list_store: PListStore, iter: PTreeIter): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_list_store_remove".}
 proc insert*(list_store: PListStore, iter: PTreeIter, position: gint){.
     cdecl, dynlib: lib, importc: "gtk_list_store_insert".}
@@ -7833,17 +6637,17 @@ proc set_show_tabs*(notebook: PNotebook, show_tabs: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_notebook_set_show_tabs".}
 proc get_show_tabs*(notebook: PNotebook): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_notebook_get_show_tabs".}
-#proc set_tab_pos*(notebook: PNotebook, pos: TPositionType){.cdecl,
-#    dynlib: lib, importc: "gtk_notebook_set_tab_pos".}
+proc set_tab_pos*(notebook: PNotebook, pos: TPositionType){.cdecl,
+    dynlib: lib, importc: "gtk_notebook_set_tab_pos".}
 proc get_tab_pos*(notebook: PNotebook): TPositionType{.cdecl,
     dynlib: lib, importc: "gtk_notebook_get_tab_pos".}
 proc set_scrollable*(notebook: PNotebook, scrollable: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_notebook_set_scrollable".}
 proc get_scrollable*(notebook: PNotebook): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_notebook_get_scrollable".}
-proc set_tab_reorderable*(notebook: PNotebook, child: PWidget, b: bool){.cdecl,
+proc set_tab_reorderable*(notebook: PNotebook, child: PWidget, b: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_notebook_set_tab_reorderable".}
-proc get_tab_reorderable*(notebook: PNotebook, child: PWidget): bool {.cdecl,
+proc get_tab_reorderable*(notebook: PNotebook, child: PWidget): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_notebook_get_tab_reorderable".}
 proc popup_enable*(notebook: PNotebook){.cdecl, dynlib: lib,
     importc: "gtk_notebook_popup_enable".}
@@ -7880,74 +6684,9 @@ proc set_tab_label_packing*(notebook: PNotebook, child: PWidget,
 proc reorder_child*(notebook: PNotebook, child: PWidget, position: gint){.
     cdecl, dynlib: lib, importc: "gtk_notebook_reorder_child".}
 const
-  bm_TGtkOldEditable_has_selection* = 0x0001'u16
-  bp_TGtkOldEditable_has_selection* = 0'u16
-  bm_TGtkOldEditable_editable* = 0x0002'u16
-  bp_TGtkOldEditable_editable* = 1'u16
-  bm_TGtkOldEditable_visible* = 0x0004'u16
-  bp_TGtkOldEditable_visible* = 2'u16
-
-proc TYPE_OLD_EDITABLE*(): GType
-proc OLD_EDITABLE*(obj: pointer): POldEditable
-proc OLD_EDITABLE_CLASS*(klass: pointer): POldEditableClass
-proc IS_OLD_EDITABLE*(obj: pointer): bool
-proc IS_OLD_EDITABLE_CLASS*(klass: pointer): bool
-proc OLD_EDITABLE_GET_CLASS*(obj: pointer): POldEditableClass
-proc has_selection*(a: POldEditable): guint
-proc set_has_selection*(a: POldEditable, `has_selection`: guint)
-proc editable*(a: POldEditable): guint
-proc set_editable*(a: POldEditable, `editable`: guint)
-proc visible*(a: POldEditable): guint
-proc set_visible*(a: POldEditable, `visible`: guint)
-proc old_editable_get_type*(): TType{.cdecl, dynlib: lib,
-                                      importc: "gtk_old_editable_get_type".}
-proc claim_selection*(old_editable: POldEditable, claim: gboolean,
-                                   time: guint32){.cdecl, dynlib: lib,
-    importc: "gtk_old_editable_claim_selection".}
-proc changed*(old_editable: POldEditable){.cdecl, dynlib: lib,
-    importc: "gtk_old_editable_changed".}
-proc TYPE_OPTION_MENU*(): GType
-proc OPTION_MENU*(obj: pointer): POptionMenu
-proc OPTION_MENU_CLASS*(klass: pointer): POptionMenuClass
-proc IS_OPTION_MENU*(obj: pointer): bool
-proc IS_OPTION_MENU_CLASS*(klass: pointer): bool
-proc OPTION_MENU_GET_CLASS*(obj: pointer): POptionMenuClass
-proc option_menu_get_type*(): TType{.cdecl, dynlib: lib,
-                                     importc: "gtk_option_menu_get_type".}
-proc option_menu_new*(): POptionMenu{.cdecl, dynlib: lib,
-                                      importc: "gtk_option_menu_new".}
-proc get_menu*(option_menu: POptionMenu): PWidget{.cdecl,
-    dynlib: lib, importc: "gtk_option_menu_get_menu".}
-proc set_menu*(option_menu: POptionMenu, menu: PWidget){.cdecl,
-    dynlib: lib, importc: "gtk_option_menu_set_menu".}
-proc remove_menu*(option_menu: POptionMenu){.cdecl, dynlib: lib,
-    importc: "gtk_option_menu_remove_menu".}
-proc get_history*(option_menu: POptionMenu): gint{.cdecl,
-    dynlib: lib, importc: "gtk_option_menu_get_history".}
-proc set_history*(option_menu: POptionMenu, index: guint){.cdecl,
-    dynlib: lib, importc: "gtk_option_menu_set_history".}
-const
   bm_TGtkPixmap_build_insensitive* = 0x0001'u16
   bp_TGtkPixmap_build_insensitive* = 0'u16
 
-proc TYPE_PIXMAP*(): GType
-proc PIXMAP*(obj: pointer): PPixmap
-proc PIXMAP_CLASS*(klass: pointer): PPixmapClass
-proc IS_PIXMAP*(obj: pointer): bool
-proc IS_PIXMAP_CLASS*(klass: pointer): bool
-proc PIXMAP_GET_CLASS*(obj: pointer): PPixmapClass
-proc build_insensitive*(a: PPixmap): guint
-proc set_build_insensitive*(a: PPixmap, `build_insensitive`: guint)
-proc pixmap_get_type*(): TType{.cdecl, dynlib: lib,
-                                importc: "gtk_pixmap_get_type".}
-proc pixmap_new*(pixmap: gdk2.PPixmap, mask: gdk2.PBitmap): PPixmap{.cdecl,
-    dynlib: lib, importc: "gtk_pixmap_new".}
-proc set*(pixmap: PPixmap, val: gdk2.PPixmap, mask: gdk2.PBitmap){.cdecl,
-    dynlib: lib, importc: "gtk_pixmap_set".}
-proc get*(pixmap: PPixmap, val: var gdk2.PPixmap, mask: var gdk2.PBitmap){.
-    cdecl, dynlib: lib, importc: "gtk_pixmap_get".}
-proc set_build_insensitive*(pixmap: PPixmap, build: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_pixmap_set_build_insensitive".}
 const
   bm_TGtkPlug_same_app* = 0x0001'u16
   bp_TGtkPlug_same_app* = 0'u16
@@ -7972,65 +6711,6 @@ proc add_to_socket*(plug: PPlug, socket: PSocket){.cdecl, dynlib: lib,
     importc: "_gtk_plug_add_to_socket".}
 proc remove_from_socket*(plug: PPlug, socket: PSocket){.cdecl, dynlib: lib,
     importc: "_gtk_plug_remove_from_socket".}
-const
-  bm_TGtkPreview_type* = 0x0001'u16
-  bp_TGtkPreview_type* = 0'u16
-  bm_TGtkPreview_expand* = 0x0002'u16
-  bp_TGtkPreview_expand* = 1'u16
-
-proc TYPE_PREVIEW*(): GType
-proc PREVIEW*(obj: pointer): PPreview
-proc PREVIEW_CLASS*(klass: pointer): PPreviewClass
-proc IS_PREVIEW*(obj: pointer): bool
-proc IS_PREVIEW_CLASS*(klass: pointer): bool
-proc PREVIEW_GET_CLASS*(obj: pointer): PPreviewClass
-proc get_type*(a: PPreview): guint
-proc set_type*(a: PPreview, `type`: guint)
-proc get_expand*(a: PPreview): guint
-proc set_expand*(a: PPreview, `expand`: guint)
-proc preview_get_type*(): TType{.cdecl, dynlib: lib,
-                                 importc: "gtk_preview_get_type".}
-proc preview_uninit*(){.cdecl, dynlib: lib, importc: "gtk_preview_uninit".}
-proc preview_new*(thetype: TPreviewClass): PPreview{.cdecl, dynlib: lib,
-    importc: "gtk_preview_new".}
-proc size*(preview: PPreview, width: gint, height: gint){.cdecl,
-    dynlib: lib, importc: "gtk_preview_size".}
-proc put*(preview: PPreview, window: gdk2.PWindow, gc: gdk2.PGC, srcx: gint,
-                  srcy: gint, destx: gint, desty: gint, width: gint,
-                  height: gint){.cdecl, dynlib: lib, importc: "gtk_preview_put".}
-proc draw_row*(preview: PPreview, data: Pguchar, x: gint, y: gint,
-                       w: gint){.cdecl, dynlib: lib,
-                                 importc: "gtk_preview_draw_row".}
-proc set_expand*(preview: PPreview, expand: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_preview_set_expand".}
-proc preview_set_gamma*(gamma: float64){.cdecl, dynlib: lib,
-    importc: "gtk_preview_set_gamma".}
-proc preview_set_color_cube*(nred_shades: guint, ngreen_shades: guint,
-                             nblue_shades: guint, ngray_shades: guint){.cdecl,
-    dynlib: lib, importc: "gtk_preview_set_color_cube".}
-proc preview_set_install_cmap*(install_cmap: gint){.cdecl, dynlib: lib,
-    importc: "gtk_preview_set_install_cmap".}
-proc preview_set_reserved*(nreserved: gint){.cdecl, dynlib: lib,
-    importc: "gtk_preview_set_reserved".}
-proc set_dither*(preview: PPreview, dither: gdk2.TRgbDither){.cdecl,
-    dynlib: lib, importc: "gtk_preview_set_dither".}
-proc preview_get_info*(): PPreviewInfo{.cdecl, dynlib: lib,
-                                        importc: "gtk_preview_get_info".}
-proc preview_reset*(){.cdecl, dynlib: lib, importc: "gtk_preview_reset".}
-const
-  bm_TGtkProgress_show_text* = 0x0001'u16
-  bp_TGtkProgress_show_text* = 0'u16
-  bm_TGtkProgress_activity_mode* = 0x0002'u16
-  bp_TGtkProgress_activity_mode* = 1'u16
-  bm_TGtkProgress_use_text_format* = 0x0004'u16
-  bp_TGtkProgress_use_text_format* = 2'u16
-
-proc show_text*(a: PProgress): guint
-proc set_show_text*(a: PProgress, `show_text`: guint)
-proc activity_mode*(a: PProgress): guint
-proc set_activity_mode*(a: PProgress, `activity_mode`: guint)
-proc use_text_format*(a: PProgress): guint
-proc set_use_text_format*(a: PProgress, `use_text_format`: guint)
 const
   bm_TGtkProgressBar_activity_dir* = 0x0001'u16
   bp_TGtkProgressBar_activity_dir* = 0'u16
@@ -8541,6 +7221,8 @@ proc pop*(statusbar: PStatusbar, context_id: guint){.cdecl,
 proc remove*(statusbar: PStatusbar, context_id: guint,
                        message_id: guint){.cdecl, dynlib: lib,
     importc: "gtk_statusbar_remove".}
+proc get_message_area*(statusbar: PStatusbar): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_statusbar_get_message_area".}
 proc set_has_resize_grip*(statusbar: PStatusbar, setting: gboolean){.
     cdecl, dynlib: lib, importc: "gtk_statusbar_set_has_resize_grip".}
 proc get_has_resize_grip*(statusbar: PStatusbar): gboolean{.cdecl,
@@ -8651,54 +7333,6 @@ proc tearoff_menu_item_get_type*(): TType{.cdecl, dynlib: lib,
     importc: "gtk_tearoff_menu_item_get_type".}
 proc tearoff_menu_item_new*(): PTearoffMenuItem{.cdecl, dynlib: lib,
     importc: "gtk_tearoff_menu_item_new".}
-const
-  bm_TGtkText_line_wrap* = 0x0001'u16
-  bp_TGtkText_line_wrap* = 0'u16
-  bm_TGtkText_word_wrap* = 0x0002'u16
-  bp_TGtkText_word_wrap* = 1'u16
-  bm_TGtkText_use_wchar* = 0x0004'u16
-  bp_TGtkText_use_wchar* = 2'u16
-
-proc TYPE_TEXT*(): GType
-proc TEXT*(obj: pointer): PText
-proc TEXT_CLASS*(klass: pointer): PTextClass
-proc IS_TEXT*(obj: pointer): bool
-proc IS_TEXT_CLASS*(klass: pointer): bool
-proc TEXT_GET_CLASS*(obj: pointer): PTextClass
-proc line_wrap*(a: PText): guint
-proc set_line_wrap*(a: PText, `line_wrap`: guint)
-proc word_wrap*(a: PText): guint
-proc set_word_wrap*(a: PText, `word_wrap`: guint)
-proc use_wchar*(a: PText): gboolean
-proc set_use_wchar*(a: PText, `use_wchar`: gboolean)
-proc text_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_text_get_type".}
-proc text_new*(hadj: PAdjustment, vadj: PAdjustment): PText{.cdecl, dynlib: lib,
-    importc: "gtk_text_new".}
-proc set_editable*(text: PText, editable: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_text_set_editable".}
-proc set_word_wrap*(text: PText, word_wrap: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_text_set_word_wrap".}
-proc set_line_wrap*(text: PText, line_wrap: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_text_set_line_wrap".}
-proc set_adjustments*(text: PText, hadj: PAdjustment, vadj: PAdjustment){.
-    cdecl, dynlib: lib, importc: "gtk_text_set_adjustments".}
-proc set_point*(text: PText, index: guint){.cdecl, dynlib: lib,
-    importc: "gtk_text_set_point".}
-proc get_point*(text: PText): guint{.cdecl, dynlib: lib,
-    importc: "gtk_text_get_point".}
-proc get_length*(text: PText): guint{.cdecl, dynlib: lib,
-    importc: "gtk_text_get_length".}
-proc freeze*(text: PText){.cdecl, dynlib: lib, importc: "gtk_text_freeze".}
-proc thaw*(text: PText){.cdecl, dynlib: lib, importc: "gtk_text_thaw".}
-proc insert*(text: PText, font: gdk2.PFont, fore: gdk2.PColor, back: gdk2.PColor,
-                  chars: cstring, length: gint){.cdecl, dynlib: lib,
-    importc: "gtk_text_insert".}
-proc backward_delete*(text: PText, nchars: guint): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_text_backward_delete".}
-proc forward_delete*(text: PText, nchars: guint): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_text_forward_delete".}
-proc INDEX_WCHAR*(t: PText, index: guint): guint32
-proc INDEX_UCHAR*(t: PText, index: guint): guchar
 const
   TEXT_SEARCH_VISIBLE_ONLY* = 0
   TEXT_SEARCH_TEXT_ONLY* = 1
@@ -9027,7 +7661,6 @@ proc draw_bg*(a: PTextAppearance): guint
 proc set_draw_bg*(a: PTextAppearance, `draw_bg`: guint)
 proc inside_selection*(a: PTextAppearance): guint
 proc set_inside_selection*(a: PTextAppearance, `inside_selection`: guint)
-proc is_text*(a: PTextAppearance): guint
 proc set_is_text*(a: PTextAppearance, `is_text`: guint)
 proc pad1*(a: PTextAppearance): guint
 proc set_pad1*(a: PTextAppearance, `pad1`: guint)
@@ -9543,12 +8176,12 @@ proc get_line_log_attrs*(buffer: PTextBuffer,
     dynlib: lib, importc: "_gtk_text_buffer_get_line_log_attrs".}
 proc notify_will_remove_tag*(buffer: PTextBuffer, tag: PTextTag){.
     cdecl, dynlib: lib, importc: "_gtk_text_buffer_notify_will_remove_tag".}
-proc get_has_selection*(buffer: PTextBuffer): bool {.cdecl,
+proc get_has_selection*(buffer: PTextBuffer): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_text_buffer_get_has_selection".}
 proc select_range*(buffer: PTextBuffer, ins,
     bound: PTextIter) {.cdecl, dynlib: lib, importc: "gtk_text_buffer_select_range".}
 proc backspace*(buffer: PTextBuffer, iter: PTextIter,
-    interactive, defaultEditable: bool): bool {.cdecl,
+    interactive, defaultEditable: gboolean): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_text_buffer_backspace".}
 
 proc TYPE_TEXT_LAYOUT*(): GType
@@ -9734,6 +8367,10 @@ proc onscreen_validated*(a: PTextView): guint
 proc set_onscreen_validated*(a: PTextView, `onscreen_validated`: guint)
 proc mouse_cursor_obscured*(a: PTextView): guint
 proc set_mouse_cursor_obscured*(a: PTextView, `mouse_cursor_obscured`: guint)
+proc set_accepts_tab*(view: PTextView, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_text_view_set_accepts_tab".}
+proc get_accepts_tab*(view: PTextView): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_text_view_get_accepts_tab".}
 proc text_view_get_type*(): TType{.cdecl, dynlib: lib,
                                    importc: "gtk_text_view_get_type".}
 proc text_view_new*(): PTextView{.cdecl, dynlib: lib,
@@ -9866,75 +8503,6 @@ proc get_tabs*(text_view: PTextView): pango.PTabArray{.cdecl,
 proc get_default_attributes*(text_view: PTextView): PTextAttributes{.
     cdecl, dynlib: lib, importc: "gtk_text_view_get_default_attributes".}
 const
-  bm_TGtkTipsQuery_emit_always* = 0x0001'u16
-  bp_TGtkTipsQuery_emit_always* = 0'u16
-  bm_TGtkTipsQuery_in_query* = 0x0002'u16
-  bp_TGtkTipsQuery_in_query* = 1'u16
-
-proc TYPE_TIPS_QUERY*(): GType
-proc TIPS_QUERY*(obj: pointer): PTipsQuery
-proc TIPS_QUERY_CLASS*(klass: pointer): PTipsQueryClass
-proc IS_TIPS_QUERY*(obj: pointer): bool
-proc IS_TIPS_QUERY_CLASS*(klass: pointer): bool
-proc TIPS_QUERY_GET_CLASS*(obj: pointer): PTipsQueryClass
-proc emit_always*(a: PTipsQuery): guint
-proc set_emit_always*(a: PTipsQuery, `emit_always`: guint)
-proc in_query*(a: PTipsQuery): guint
-proc set_in_query*(a: PTipsQuery, `in_query`: guint)
-proc tips_query_get_type*(): TType{.cdecl, dynlib: lib,
-                                    importc: "gtk_tips_query_get_type".}
-proc tips_query_new*(): PTipsQuery{.cdecl, dynlib: lib,
-                                    importc: "gtk_tips_query_new".}
-proc start_query*(tips_query: PTipsQuery){.cdecl, dynlib: lib,
-    importc: "gtk_tips_query_start_query".}
-proc stop_query*(tips_query: PTipsQuery){.cdecl, dynlib: lib,
-    importc: "gtk_tips_query_stop_query".}
-proc set_caller*(tips_query: PTipsQuery, caller: PWidget){.cdecl,
-    dynlib: lib, importc: "gtk_tips_query_set_caller".}
-proc set_labels*(tips_query: PTipsQuery, label_inactive: cstring,
-                            label_no_tip: cstring){.cdecl, dynlib: lib,
-    importc: "gtk_tips_query_set_labels".}
-const
-  bm_TGtkTooltips_delay* = 0x3FFFFFFF'u32
-  bp_TGtkTooltips_delay* = 0'u32
-  bm_TGtkTooltips_enabled* = 0x40000000'u32
-  bp_TGtkTooltips_enabled* = 30'u32
-  bm_TGtkTooltips_have_grab* = 0x80000000'u32
-  bp_TGtkTooltips_have_grab* = 31'u32
-  bm_TGtkTooltips_use_sticky_delay* = 0x00000001'u32
-  bp_TGtkTooltips_use_sticky_delay* = 0'u32
-
-proc TYPE_TOOLTIPS*(): GType
-proc TOOLTIPS*(obj: pointer): PTooltips
-proc TOOLTIPS_CLASS*(klass: pointer): PTooltipsClass
-proc IS_TOOLTIPS*(obj: pointer): bool
-proc IS_TOOLTIPS_CLASS*(klass: pointer): bool
-proc TOOLTIPS_GET_CLASS*(obj: pointer): PTooltipsClass
-proc delay*(a: PTooltips): guint
-proc set_delay*(a: PTooltips, `delay`: guint)
-proc enabled*(a: PTooltips): guint
-proc set_enabled*(a: PTooltips, `enabled`: guint)
-proc have_grab*(a: PTooltips): guint
-proc set_have_grab*(a: PTooltips, `have_grab`: guint)
-proc use_sticky_delay*(a: PTooltips): guint
-proc set_use_sticky_delay*(a: PTooltips, `use_sticky_delay`: guint)
-proc tooltips_get_type*(): TType{.cdecl, dynlib: lib,
-                                  importc: "gtk_tooltips_get_type".}
-proc tooltips_new*(): PTooltips{.cdecl, dynlib: lib, importc: "gtk_tooltips_new".}
-proc enable*(tooltips: PTooltips){.cdecl, dynlib: lib,
-    importc: "gtk_tooltips_enable".}
-proc disable*(tooltips: PTooltips){.cdecl, dynlib: lib,
-    importc: "gtk_tooltips_disable".}
-proc set_tip*(tooltips: PTooltips, widget: PWidget, tip_text: cstring,
-                       tip_private: cstring){.cdecl, dynlib: lib,
-    importc: "gtk_tooltips_set_tip".}
-proc tooltips_data_get*(widget: PWidget): PTooltipsData{.cdecl, dynlib: lib,
-    importc: "gtk_tooltips_data_get".}
-proc force_window*(tooltips: PTooltips){.cdecl, dynlib: lib,
-    importc: "gtk_tooltips_force_window".}
-proc tooltips_toggle_keyboard_mode*(widget: PWidget){.cdecl, dynlib: lib,
-    importc: "_gtk_tooltips_toggle_keyboard_mode".}
-const
   bm_TGtkToolbar_style_set* = 0x0001'u16
   bp_TGtkToolbar_style_set* = 0'u16
   bm_TGtkToolbar_icon_size_set* = 0x0002'u16
@@ -10017,8 +8585,6 @@ proc set_style*(toolbar: PToolbar, style: TToolbarStyle){.cdecl,
     dynlib: lib, importc: "gtk_toolbar_set_style".}
 proc set_icon_size*(toolbar: PToolbar, icon_size: TIconSize){.cdecl,
     dynlib: lib, importc: "gtk_toolbar_set_icon_size".}
-proc set_tooltips*(toolbar: PToolbar, enable: gboolean){.cdecl,
-    dynlib: lib, importc: "gtk_toolbar_set_tooltips".}
 proc unset_style*(toolbar: PToolbar){.cdecl, dynlib: lib,
     importc: "gtk_toolbar_unset_style".}
 proc unset_icon_size*(toolbar: PToolbar){.cdecl, dynlib: lib,
@@ -10029,61 +8595,6 @@ proc get_style*(toolbar: PToolbar): TToolbarStyle{.cdecl, dynlib: lib,
     importc: "gtk_toolbar_get_style".}
 proc get_icon_size*(toolbar: PToolbar): TIconSize{.cdecl, dynlib: lib,
     importc: "gtk_toolbar_get_icon_size".}
-proc get_tooltips*(toolbar: PToolbar): gboolean{.cdecl, dynlib: lib,
-    importc: "gtk_toolbar_get_tooltips".}
-const
-  bm_TGtkTree_selection_mode* = 0x0003'u16
-  bp_TGtkTree_selection_mode* = 0'u16
-  bm_TGtkTree_view_mode* = 0x0004'u16
-  bp_TGtkTree_view_mode* = 2'u16
-  bm_TGtkTree_view_line* = 0x0008'u16
-  bp_TGtkTree_view_line* = 3'u16
-
-proc TYPE_TREE*(): GType
-proc TREE*(obj: pointer): PTree
-proc TREE_CLASS*(klass: pointer): PTreeClass
-proc IS_TREE*(obj: pointer): bool
-proc IS_TREE_CLASS*(klass: pointer): bool
-proc TREE_GET_CLASS*(obj: pointer): PTreeClass
-proc IS_ROOT_TREE*(obj: pointer): bool
-proc TREE_ROOT_TREE*(obj: pointer): PTree
-proc TREE_SELECTION_OLD*(obj: pointer): PGList
-proc selection_mode*(a: PTree): guint
-
-proc view_mode*(a: PTree): guint
-proc set_view_mode*(a: PTree, `view_mode`: guint)
-proc view_line*(a: PTree): guint
-proc set_view_line*(a: PTree, `view_line`: guint)
-proc tree_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_tree_get_type".}
-proc tree_new*(): PTree{.cdecl, dynlib: lib, importc: "gtk_tree_new".}
-proc append*(tree: PTree, tree_item: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_tree_append".}
-proc prepend*(tree: PTree, tree_item: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_tree_prepend".}
-proc insert*(tree: PTree, tree_item: PWidget, position: gint){.cdecl,
-    dynlib: lib, importc: "gtk_tree_insert".}
-proc remove_items*(tree: PTree, items: PGList){.cdecl, dynlib: lib,
-    importc: "gtk_tree_remove_items".}
-proc clear_items*(tree: PTree, start: gint, theEnd: gint){.cdecl,
-    dynlib: lib, importc: "gtk_tree_clear_items".}
-proc select_item*(tree: PTree, item: gint){.cdecl, dynlib: lib,
-    importc: "gtk_tree_select_item".}
-proc unselect_item*(tree: PTree, item: gint){.cdecl, dynlib: lib,
-    importc: "gtk_tree_unselect_item".}
-proc select_child*(tree: PTree, tree_item: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_tree_select_child".}
-proc unselect_child*(tree: PTree, tree_item: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_tree_unselect_child".}
-proc child_position*(tree: PTree, child: PWidget): gint{.cdecl,
-    dynlib: lib, importc: "gtk_tree_child_position".}
-proc set_selection_mode*(tree: PTree, mode: TSelectionMode){.cdecl,
-    dynlib: lib, importc: "gtk_tree_set_selection_mode".}
-proc set_view_mode*(tree: PTree, mode: TTreeViewMode){.cdecl, dynlib: lib,
-    importc: "gtk_tree_set_view_mode".}
-proc set_view_lines*(tree: PTree, flag: gboolean){.cdecl, dynlib: lib,
-    importc: "gtk_tree_set_view_lines".}
-proc remove_item*(tree: PTree, child: PWidget){.cdecl, dynlib: lib,
-    importc: "gtk_tree_remove_item".}
 proc TYPE_TREE_DRAG_SOURCE*(): GType
 proc TREE_DRAG_SOURCE*(obj: pointer): PTreeDragSource
 proc IS_TREE_DRAG_SOURCE*(obj: pointer): bool
@@ -10121,33 +8632,6 @@ const
   bm_TGtkTreeItem_expanded* = 0x0001'u16
   bp_TGtkTreeItem_expanded* = 0'u16
 
-proc TYPE_TREE_ITEM*(): GType
-proc TREE_ITEM*(obj: pointer): PTreeItem
-proc TREE_ITEM_CLASS*(klass: pointer): PTreeItemClass
-proc IS_TREE_ITEM*(obj: pointer): bool
-proc IS_TREE_ITEM_CLASS*(klass: pointer): bool
-proc TREE_ITEM_GET_CLASS*(obj: pointer): PTreeItemClass
-proc TREE_ITEM_SUBTREE*(obj: pointer): PWidget
-proc expanded*(a: PTreeItem): guint
-proc set_expanded*(a: PTreeItem, `expanded`: guint)
-proc tree_item_get_type*(): TType{.cdecl, dynlib: lib,
-                                   importc: "gtk_tree_item_get_type".}
-proc tree_item_new*(): PTreeItem{.cdecl, dynlib: lib,
-                                  importc: "gtk_tree_item_new".}
-proc tree_item_new*(`label`: cstring): PTreeItem{.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_new_with_label".}
-proc set_subtree*(tree_item: PTreeItem, subtree: PWidget){.cdecl,
-    dynlib: lib, importc: "gtk_tree_item_set_subtree".}
-proc remove_subtree*(tree_item: PTreeItem){.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_remove_subtree".}
-proc select*(tree_item: PTreeItem){.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_select".}
-proc deselect*(tree_item: PTreeItem){.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_deselect".}
-proc expand*(tree_item: PTreeItem){.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_expand".}
-proc collapse*(tree_item: PTreeItem){.cdecl, dynlib: lib,
-    importc: "gtk_tree_item_collapse".}
 proc TYPE_TREE_SELECTION*(): GType
 proc TREE_SELECTION*(obj: pointer): PTreeSelection
 proc TREE_SELECTION_CLASS*(klass: pointer): PTreeSelectionClass
@@ -10214,13 +8698,20 @@ proc tree_store_get_type*(): TType{.cdecl, dynlib: lib,
                                     importc: "gtk_tree_store_get_type".}
 proc tree_store_newv*(n_columns: gint, types: PGType): PTreeStore{.cdecl,
     dynlib: lib, importc: "gtk_tree_store_newv".}
+proc set_valuesv*(store: PTreeStore, iter: PTreeIter, columns: Pgint,
+                 values: PGValue, count: gint) {.cdecl, dynlib: lib,
+    importc: "gtk_tree_store_set_valuesv".}
+proc insert_with_valuesv*(store: PTreeStore, iter: PTreeIter, parent: PTreeIter,
+                         position: gint, columns: Pgint, values: PGValue,
+                         count: gint) {.cdecl, dynlib: lib,
+    importc: "gtk_tree_store_insert_with_valuesv".}
 proc set_column_types*(tree_store: PTreeStore, n_columns: gint,
                                   types: PGType){.cdecl, dynlib: lib,
     importc: "gtk_tree_store_set_column_types".}
 proc set_value*(tree_store: PTreeStore, iter: PTreeIter,
                            column: gint, value: PGValue){.cdecl, dynlib: lib,
     importc: "gtk_tree_store_set_value".}
-proc remove*(tree_store: PTreeStore, iter: PTreeIter){.cdecl,
+proc remove*(tree_store: PTreeStore, iter: PTreeIter): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_tree_store_remove".}
 proc insert*(tree_store: PTreeStore, iter: PTreeIter,
                         parent: PTreeIter, position: gint){.cdecl, dynlib: lib,
@@ -10289,6 +8780,8 @@ proc tree_view_column_get_type*(): TType{.cdecl, dynlib: lib,
     importc: "gtk_tree_view_column_get_type".}
 proc tree_view_column_new*(): PTreeViewColumn{.cdecl, dynlib: lib,
     importc: "gtk_tree_view_column_new".}
+proc column_get_tree_view*(column: PTreeViewColumn): PWidget {.cdecl, dynlib: lib,
+    importc: "gtk_tree_view_column_get_tree_view".}
 proc column_pack_start*(tree_column: PTreeViewColumn,
                                   cell: PCellRenderer, expand: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_tree_view_column_pack_start".}
@@ -10694,6 +9187,8 @@ proc scroll_to_cell*(tree_view: PTreeView, path: PTreePath,
 proc row_activated*(tree_view: PTreeView, path: PTreePath,
                               column: PTreeViewColumn){.cdecl, dynlib: lib,
     importc: "gtk_tree_view_row_activated".}
+proc expand_to_path*(view: PTreeView, path: PTreePath) {.cdecl, dynlib: lib,
+    importc: "gtk_tree_view_expand_to_path".}
 proc expand_all*(tree_view: PTreeView){.cdecl, dynlib: lib,
     importc: "gtk_tree_view_expand_all".}
 proc collapse_all*(tree_view: PTreeView){.cdecl, dynlib: lib,
@@ -10817,15 +9312,6 @@ proc VPANED_GET_CLASS*(obj: pointer): PVPanedClass
 proc vpaned_get_type*(): TType{.cdecl, dynlib: lib,
                                 importc: "gtk_vpaned_get_type".}
 proc vpaned_new*(): PVPaned{.cdecl, dynlib: lib, importc: "gtk_vpaned_new".}
-proc TYPE_VRULER*(): GType
-proc VRULER*(obj: pointer): PVRuler
-proc VRULER_CLASS*(klass: pointer): PVRulerClass
-proc IS_VRULER*(obj: pointer): bool
-proc IS_VRULER_CLASS*(klass: pointer): bool
-proc VRULER_GET_CLASS*(obj: pointer): PVRulerClass
-proc vruler_get_type*(): TType{.cdecl, dynlib: lib,
-                                importc: "gtk_vruler_get_type".}
-proc vruler_new*(): PVRuler{.cdecl, dynlib: lib, importc: "gtk_vruler_new".}
 proc TYPE_VSCALE*(): GType
 proc VSCALE*(obj: pointer): PVScale
 proc VSCALE_CLASS*(klass: pointer): PVScaleClass
@@ -12403,147 +10889,6 @@ proc set_inconsistent*(a: PCheckMenuItem, `inconsistent`: guint) =
       (uint16(`inconsistent` shl bp_TGtkCheckMenuItem_inconsistent) and
       bm_TGtkCheckMenuItem_inconsistent)
 
-proc TYPE_CLIST*(): GType =
-  result = clist_get_type()
-
-proc CLIST*(obj: pointer): PCList =
-  result = cast[PCList](CHECK_CAST(obj, TYPE_CLIST()))
-
-proc CLIST_CLASS*(klass: pointer): PCListClass =
-  result = cast[PCListClass](CHECK_CLASS_CAST(klass, TYPE_CLIST()))
-
-proc IS_CLIST*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_CLIST())
-
-proc IS_CLIST_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_CLIST())
-
-proc CLIST_GET_CLASS*(obj: pointer): PCListClass =
-  result = cast[PCListClass](CHECK_GET_CLASS(obj, TYPE_CLIST()))
-
-proc CLIST_FLAGS*(clist: pointer): guint16 =
-  result = CLIST(clist).flags.uint16
-
-proc SET_FLAG*(clist: PCList, flag: guint16) =
-  clist.flags = CLIST(clist).flags or (flag)
-
-proc UNSET_FLAG*(clist: PCList, flag: guint16) =
-  clist.flags = CLIST(clist).flags and not (flag)
-
-proc CLIST_IN_DRAG_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_IN_DRAG)) != 0'u16
-
-proc CLIST_ROW_HEIGHT_SET_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_ROW_HEIGHT_SET)) != 0'u16
-
-proc CLIST_SHOW_TITLES_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_SHOW_TITLES)) != 0'u16
-
-proc CLIST_ADD_MODE_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_ADD_MODE)) != 0'u16
-
-proc CLIST_AUTO_SORT_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_AUTO_SORT)) != 0'u16
-
-proc CLIST_AUTO_RESIZE_BLOCKED_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_AUTO_RESIZE_BLOCKED)) != 0'u16
-
-proc CLIST_REORDERABLE_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_REORDERABLE)) != 0'u16
-
-proc CLIST_USE_DRAG_ICONS_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_USE_DRAG_ICONS)) != 0'u16
-
-proc CLIST_DRAW_DRAG_LINE_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_DRAW_DRAG_LINE)) != 0'u16
-
-proc CLIST_DRAW_DRAG_RECT_get*(clist: pointer): bool =
-  result = ((CLIST_FLAGS(clist)) and uint16(CLIST_DRAW_DRAG_RECT)) != 0'u16
-
-proc CLIST_ROW_get*(glist: PGList): PCListRow =
-  result = cast[PCListRow](glist.data)
-
-when false:
-  proc CELL_TEXT_get*(cell: pointer): PCellText =
-    result = cast[PCellText](addr((cell)))
-
-  proc CELL_PIXMAP_get*(cell: pointer): PCellPixmap =
-    result = cast[PCellPixmap](addr((cell)))
-
-  proc CELL_PIXTEXT_get*(cell: pointer): PCellPixText =
-    result = cast[PCellPixText](addr((cell)))
-
-  proc CELL_WIDGET_get*(cell: pointer): PCellWidget =
-    result = cast[PCellWidget](addr((cell)))
-
-proc visible*(a: PCListColumn): guint =
-  result = (a.flag0 and bm_TGtkCListColumn_visible) shr
-      bp_TGtkCListColumn_visible
-
-proc set_visible*(a: PCListColumn, `visible`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`visible` shl bp_TGtkCListColumn_visible) and
-      bm_TGtkCListColumn_visible)
-
-proc width_set*(a: PCListColumn): guint =
-  result = (a.flag0 and bm_TGtkCListColumn_width_set) shr
-      bp_TGtkCListColumn_width_set
-
-proc set_width_set*(a: PCListColumn, `width_set`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`width_set` shl bp_TGtkCListColumn_width_set) and
-      bm_TGtkCListColumn_width_set)
-
-proc resizeable*(a: PCListColumn): guint =
-  result = (a.flag0 and bm_TGtkCListColumn_resizeable) shr
-      bp_TGtkCListColumn_resizeable
-
-proc set_resizeable*(a: PCListColumn, `resizeable`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`resizeable` shl bp_TGtkCListColumn_resizeable) and
-      bm_TGtkCListColumn_resizeable)
-
-proc auto_resize*(a: PCListColumn): guint =
-  result = (a.flag0 and bm_TGtkCListColumn_auto_resize) shr
-      bp_TGtkCListColumn_auto_resize
-
-proc set_auto_resize*(a: PCListColumn, `auto_resize`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`auto_resize` shl bp_TGtkCListColumn_auto_resize) and
-      bm_TGtkCListColumn_auto_resize)
-
-proc button_passive*(a: PCListColumn): guint =
-  result = (a.flag0 and bm_TGtkCListColumn_button_passive) shr
-      bp_TGtkCListColumn_button_passive
-
-proc set_button_passive*(a: PCListColumn, `button_passive`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`button_passive` shl bp_TGtkCListColumn_button_passive) and
-      bm_TGtkCListColumn_button_passive)
-
-proc fg_set*(a: PCListRow): guint =
-  result = (a.flag0 and bm_TGtkCListRow_fg_set) shr bp_TGtkCListRow_fg_set
-
-proc set_fg_set*(a: PCListRow, `fg_set`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`fg_set` shl bp_TGtkCListRow_fg_set) and bm_TGtkCListRow_fg_set)
-
-proc bg_set*(a: PCListRow): guint =
-  result = (a.flag0 and bm_TGtkCListRow_bg_set) shr bp_TGtkCListRow_bg_set
-
-proc set_bg_set*(a: PCListRow, `bg_set`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`bg_set` shl bp_TGtkCListRow_bg_set) and bm_TGtkCListRow_bg_set)
-
-proc selectable*(a: PCListRow): guint =
-  result = (a.flag0 and bm_TGtkCListRow_selectable) shr
-      bp_TGtkCListRow_selectable
-
-proc set_selectable*(a: PCListRow, `selectable`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`selectable` shl bp_TGtkCListRow_selectable) and
-      bm_TGtkCListRow_selectable)
-
 proc TYPE_DIALOG*(): GType =
   result = dialog_get_type()
 
@@ -12639,153 +10984,6 @@ proc IS_HBOX_CLASS*(klass: pointer): bool =
 proc HBOX_GET_CLASS*(obj: pointer): PHBoxClass =
   result = cast[PHBoxClass](CHECK_GET_CLASS(obj, TYPE_HBOX()))
 
-proc TYPE_COMBO*(): GType =
-  result = combo_get_type()
-
-proc COMBO*(obj: pointer): PCombo =
-  result = cast[PCombo](CHECK_CAST(obj, TYPE_COMBO()))
-
-proc COMBO_CLASS*(klass: pointer): PComboClass =
-  result = cast[PComboClass](CHECK_CLASS_CAST(klass, TYPE_COMBO()))
-
-proc IS_COMBO*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_COMBO())
-
-proc IS_COMBO_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_COMBO())
-
-proc COMBO_GET_CLASS*(obj: pointer): PComboClass =
-  result = cast[PComboClass](CHECK_GET_CLASS(obj, TYPE_COMBO()))
-
-proc value_in_list*(a: PCombo): guint =
-  result = (a.Comboflag0 and bm_TGtkCombo_value_in_list) shr
-      bp_TGtkCombo_value_in_list
-
-proc set_value_in_list*(a: PCombo, `value_in_list`: guint) =
-  a.Comboflag0 = a.Comboflag0 or
-      (uint16(`value_in_list` shl bp_TGtkCombo_value_in_list) and
-      bm_TGtkCombo_value_in_list)
-
-proc ok_if_empty*(a: PCombo): guint =
-  result = (a.Comboflag0 and bm_TGtkCombo_ok_if_empty) shr
-      bp_TGtkCombo_ok_if_empty
-
-proc set_ok_if_empty*(a: PCombo, `ok_if_empty`: guint) =
-  a.Comboflag0 = a.Comboflag0 or
-      (uint16(`ok_if_empty` shl bp_TGtkCombo_ok_if_empty) and
-      bm_TGtkCombo_ok_if_empty)
-
-proc case_sensitive*(a: PCombo): guint =
-  result = (a.Comboflag0 and bm_TGtkCombo_case_sensitive) shr
-      bp_TGtkCombo_case_sensitive
-
-proc set_case_sensitive*(a: PCombo, `case_sensitive`: guint) =
-  a.Comboflag0 = a.Comboflag0 or
-      (uint16(`case_sensitive` shl bp_TGtkCombo_case_sensitive) and
-      bm_TGtkCombo_case_sensitive)
-
-proc use_arrows*(a: PCombo): guint =
-  result = (a.Comboflag0 and bm_TGtkCombo_use_arrows) shr
-      bp_TGtkCombo_use_arrows
-
-proc set_use_arrows*(a: PCombo, `use_arrows`: guint) =
-  a.Comboflag0 = a.Comboflag0 or
-      (uint16(`use_arrows` shl bp_TGtkCombo_use_arrows) and
-      bm_TGtkCombo_use_arrows)
-
-proc use_arrows_always*(a: PCombo): guint =
-  result = (a.Comboflag0 and bm_TGtkCombo_use_arrows_always) shr
-      bp_TGtkCombo_use_arrows_always
-
-proc set_use_arrows_always*(a: PCombo, `use_arrows_always`: guint) =
-  a.Comboflag0 = a.Comboflag0 or
-      (uint16(`use_arrows_always` shl bp_TGtkCombo_use_arrows_always) and
-      bm_TGtkCombo_use_arrows_always)
-
-proc TYPE_CTREE*(): GType =
-  result = ctree_get_type()
-
-proc CTREE*(obj: pointer): PCTree =
-  result = cast[PCTree](CHECK_CAST(obj, TYPE_CTREE()))
-
-proc CTREE_CLASS*(klass: pointer): PCTreeClass =
-  result = cast[PCTreeClass](CHECK_CLASS_CAST(klass, TYPE_CTREE()))
-
-proc IS_CTREE*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_CTREE())
-
-proc IS_CTREE_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_CTREE())
-
-proc CTREE_GET_CLASS*(obj: pointer): PCTreeClass =
-  result = cast[PCTreeClass](CHECK_GET_CLASS(obj, TYPE_CTREE()))
-
-proc CTREE_ROW*(node: ByteAddress): PCTreeRow =
-  result = cast[PCTreeRow]((cast[PGList](node)).data)
-
-proc CTREE_NODE*(node: ByteAddress): PCTreeNode =
-  result = cast[PCTreeNode](node)
-
-proc CTREE_NODE_NEXT*(nnode: ByteAddress): PCTreeNode =
-  result = cast[PCTreeNode]((cast[PGList](nnode)).next)
-
-proc CTREE_NODE_PREV*(pnode: ByteAddress): PCTreeNode =
-  result = cast[PCTreeNode]((cast[PGList](pnode)).prev)
-
-proc CTREE_FUNC*(fun: ByteAddress): TCTreeFunc =
-  result = cast[TCTreeFunc](fun)
-
-proc TYPE_CTREE_NODE*(): GType =
-  result = ctree_node_get_type()
-
-proc line_style*(a: PCTree): guint =
-  result = (a.CTreeflag0 and bm_TGtkCTree_line_style) shr
-      bp_TGtkCTree_line_style
-
-proc set_line_style*(a: PCTree, `line_style`: guint) =
-  a.CTreeflag0 = a.CTreeflag0 or
-      (uint16(`line_style` shl bp_TGtkCTree_line_style) and
-      bm_TGtkCTree_line_style)
-
-proc expander_style*(a: PCTree): guint =
-  result = (a.CTreeflag0 and bm_TGtkCTree_expander_style) shr
-      bp_TGtkCTree_expander_style
-
-proc set_expander_style*(a: PCTree, `expander_style`: guint) =
-  a.CTreeflag0 = a.CTreeflag0 or
-      (uint16(`expander_style` shl bp_TGtkCTree_expander_style) and
-      bm_TGtkCTree_expander_style)
-
-proc show_stub*(a: PCTree): guint =
-  result = (a.CTreeflag0 and bm_TGtkCTree_show_stub) shr
-      bp_TGtkCTree_show_stub
-
-proc set_show_stub*(a: PCTree, `show_stub`: guint) =
-  a.CTreeflag0 = a.CTreeflag0 or
-      (uint16(`show_stub` shl bp_TGtkCTree_show_stub) and
-      bm_TGtkCTree_show_stub)
-
-proc is_leaf*(a: PCTreeRow): guint =
-  result = (a.CTreeRow_flag0 and bm_TGtkCTreeRow_is_leaf) shr
-      bp_TGtkCTreeRow_is_leaf
-
-proc set_is_leaf*(a: PCTreeRow, `is_leaf`: guint) =
-  a.CTreeRow_flag0 = a.CTreeRow_flag0 or
-      (uint16(`is_leaf` shl bp_TGtkCTreeRow_is_leaf) and
-      bm_TGtkCTreeRow_is_leaf)
-
-proc expanded*(a: PCTreeRow): guint =
-  result = (a.CTreeRow_flag0 and bm_TGtkCTreeRow_expanded) shr
-      bp_TGtkCTreeRow_expanded
-
-proc set_expanded*(a: PCTreeRow, `expanded`: guint) =
-  a.CTreeRow_flag0 = a.CTreeRowflag0 or
-      (uint16(`expanded` shl bp_TGtkCTreeRow_expanded) and
-      bm_TGtkCTreeRow_expanded)
-
-proc ctree_set_reorderable*(t: pointer, r: bool) =
-  set_reorderable(cast[PCList](t), r)
-
 proc TYPE_DRAWING_AREA*(): GType =
   result = drawing_area_get_type()
 
@@ -12803,24 +11001,6 @@ proc IS_DRAWING_AREA_CLASS*(klass: pointer): bool =
 
 proc DRAWING_AREA_GET_CLASS*(obj: pointer): PDrawingAreaClass =
   result = cast[PDrawingAreaClass](CHECK_GET_CLASS(obj, TYPE_DRAWING_AREA()))
-
-proc TYPE_CURVE*(): GType =
-  result = curve_get_type()
-
-proc CURVE*(obj: pointer): PCurve =
-  result = cast[PCurve](CHECK_CAST(obj, TYPE_CURVE()))
-
-proc CURVE_CLASS*(klass: pointer): PCurveClass =
-  result = cast[PCurveClass](CHECK_CLASS_CAST(klass, TYPE_CURVE()))
-
-proc IS_CURVE*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_CURVE())
-
-proc IS_CURVE_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_CURVE())
-
-proc CURVE_GET_CLASS*(obj: pointer): PCurveClass =
-  result = cast[PCurveClass](CHECK_GET_CLASS(obj, TYPE_CURVE()))
 
 proc TYPE_EDITABLE*(): GType =
   result = editable_get_type()
@@ -13183,25 +11363,6 @@ proc IS_EVENT_BOX_CLASS*(klass: pointer): bool =
 proc EVENT_BOX_GET_CLASS*(obj: pointer): PEventBoxClass =
   result = cast[PEventBoxClass](CHECK_GET_CLASS(obj, TYPE_EVENT_BOX()))
 
-proc TYPE_FILE_SELECTION*(): GType =
-  result = file_selection_get_type()
-
-proc FILE_SELECTION*(obj: pointer): PFileSelection =
-  result = cast[PFileSelection](CHECK_CAST(obj, TYPE_FILE_SELECTION()))
-
-proc FILE_SELECTION_CLASS*(klass: pointer): PFileSelectionClass =
-  result = cast[PFileSelectionClass](CHECK_CLASS_CAST(klass,
-      TYPE_FILE_SELECTION()))
-
-proc IS_FILE_SELECTION*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_FILE_SELECTION())
-
-proc IS_FILE_SELECTION_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_FILE_SELECTION())
-
-proc FILE_SELECTION_GET_CLASS*(obj: pointer): PFileSelectionClass =
-  result = cast[PFileSelectionClass](CHECK_GET_CLASS(obj, TYPE_FILE_SELECTION()))
-
 proc TYPE_FIXED*(): GType =
   result = fixed_get_type()
 
@@ -13259,24 +11420,6 @@ proc IS_FONT_SELECTION_DIALOG_CLASS*(klass: pointer): bool =
 proc FONT_SELECTION_DIALOG_GET_CLASS*(obj: pointer): PFontSelectionDialogClass =
   result = cast[PFontSelectionDialogClass](CHECK_GET_CLASS(obj,
       TYPE_FONT_SELECTION_DIALOG()))
-
-proc TYPE_GAMMA_CURVE*(): GType =
-  result = gamma_curve_get_type()
-
-proc GAMMA_CURVE*(obj: pointer): PGammaCurve =
-  result = cast[PGammaCurve](CHECK_CAST(obj, TYPE_GAMMA_CURVE()))
-
-proc GAMMA_CURVE_CLASS*(klass: pointer): PGammaCurveClass =
-  result = cast[PGammaCurveClass](CHECK_CLASS_CAST(klass, TYPE_GAMMA_CURVE()))
-
-proc IS_GAMMA_CURVE*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_GAMMA_CURVE())
-
-proc IS_GAMMA_CURVE_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_GAMMA_CURVE())
-
-proc GAMMA_CURVE_GET_CLASS*(obj: pointer): PGammaCurveClass =
-  result = cast[PGammaCurveClass](CHECK_GET_CLASS(obj, TYPE_GAMMA_CURVE()))
 
 proc TYPE_HANDLE_BOX*(): GType =
   result = handle_box_get_type()
@@ -13491,42 +11634,6 @@ proc IS_HPANED_CLASS*(klass: pointer): bool =
 
 proc HPANED_GET_CLASS*(obj: pointer): PHPanedClass =
   result = cast[PHPanedClass](CHECK_GET_CLASS(obj, TYPE_HPANED()))
-
-proc TYPE_RULER*(): GType =
-  result = ruler_get_type()
-
-proc RULER*(obj: pointer): PRuler =
-  result = cast[PRuler](CHECK_CAST(obj, TYPE_RULER()))
-
-proc RULER_CLASS*(klass: pointer): PRulerClass =
-  result = cast[PRulerClass](CHECK_CLASS_CAST(klass, TYPE_RULER()))
-
-proc IS_RULER*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_RULER())
-
-proc IS_RULER_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_RULER())
-
-proc RULER_GET_CLASS*(obj: pointer): PRulerClass =
-  result = cast[PRulerClass](CHECK_GET_CLASS(obj, TYPE_RULER()))
-
-proc TYPE_HRULER*(): GType =
-  result = hruler_get_type()
-
-proc HRULER*(obj: pointer): PHRuler =
-  result = cast[PHRuler](CHECK_CAST(obj, TYPE_HRULER()))
-
-proc HRULER_CLASS*(klass: pointer): PHRulerClass =
-  result = cast[PHRulerClass](CHECK_CLASS_CAST(klass, TYPE_HRULER()))
-
-proc IS_HRULER*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_HRULER())
-
-proc IS_HRULER_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_HRULER())
-
-proc HRULER_GET_CLASS*(obj: pointer): PHRulerClass =
-  result = cast[PHRulerClass](CHECK_GET_CLASS(obj, TYPE_HRULER()))
 
 proc TYPE_SETTINGS*(): GType =
   result = settings_get_type()
@@ -13949,24 +12056,6 @@ proc IM_MULTICONTEXT_GET_CLASS*(obj: pointer): PIMMulticontextClass =
   result = cast[PIMMulticontextClass](CHECK_GET_CLASS(obj,
       TYPE_IM_MULTICONTEXT()))
 
-proc TYPE_INPUT_DIALOG*(): GType =
-  result = input_dialog_get_type()
-
-proc INPUT_DIALOG*(obj: pointer): PInputDialog =
-  result = cast[PInputDialog](CHECK_CAST(obj, TYPE_INPUT_DIALOG()))
-
-proc INPUT_DIALOG_CLASS*(klass: pointer): PInputDialogClass =
-  result = cast[PInputDialogClass](CHECK_CLASS_CAST(klass, TYPE_INPUT_DIALOG()))
-
-proc IS_INPUT_DIALOG*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_INPUT_DIALOG())
-
-proc IS_INPUT_DIALOG_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_INPUT_DIALOG())
-
-proc INPUT_DIALOG_GET_CLASS*(obj: pointer): PInputDialogClass =
-  result = cast[PInputDialogClass](CHECK_GET_CLASS(obj, TYPE_INPUT_DIALOG()))
-
 proc TYPE_INVISIBLE*(): GType =
   result = invisible_get_type()
 
@@ -14020,77 +12109,6 @@ proc IS_LAYOUT_CLASS*(klass: pointer): bool =
 
 proc LAYOUT_GET_CLASS*(obj: pointer): PLayoutClass =
   result = cast[PLayoutClass](CHECK_GET_CLASS(obj, gtk2.TYPE_LAYOUT()))
-
-proc TYPE_LIST*(): GType =
-  result = list_get_type()
-
-proc LIST*(obj: pointer): PList =
-  result = cast[PList](CHECK_CAST(obj, TYPE_LIST()))
-
-proc LIST_CLASS*(klass: pointer): PListClass =
-  result = cast[PListClass](CHECK_CLASS_CAST(klass, TYPE_LIST()))
-
-proc IS_LIST*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_LIST())
-
-proc IS_LIST_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_LIST())
-
-proc LIST_GET_CLASS*(obj: pointer): PListClass =
-  result = cast[PListClass](CHECK_GET_CLASS(obj, TYPE_LIST()))
-
-proc selection_mode*(a: PList): guint =
-  result = (a.Listflag0 and bm_TGtkList_selection_mode) shr
-      bp_TGtkList_selection_mode
-
-when false:
-  proc set_selection_mode*(a: PList, `selection_mode`: guint) =
-    a.Listflag0 = a.Listflag0 or
-        (uint16(`selection_mode` shl bp_TGtkList_selection_mode) and
-        bm_TGtkList_selection_mode)
-
-proc drag_selection*(a: PList): guint =
-  result = (a.Listflag0 and bm_TGtkList_drag_selection) shr
-      bp_TGtkList_drag_selection
-
-proc set_drag_selection*(a: PList, `drag_selection`: guint) =
-  a.Listflag0 = a.Listflag0 or
-      (uint16(`drag_selection` shl bp_TGtkList_drag_selection) and
-      bm_TGtkList_drag_selection)
-
-proc add_mode*(a: PList): guint =
-  result = (a.Listflag0 and bm_TGtkList_add_mode) shr bp_TGtkList_add_mode
-
-proc set_add_mode*(a: PList, `add_mode`: guint) =
-  a.Listflag0 = a.Listflag0 or
-      (uint16(`add_mode` shl bp_TGtkList_add_mode) and bm_TGtkList_add_mode)
-
-proc list_item_get_type(): GType{.importc: "gtk_list_item_get_type", cdecl,
-                                  dynlib: lib.}
-proc TYPE_LIST_ITEM*(): GType =
-  result = list_item_get_type()
-
-type
-  TListItem = object of TItem
-  TListItemClass = object of TItemClass
-  PListItem = ptr TListItem
-  PListItemClass = ptr TListItemClass
-
-proc LIST_ITEM*(obj: pointer): PListItem =
-  result = cast[PListItem](CHECK_CAST(obj, TYPE_LIST_ITEM()))
-
-proc LIST_ITEM_CLASS*(klass: pointer): PListItemClass =
-  result = cast[PListItemClass](CHECK_CLASS_CAST(klass, TYPE_LIST_ITEM()))
-
-proc IS_LIST_ITEM*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_LIST_ITEM())
-
-proc IS_LIST_ITEM_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_LIST_ITEM())
-
-proc LIST_ITEM_GET_CLASS*(obj: pointer): PListItemClass =
-  #proc gtk_tree_model_get_type(): GType {.importc, cdecl, dynlib: gtklib.}
-  result = cast[PListItemClass](CHECK_GET_CLASS(obj, TYPE_LIST_ITEM()))
 
 proc TYPE_TREE_MODEL*(): GType =
   result = tree_model_get_type()
@@ -14276,11 +12294,6 @@ proc tab_pos*(a: PNotebook): guint =
   result = (a.Notebookflag0 and bm_TGtkNotebook_tab_pos) shr
       bp_TGtkNotebook_tab_pos
 
-proc set_tab_pos*(a: PNotebook, `tab_pos`: guint) =
-  a.Notebookflag0 = a.Notebookflag0 or
-      (uint16(`tab_pos` shl bp_TGtkNotebook_tab_pos) and
-      bm_TGtkNotebook_tab_pos)
-
 proc scrollable*(a: PNotebook): guint =
   result = (a.Notebookflag0 and bm_TGtkNotebook_scrollable) shr
       bp_TGtkNotebook_scrollable
@@ -14353,96 +12366,6 @@ proc set_focus_out*(a: PNotebook, `focus_out`: guint) =
       (uint16(`focus_out` shl bp_TGtkNotebook_focus_out) and
       bm_TGtkNotebook_focus_out)
 
-proc TYPE_OLD_EDITABLE*(): GType =
-  result = old_editable_get_type()
-
-proc OLD_EDITABLE*(obj: pointer): POldEditable =
-  result = cast[POldEditable](CHECK_CAST(obj, TYPE_OLD_EDITABLE()))
-
-proc OLD_EDITABLE_CLASS*(klass: pointer): POldEditableClass =
-  result = cast[POldEditableClass](CHECK_CLASS_CAST(klass, TYPE_OLD_EDITABLE()))
-
-proc IS_OLD_EDITABLE*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_OLD_EDITABLE())
-
-proc IS_OLD_EDITABLE_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_OLD_EDITABLE())
-
-proc OLD_EDITABLE_GET_CLASS*(obj: pointer): POldEditableClass =
-  result = cast[POldEditableClass](CHECK_GET_CLASS(obj, TYPE_OLD_EDITABLE()))
-
-proc has_selection*(a: POldEditable): guint =
-  result = (a.OldEditableflag0 and bm_TGtkOldEditable_has_selection) shr
-      bp_TGtkOldEditable_has_selection
-
-proc set_has_selection*(a: POldEditable, `has_selection`: guint) =
-  a.OldEditableflag0 = a.OldEditableflag0 or
-      (uint16(`has_selection` shl bp_TGtkOldEditable_has_selection) and
-      bm_TGtkOldEditable_has_selection)
-
-proc editable*(a: POldEditable): guint =
-  result = (a.OldEditableflag0 and bm_TGtkOldEditable_editable) shr
-      bp_TGtkOldEditable_editable
-
-proc set_editable*(a: POldEditable, `editable`: guint) =
-  a.OldEditableflag0 = a.OldEditableflag0 or
-      (uint16(`editable` shl bp_TGtkOldEditable_editable) and
-      bm_TGtkOldEditable_editable)
-
-proc visible*(a: POldEditable): guint =
-  result = (a.OldEditableflag0 and bm_TGtkOldEditable_visible) shr
-      bp_TGtkOldEditable_visible
-
-proc set_visible*(a: POldEditable, `visible`: guint) =
-  a.OldEditableflag0 = a.OldEditableflag0 or
-      (uint16(`visible` shl bp_TGtkOldEditable_visible) and
-      bm_TGtkOldEditable_visible)
-
-proc TYPE_OPTION_MENU*(): GType =
-  result = option_menu_get_type()
-
-proc OPTION_MENU*(obj: pointer): POptionMenu =
-  result = cast[POptionMenu](CHECK_CAST(obj, TYPE_OPTION_MENU()))
-
-proc OPTION_MENU_CLASS*(klass: pointer): POptionMenuClass =
-  result = cast[POptionMenuClass](CHECK_CLASS_CAST(klass, TYPE_OPTION_MENU()))
-
-proc IS_OPTION_MENU*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_OPTION_MENU())
-
-proc IS_OPTION_MENU_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_OPTION_MENU())
-
-proc OPTION_MENU_GET_CLASS*(obj: pointer): POptionMenuClass =
-  result = cast[POptionMenuClass](CHECK_GET_CLASS(obj, TYPE_OPTION_MENU()))
-
-proc TYPE_PIXMAP*(): GType =
-  result = gtk2.pixmap_get_type()
-
-proc PIXMAP*(obj: pointer): PPixmap =
-  result = cast[PPixmap](CHECK_CAST(obj, gtk2.TYPE_PIXMAP()))
-
-proc PIXMAP_CLASS*(klass: pointer): PPixmapClass =
-  result = cast[PPixmapClass](CHECK_CLASS_CAST(klass, gtk2.TYPE_PIXMAP()))
-
-proc IS_PIXMAP*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, gtk2.TYPE_PIXMAP())
-
-proc IS_PIXMAP_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, gtk2.TYPE_PIXMAP())
-
-proc PIXMAP_GET_CLASS*(obj: pointer): PPixmapClass =
-  result = cast[PPixmapClass](CHECK_GET_CLASS(obj, gtk2.TYPE_PIXMAP()))
-
-proc build_insensitive*(a: PPixmap): guint =
-  result = (a.Pixmapflag0 and bm_TGtkPixmap_build_insensitive) shr
-      bp_TGtkPixmap_build_insensitive
-
-proc set_build_insensitive*(a: PPixmap, `build_insensitive`: guint) =
-  a.Pixmapflag0 = a.Pixmapflag0 or
-      (uint16(`build_insensitive` shl bp_TGtkPixmap_build_insensitive) and
-      bm_TGtkPixmap_build_insensitive)
-
 proc TYPE_PLUG*(): GType =
   result = plug_get_type()
 
@@ -14467,86 +12390,6 @@ proc same_app*(a: PPlug): guint =
 proc set_same_app*(a: PPlug, `same_app`: guint) =
   a.Plugflag0 = a.Plugflag0 or
       (uint16(`same_app` shl bp_TGtkPlug_same_app) and bm_TGtkPlug_same_app)
-
-proc TYPE_PREVIEW*(): GType =
-  result = preview_get_type()
-
-proc PREVIEW*(obj: pointer): PPreview =
-  result = cast[PPreview](CHECK_CAST(obj, TYPE_PREVIEW()))
-
-proc PREVIEW_CLASS*(klass: pointer): PPreviewClass =
-  result = cast[PPreviewClass](CHECK_CLASS_CAST(klass, TYPE_PREVIEW()))
-
-proc IS_PREVIEW*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_PREVIEW())
-
-proc IS_PREVIEW_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_PREVIEW())
-
-proc PREVIEW_GET_CLASS*(obj: pointer): PPreviewClass =
-  result = cast[PPreviewClass](CHECK_GET_CLASS(obj, TYPE_PREVIEW()))
-
-proc get_type*(a: PPreview): guint =
-  result = (a.Previewflag0 and bm_TGtkPreview_type) shr bp_TGtkPreview_type
-
-proc set_type*(a: PPreview, `type`: guint) =
-  a.Previewflag0 = a.Previewflag0 or
-      (uint16(`type` shl bp_TGtkPreview_type) and bm_TGtkPreview_type)
-
-proc get_expand*(a: PPreview): guint =
-  result = (a.Previewflag0 and bm_TGtkPreview_expand) shr
-      bp_TGtkPreview_expand
-
-proc set_expand*(a: PPreview, `expand`: guint) =
-  a.Previewflag0 = a.Previewflag0 or
-      (uint16(`expand` shl bp_TGtkPreview_expand) and bm_TGtkPreview_expand)
-
-proc progress_get_type(): GType{.importc: "gtk_progress_get_type", cdecl,
-                                 dynlib: lib.}
-proc TYPE_PROGRESS*(): GType =
-  result = progress_get_type()
-
-proc PROGRESS*(obj: pointer): PProgress =
-  result = cast[PProgress](CHECK_CAST(obj, TYPE_PROGRESS()))
-
-proc PROGRESS_CLASS*(klass: pointer): PProgressClass =
-  result = cast[PProgressClass](CHECK_CLASS_CAST(klass, TYPE_PROGRESS()))
-
-proc IS_PROGRESS*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_PROGRESS())
-
-proc IS_PROGRESS_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_PROGRESS())
-
-proc PROGRESS_GET_CLASS*(obj: pointer): PProgressClass =
-  result = cast[PProgressClass](CHECK_GET_CLASS(obj, TYPE_PROGRESS()))
-
-proc show_text*(a: PProgress): guint =
-  result = (a.Progressflag0 and bm_TGtkProgress_show_text) shr
-      bp_TGtkProgress_show_text
-
-proc set_show_text*(a: PProgress, `show_text`: guint) =
-  a.Progressflag0 = a.Progressflag0 or
-      (uint16(`show_text` shl bp_TGtkProgress_show_text) and
-      bm_TGtkProgress_show_text)
-
-proc activity_mode*(a: PProgress): guint =
-  result = (a.Progressflag0 and bm_TGtkProgress_activity_mode) shr
-      bp_TGtkProgress_activity_mode
-
-proc set_activity_mode*(a: PProgress, `activity_mode`: guint) =
-  a.Progressflag0 = a.Progressflag0 or
-      (uint16(`activity_mode` shl bp_TGtkProgress_activity_mode) and
-      bm_TGtkProgress_activity_mode)
-
-proc use_text_format*(a: PProgress): guint =
-  result = (a.Progressflag0 and bm_TGtkProgress_use_text_format) shr
-      bp_TGtkProgress_use_text_format
-
-proc set_use_text_format*(a: PProgress, `use_text_format`: guint) =
-  a.Progressflag0 = a.Progressflag0 or
-      (uint16(`use_text_format` shl bp_TGtkProgress_use_text_format) and
-      bm_TGtkProgress_use_text_format)
 
 proc TYPE_PROGRESS_BAR*(): GType =
   result = progress_bar_get_type()
@@ -15173,54 +13016,6 @@ proc set_torn_off*(a: PTearoffMenuItem, `torn_off`: guint) =
       (uint16(`torn_off` shl bp_TGtkTearoffMenuItem_torn_off) and
       bm_TGtkTearoffMenuItem_torn_off)
 
-proc TYPE_TEXT*(): GType =
-  result = gtk2.text_get_type()
-
-proc TEXT*(obj: pointer): PText =
-  result = cast[PText](CHECK_CAST(obj, gtk2.TYPE_TEXT()))
-
-proc TEXT_CLASS*(klass: pointer): PTextClass =
-  result = cast[PTextClass](CHECK_CLASS_CAST(klass, gtk2.TYPE_TEXT()))
-
-proc IS_TEXT*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, gtk2.TYPE_TEXT())
-
-proc IS_TEXT_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, gtk2.TYPE_TEXT())
-
-proc TEXT_GET_CLASS*(obj: pointer): PTextClass =
-  result = cast[PTextClass](CHECK_GET_CLASS(obj, gtk2.TYPE_TEXT()))
-
-proc line_wrap*(a: PText): guint =
-  result = (a.Textflag0 and bm_TGtkText_line_wrap) shr bp_TGtkText_line_wrap
-
-proc set_line_wrap*(a: PText, `line_wrap`: guint) =
-  a.Textflag0 = a.Textflag0 or
-      (uint16(`line_wrap` shl bp_TGtkText_line_wrap) and bm_TGtkText_line_wrap)
-
-proc word_wrap*(a: PText): guint =
-  result = (a.Textflag0 and bm_TGtkText_word_wrap) shr bp_TGtkText_word_wrap
-
-proc set_word_wrap*(a: PText, `word_wrap`: guint) =
-  a.Textflag0 = a.Textflag0 or
-      (uint16(`word_wrap` shl bp_TGtkText_word_wrap) and bm_TGtkText_word_wrap)
-
-proc use_wchar*(a: PText): gboolean =
-  result = ((a.Textflag0 and bm_TGtkText_use_wchar) shr bp_TGtkText_use_wchar) >
-      0'u16
-
-proc set_use_wchar*(a: PText, `use_wchar`: gboolean) =
-  if `use_wchar`:
-    a.Textflag0 = a.Textflag0 or bm_TGtkText_use_wchar
-  else:
-    a.Textflag0 = a.Textflag0 and not bm_TGtkText_use_wchar
-
-proc INDEX_WCHAR*(t: PText, index: guint): guint32 =
-  nil
-
-proc INDEX_UCHAR*(t: PText, index: guint): guchar =
-  nil
-
 proc TYPE_TEXT_ITER*(): GType =
   result = text_iter_get_type()
 
@@ -15491,10 +13286,6 @@ proc set_inside_selection*(a: PTextAppearance, `inside_selection`: guint) =
   a.flag0 = a.flag0 or
       (uint16(`inside_selection` shl bp_TGtkTextAppearance_inside_selection) and
       bm_TGtkTextAppearance_inside_selection)
-
-proc is_text*(a: PTextAppearance): guint =
-  result = (a.flag0 and bm_TGtkTextAppearance_is_text) shr
-      bp_TGtkTextAppearance_is_text
 
 proc set_is_text*(a: PTextAppearance, `is_text`: guint) =
   a.flag0 = a.flag0 or
@@ -15881,94 +13672,6 @@ proc set_mouse_cursor_obscured*(a: PTextView, `mouse_cursor_obscured`: guint) =
       bp_TGtkTextView_mouse_cursor_obscured) and
       bm_TGtkTextView_mouse_cursor_obscured)
 
-proc TYPE_TIPS_QUERY*(): GType =
-  result = tips_query_get_type()
-
-proc TIPS_QUERY*(obj: pointer): PTipsQuery =
-  result = cast[PTipsQuery](CHECK_CAST(obj, TYPE_TIPS_QUERY()))
-
-proc TIPS_QUERY_CLASS*(klass: pointer): PTipsQueryClass =
-  result = cast[PTipsQueryClass](CHECK_CLASS_CAST(klass, TYPE_TIPS_QUERY()))
-
-proc IS_TIPS_QUERY*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_TIPS_QUERY())
-
-proc IS_TIPS_QUERY_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_TIPS_QUERY())
-
-proc TIPS_QUERY_GET_CLASS*(obj: pointer): PTipsQueryClass =
-  result = cast[PTipsQueryClass](CHECK_GET_CLASS(obj, TYPE_TIPS_QUERY()))
-
-proc emit_always*(a: PTipsQuery): guint =
-  result = (a.TipsQueryflag0 and bm_TGtkTipsQuery_emit_always) shr
-      bp_TGtkTipsQuery_emit_always
-
-proc set_emit_always*(a: PTipsQuery, `emit_always`: guint) =
-  a.TipsQueryflag0 = a.TipsQueryflag0 or
-      (uint16(`emit_always` shl bp_TGtkTipsQuery_emit_always) and
-      bm_TGtkTipsQuery_emit_always)
-
-proc in_query*(a: PTipsQuery): guint =
-  result = (a.TipsQueryflag0 and bm_TGtkTipsQuery_in_query) shr
-      bp_TGtkTipsQuery_in_query
-
-proc set_in_query*(a: PTipsQuery, `in_query`: guint) =
-  a.TipsQueryflag0 = a.TipsQueryflag0 or
-      (uint16(`in_query` shl bp_TGtkTipsQuery_in_query) and
-      bm_TGtkTipsQuery_in_query)
-
-proc TYPE_TOOLTIPS*(): GType =
-  result = tooltips_get_type()
-
-proc TOOLTIPS*(obj: pointer): PTooltips =
-  result = cast[PTooltips](CHECK_CAST(obj, TYPE_TOOLTIPS()))
-
-proc TOOLTIPS_CLASS*(klass: pointer): PTooltipsClass =
-  result = cast[PTooltipsClass](CHECK_CLASS_CAST(klass, TYPE_TOOLTIPS()))
-
-proc IS_TOOLTIPS*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_TOOLTIPS())
-
-proc IS_TOOLTIPS_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_TOOLTIPS())
-
-proc TOOLTIPS_GET_CLASS*(obj: pointer): PTooltipsClass =
-  result = cast[PTooltipsClass](CHECK_GET_CLASS(obj, TYPE_TOOLTIPS()))
-
-proc delay*(a: PTooltips): guint =
-  result = (a.Tooltipsflag0 and bm_TGtkTooltips_delay) shr
-      bp_TGtkTooltips_delay
-
-proc set_delay*(a: PTooltips, `delay`: guint) =
-  a.Tooltipsflag0 = a.Tooltipsflag0 or
-      ((`delay` shl bp_TGtkTooltips_delay) and bm_TGtkTooltips_delay)
-
-proc enabled*(a: PTooltips): guint =
-  result = (a.Tooltipsflag0 and bm_TGtkTooltips_enabled) shr
-      bp_TGtkTooltips_enabled
-
-proc set_enabled*(a: PTooltips, `enabled`: guint) =
-  a.Tooltipsflag0 = a.Tooltipsflag0 or
-      ((`enabled` shl bp_TGtkTooltips_enabled) and bm_TGtkTooltips_enabled)
-
-proc have_grab*(a: PTooltips): guint =
-  result = (a.Tooltipsflag0 and bm_TGtkTooltips_have_grab) shr
-      bp_TGtkTooltips_have_grab
-
-proc set_have_grab*(a: PTooltips, `have_grab`: guint) =
-  a.Tooltipsflag0 = a.Tooltipsflag0 or
-      ((`have_grab` shl bp_TGtkTooltips_have_grab) and
-      bm_TGtkTooltips_have_grab)
-
-proc use_sticky_delay*(a: PTooltips): guint =
-  result = (a.Tooltipsflag0 and bm_TGtkTooltips_use_sticky_delay) shr
-      bp_TGtkTooltips_use_sticky_delay
-
-proc set_use_sticky_delay*(a: PTooltips, `use_sticky_delay`: guint) =
-  a.Tooltipsflag0 = a.Tooltipsflag0 or
-      ((`use_sticky_delay` shl bp_TGtkTooltips_use_sticky_delay) and
-      bm_TGtkTooltips_use_sticky_delay)
-
 proc TYPE_TOOLBAR*(): GType =
   result = toolbar_get_type()
 
@@ -16005,57 +13708,6 @@ proc set_icon_size_set*(a: PToolbar, `icon_size_set`: guint) =
       (uint16(`icon_size_set` shl bp_TGtkToolbar_icon_size_set) and
       bm_TGtkToolbar_icon_size_set)
 
-proc TYPE_TREE*(): GType =
-  result = tree_get_type()
-
-proc TREE*(obj: pointer): PTree =
-  result = cast[PTree](CHECK_CAST(obj, TYPE_TREE()))
-
-proc TREE_CLASS*(klass: pointer): PTreeClass =
-  result = cast[PTreeClass](CHECK_CLASS_CAST(klass, TYPE_TREE()))
-
-proc IS_TREE*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_TREE())
-
-proc IS_TREE_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_TREE())
-
-proc TREE_GET_CLASS*(obj: pointer): PTreeClass =
-  result = cast[PTreeClass](CHECK_GET_CLASS(obj, TYPE_TREE()))
-
-proc IS_ROOT_TREE*(obj: pointer): bool =
-  result = (cast[PObject]((TREE(obj)).root_tree)) == (cast[PObject](obj))
-
-proc TREE_ROOT_TREE*(obj: pointer): PTree =
-  result = TREE(obj).root_tree
-
-proc TREE_SELECTION_OLD*(obj: pointer): PGList =
-  result = (TREE_ROOT_TREE(obj)).selection
-
-proc selection_mode*(a: PTree): guint =
-  result = (a.Treeflag0 and bm_TGtkTree_selection_mode) shr
-      bp_TGtkTree_selection_mode
-
-when false:
-  proc set_selection_mode*(a: PTree, `selection_mode`: guint) =
-    a.Treeflag0 = a.Treeflag0 or
-        (uint16(`selection_mode` shl bp_TGtkTree_selection_mode) and
-        bm_TGtkTree_selection_mode)
-
-proc view_mode*(a: PTree): guint =
-  result = (a.Treeflag0 and bm_TGtkTree_view_mode) shr bp_TGtkTree_view_mode
-
-proc set_view_mode*(a: PTree, `view_mode`: guint) =
-  a.Treeflag0 = a.Treeflag0 or
-      (uint16(`view_mode` shl bp_TGtkTree_view_mode) and bm_TGtkTree_view_mode)
-
-proc view_line*(a: PTree): guint =
-  result = (a.Treeflag0 and bm_TGtkTree_view_line) shr bp_TGtkTree_view_line
-
-proc set_view_line*(a: PTree, `view_line`: guint) =
-  a.Treeflag0 = a.Treeflag0 or
-      (uint16(`view_line` shl bp_TGtkTree_view_line) and bm_TGtkTree_view_line)
-
 proc TYPE_TREE_DRAG_SOURCE*(): GType =
   result = tree_drag_source_get_type()
 
@@ -16083,36 +13735,6 @@ proc IS_TREE_DRAG_DEST*(obj: pointer): bool =
 proc TREE_DRAG_DEST_GET_IFACE*(obj: pointer): PTreeDragDestIface =
   result = cast[PTreeDragDestIface](G_TYPE_INSTANCE_GET_INTERFACE(obj,
       TYPE_TREE_DRAG_DEST()))
-
-proc TYPE_TREE_ITEM*(): GType =
-  result = tree_item_get_type()
-
-proc TREE_ITEM*(obj: pointer): PTreeItem =
-  result = cast[PTreeItem](CHECK_CAST(obj, TYPE_TREE_ITEM()))
-
-proc TREE_ITEM_CLASS*(klass: pointer): PTreeItemClass =
-  result = cast[PTreeItemClass](CHECK_CLASS_CAST(klass, TYPE_TREE_ITEM()))
-
-proc IS_TREE_ITEM*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_TREE_ITEM())
-
-proc IS_TREE_ITEM_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_TREE_ITEM())
-
-proc TREE_ITEM_GET_CLASS*(obj: pointer): PTreeItemClass =
-  result = cast[PTreeItemClass](CHECK_GET_CLASS(obj, TYPE_TREE_ITEM()))
-
-proc TREE_ITEM_SUBTREE*(obj: pointer): PWidget =
-  result = (TREE_ITEM(obj)).subtree
-
-proc expanded*(a: PTreeItem): guint =
-  result = (a.TreeItemflag0 and bm_TGtkTreeItem_expanded) shr
-      bp_TGtkTreeItem_expanded
-
-proc set_expanded*(a: PTreeItem, `expanded`: guint) =
-  a.TreeItemflag0 = a.TreeItemflag0 or
-      (uint16(`expanded` shl bp_TGtkTreeItem_expanded) and
-      bm_TGtkTreeItem_expanded)
 
 proc TYPE_TREE_SELECTION*(): GType =
   result = tree_selection_get_type()
@@ -16498,24 +14120,6 @@ proc IS_VPANED_CLASS*(klass: pointer): bool =
 proc VPANED_GET_CLASS*(obj: pointer): PVPanedClass =
   result = cast[PVPanedClass](CHECK_GET_CLASS(obj, TYPE_VPANED()))
 
-proc TYPE_VRULER*(): GType =
-  result = vruler_get_type()
-
-proc VRULER*(obj: pointer): PVRuler =
-  result = cast[PVRuler](CHECK_CAST(obj, TYPE_VRULER()))
-
-proc VRULER_CLASS*(klass: pointer): PVRulerClass =
-  result = cast[PVRulerClass](CHECK_CLASS_CAST(klass, TYPE_VRULER()))
-
-proc IS_VRULER*(obj: pointer): bool =
-  result = CHECK_TYPE(obj, TYPE_VRULER())
-
-proc IS_VRULER_CLASS*(klass: pointer): bool =
-  result = CHECK_CLASS_TYPE(klass, TYPE_VRULER())
-
-proc VRULER_GET_CLASS*(obj: pointer): PVRulerClass =
-  result = cast[PVRulerClass](CHECK_GET_CLASS(obj, TYPE_VRULER()))
-
 proc TYPE_VSCALE*(): GType =
   result = vscale_get_type()
 
@@ -16572,9 +14176,9 @@ proc VSEPARATOR_GET_CLASS*(obj: pointer): PVSeparatorClass =
   result = cast[PVSeparatorClass](CHECK_GET_CLASS(obj, TYPE_VSEPARATOR()))
 
 type
-  Tcelllayout {.pure, final.} = object
+  Tcelllayout {.pure, final, incompleteStruct.} = object
 
-  PCellLayout* = TCellLayout
+  PCellLayout* = ptr Tcelllayout
   PPGtkCellLayout* = ptr PCellLayout
   PSignalRunType* = ptr TSignalRunType
   TSignalRunType* = int32
@@ -16590,7 +14194,6 @@ type
   PFileChooser* = ptr TFileChooser
   PPFileChooser* = ptr PFileChooser
 
-
 const
   ARG_READWRITE* = ARG_READABLE or ARG_WRITABLE
 
@@ -16598,17 +14201,16 @@ proc entry_add_signal*(binding_set: PBindingSet, keyval: guint,
                                modifiers: gdk2.TModifierType,
                                signal_name: cstring, n_args: guint){.varargs,
     importc: "gtk_binding_entry_add_signal", cdecl, dynlib: lib.}
-proc clist_new_with_titles*(columns: gint): PCList{.varargs, cdecl,
-    importc: "gtk_clist_new_with_titles", dynlib: lib.}
-proc prepend*(clist: PCList): gint{.importc: "gtk_clist_prepend", varargs,
-    cdecl, dynlib: lib.}
-proc append*(clist: PCList): gint{.importc: "gtk_clist_append", varargs,
-    cdecl, dynlib: lib.}
-proc insert*(clist: PCList, row: gint): gint{.varargs, cdecl,
-    importc: "gtk_clist_insert", dynlib: lib.}
+proc cell_layout_get_cells*(layout: PCellLayout): PGList {.cdecl, dynlib: lib,
+    importc: "gtk_cell_layout_get_cells".}
+proc cell_layout_pack_start*(layout: PCellLayout, cell: PCellRenderer,
+                             expand: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_cell_layout_pack_start".}
+proc cell_layout_add_attribute*(layout: PCellLayout, cell: PCellRenderer,
+                                attribute: cstring, column: gint) {.cdecl,
+    dynlib: lib, importc: "gtk_cell_layout_add_attribute".}
 proc set_attributes*(cell_layout: PCellLayout, cell: PCellRenderer){.
-    cdecl, varargs, importc: "gtk_cell_layout_set_attributes", dynlib: lib,
-    importc: "gtk_cell_layout_set_attributes".}
+    cdecl, varargs, importc: "gtk_cell_layout_set_attributes", dynlib: lib.}
 proc add_with_properties*(container: PContainer, widget: PWidget,
                                     first_prop_name: cstring){.varargs,
     importc: "gtk_container_add_with_properties", cdecl, dynlib: lib.}
@@ -16624,12 +14226,6 @@ proc child_set_valist*(container: PContainer, child: PWidget,
 proc child_get_valist*(container: PContainer, child: PWidget,
                                  first_property_name: cstring){.varargs,
     importc: "gtk_container_child_get_valist", cdecl, dynlib: lib.}
-proc ctree_new_with_titles*(columns: gint, tree_column: gint): PCTree{.
-    importc: "gtk_ctree_new_with_titles", varargs, cdecl, dynlib: lib.}
-proc get_vector*(curve: PCurve, veclen: int32){.varargs, cdecl,
-    importc: "gtk_curve_get_vector", dynlib: lib.}
-proc set_vector*(curve: PCurve, veclen: int32){.varargs, cdecl,
-    importc: "gtk_curve_set_vector", dynlib: lib.}
 proc add_buttons*(dialog: PDialog, first_button_text: cstring){.varargs,
     cdecl, importc: "gtk_dialog_add_buttons", dynlib: lib.}
 proc dialog_new_with_buttons*(title: cstring, parent: PWindow,
@@ -16645,6 +14241,10 @@ proc message_dialog_new*(parent: PWindow, flags: TDialogFlags,
                          thetype: TMessageType, buttons: TButtonsType,
                          message_format: cstring): PMessageDialog{.varargs,
     cdecl, importc: "gtk_message_dialog_new", dynlib: lib.}
+proc message_type_get_type*(): GType {.cdecl, dynlib: lib,
+    importc: "gtk_message_type_get_type".}
+proc format_secondary_text*(dialog: PMessageDialog, format: cstring) {.cdecl,
+    dynlib: lib, varargs, importc: "gtk_message_dialog_format_secondary_text".}
 proc set_markup*(msgDialog: PMessageDialog, str: cstring) {.cdecl,
     importc: "gtk_message_dialog_set_markup", dynlib: lib.}
 
@@ -16938,7 +14538,6 @@ proc get_realized*(w: PWidget): gboolean {.cdecl, dynlib: lib,
 proc set_skip_taskbar_hint*(window: PWindow, setting: gboolean){.cdecl,
   dynlib: lib, importc: "gtk_window_set_skip_taskbar_hint".}
 
-
 type
   PFileChooserButtonPrivate* = ptr TFileChooserButtonPrivate
   TFileChooserButtonPrivate*{.final, pure.} = object
@@ -17016,7 +14615,6 @@ proc IS_FILE_CHOOSER_BUTTON_CLASS*(klass: pointer): bool =
   result = CHECK_CLASS_TYPE(klass, TYPE_FILE_CHOOSER_BUTTON())
 proc FILE_CHOOSER_BUTTON_GET_CLASS*(anObject: pointer): PFileChooserButtonClass =
   result = cast[PFileChooserButtonClass](CHECK_GET_CLASS(anObject, TYPE_FILE_CHOOSER_BUTTON()))
-
 
 type
   TTooltip* {.pure, final.} = object
@@ -17229,7 +14827,7 @@ type
     button_release_event*: proc (status_icon: PStatusIcon,event: PEventButton):gboolean{.cdecl.}
     scroll_event*: proc (status_icon: PStatusIcon,event: PEventButton):gboolean{.cdecl.}
     query_tooltip*: proc (status_icon: PStatusIcon,x: gint,y:gint,
-      keyboard_mode: gboolean,tooltip: PTooltips):gboolean{.cdecl.}
+      keyboard_mode: gboolean,tooltip: PTooltip):gboolean{.cdecl.}
     reserved1*: proc (){.cdecl.}
     reserved2*: proc (){.cdecl.}
 
@@ -17313,7 +14911,6 @@ proc IS_STATUS_ICON_CLASS*(klass: pointer): bool =
 proc STATUS_ICON_GET_CLASS*(anObject: pointer): PStatusIconClass =
   result = cast[PStatusIconClass](CHECK_GET_CLASS(anObject, TYPE_STATUS_ICON()))
 
-
 type
   PLinkButtonPrivate* = ptr TLinkButtonPrivate
   TLinkButtonPrivate*{.final, pure.} = object
@@ -17363,12 +14960,11 @@ proc LINK_BUTTON_GET_CLASS*(anObject: pointer): PLinkButtonClass =
 proc show_uri* (screen: gdk2.PScreen, uri: cstring, timestamp: guint32,
   error: pointer): gboolean {.cdecl, importc: "gtk_show_uri", dynlib: lib.}
 
-
 {.pop.}
+include gtk2/newwidgets
+
 proc nim_init*() =
   var
     cmdLine{.importc: "cmdLine".}: array[0..255, cstring]
     cmdCount{.importc: "cmdCount".}: cint
   init(addr(cmdLine), addr(cmdCount))
-
-{.deprecated: [nimrod_init: nim_init].}

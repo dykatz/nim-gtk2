@@ -84,6 +84,9 @@ type
     StatusInvalidSlant,
     StatusInvalidWeight
 
+  CairoError* = object of CatchableError
+    status*: Status
+
   Operator* = enum
     OperatorClear,
     OperatorSource,
@@ -482,97 +485,9 @@ proc version*(major, minor, micro: var int32) =
   micro = (version mod ((major * 10000'i32) + (minor * 100'i32)))
 
 proc checkStatus*(s: Status) {.noinline.} =
-  ## if ``s != StatusSuccess`` the error is turned into an appropirate Nimrod
-  ## exception and raised.
-  case s
-  of StatusSuccess: discard
-  of StatusNoMemory:
-    raise newException(OutOfMemError, $statusToString(s))
-  of StatusReadError, StatusWriteError, StatusFileNotFound,
-     StatusTempFileError:
-    raise newException(IOError, $statusToString(s))
-  else:
-    raise newException(AssertionError, $statusToString(s))
-
-
-type
-  PPSurface*  {.deprecated: "ptr ptr Surface".} = ptr ptr Surface
-  PByte* {.deprecated: "use cstring".} = cstring
-  TStatus* {.deprecated: "use Status".} = Status
-  PStatus* {.deprecated: "use ptr Status".} = ptr Status
-  TOperator* {.deprecated: "use Operator".} = Operator
-  POperator* {.deprecated: "use ptr Operator".} = ptr Operator
-  TAntialias* {.deprecated: "use Antialias".} = Antialias
-  PAntialias* {.deprecated: "use ptr Antialias".} = ptr Antialias
-  TFillRule* {.deprecated: "use FillRule".} = FillRule
-  PFillRule* {.deprecated: "use ptr FillRule".} = ptr FillRule
-  TLineCap* {.deprecated: "use LineCap".} = LineCap
-  PLineCap* {.deprecated: "use ptr LineCap".} = ptr LineCap
-  TLineJoin* {.deprecated: "use LineJoin".} = LineJoin
-  PLineJoin* {.deprecated: "use ptr LineJoin".} = ptr LineJoin
-  TFontSlant* {.deprecated: "use FontSlant".} = FontSlant
-  PFontSlant* {.deprecated: "use ptr FontSlant".} = ptr FontSlant
-  TFontWeight* {.deprecated: "use FontWeight".} = FontWeight
-  PFontWeight* {.deprecated: "use ptr FontWeight".} = ptr FontWeight
-  TSubpixelOrder* {.deprecated: "use SubpixelOrder".} = SubpixelOrder
-  PSubpixelOrder* {.deprecated: "use ptr SubpixelOrder".} = ptr SubpixelOrder
-  THintStyle* {.deprecated: "use HintStyle".} = HintStyle
-  PHintStyle* {.deprecated: "use ptr HintStyle".} = ptr HintStyle
-  THintMetrics* {.deprecated: "use HintMetrics".} = HintMetrics
-  PHintMetrics* {.deprecated: "use ptr HintMetrics".} = ptr HintMetrics
-  TPathDataType* {.deprecated: "use PathDataType".} = PathDataType
-  PPathDataType* {.deprecated: "use ptr PathDataType".} = ptr PathDataType
-  TContent* {.deprecated: "use Content".} = Content
-  PContent* {.deprecated: "use ptr Content".} = ptr Content
-  TFormat* {.deprecated: "use Format".} = Format
-  PFormat* {.deprecated: "use ptr Format".} = ptr Format
-  TExtend* {.deprecated: "use Extend".} = Extend
-  PExtend* {.deprecated: "use ptr Extend".} = ptr Extend
-  TFilter* {.deprecated: "use Filter".} = Filter
-  PFilter* {.deprecated: "use ptr Filter".} = ptr Filter
-  TFontType* {.deprecated: "use FontType".} = FontType
-  PFontType* {.deprecated: "use ptr FontType".} = ptr FontType
-  TPatternType* {.deprecated: "use PatternType".} = PatternType
-  PPatternType* {.deprecated: "use ptr PatternType".} = ptr PatternType
-  TSurfaceType* {.deprecated: "use SurfaceType".} = SurfaceType
-  PSurfaceType* {.deprecated: "use ptr SurfaceType".} = ptr SurfaceType
-  TSvgVersion* {.deprecated: "use SvgVersion".} = SvgVersion
-  PSvgVersion* {.deprecated: "use ptr SvgVersion".} = ptr SvgVersion
-  TBool* {.deprecated: "use CairoBool".} = CairoBool
-  PBool* {.deprecated: "use ptr CairoBool".} = ptr CairoBool
-  TDestroyFunc* {.deprecated: "use DestroyFunc".} = DestroyFunc
-  PDestroyFunc* {.deprecated: "use ptr DestroyFunc".} = ptr DestroyFunc
-  TWriteFunc* {.deprecated: "use WriteFunc".} = WriteFunc
-  PWriteFunc* {.deprecated: "use ptr WriteFunc".} = ptr WriteFunc
-  TReadFunc* {.deprecated: "use ReadFunc".} = ReadFunc
-  PReadFunc* {.deprecated: "use ptr ReadFunc".} = ptr ReadFunc
-  TContext* {.deprecated: "use Context".} = Context
-  PContext* {.deprecated: "use ptr Context".} = ptr Context
-  TSurface* {.deprecated: "use Surface".} = Surface
-  PSurface* {.deprecated: "use ptr Surface".} = ptr Surface
-  TPattern* {.deprecated: "use Pattern".} = Pattern
-  PPattern* {.deprecated: "use ptr Pattern".} = ptr Pattern
-  TScaledFont* {.deprecated: "use ScaledFont".} = ScaledFont
-  PScaledFont* {.deprecated: "use ptr ScaledFont".} = ptr ScaledFont
-  TFontFace* {.deprecated: "use FontFace".} = FontFace
-  PFontFace* {.deprecated: "use ptr FontFace".} = ptr FontFace
-  TFontOptions* {.deprecated: "use FontOptions".} = FontOptions
-  PFontOptions* {.deprecated: "use ptr FontOptions".} = ptr FontOptions
-  TMatrix* {.deprecated: "use Matrix".} = Matrix
-  PMatrix* {.deprecated: "use ptr Matrix".} = ptr Matrix
-  TUserDataKey* {.deprecated: "use UserDataKey".} = UserDataKey
-  PUserDataKey* {.deprecated: "use ptr UserDataKey".} = ptr UserDataKey
-  TGlyph* {.deprecated: "use Glyph".} = Glyph
-  PGlyph* {.deprecated: "use ptr Glyph".} = ptr Glyph
-  TTextExtents* {.deprecated: "use TextExtents".} = TextExtents
-  PTextExtents* {.deprecated: "use ptr TextExtents".} = ptr TextExtents
-  TFontExtents* {.deprecated: "use FontExtents".} = FontExtents
-  PFontExtents* {.deprecated: "use ptr FontExtents".} = ptr FontExtents
-  TPathData* {.deprecated: "use PathData".} = PathData
-  PPathData* {.deprecated: "use ptr PathData".} = ptr PathData
-  TPath* {.deprecated: "use Path".} = Path
-  PPath* {.deprecated: "use ptr Path".} = ptr Path
-  TRectangle* {.deprecated: "use Rectangle".} = Rectangle
-  PRectangle* {.deprecated: "use ptr Rectangle".} = ptr Rectangle
-  TRectangleList* {.deprecated: "use RectangleList".} = RectangleList
-  PRectangleList* {.deprecated: "use ptr RectangleList".} = ptr RectangleList
+  ## Raise a typed, catchable error for a failed native operation. Cairo status
+  ## failures are not Nim assertion failures, even for an invalid matrix/path.
+  if s != StatusSuccess:
+    let error = newException(CairoError, $statusToString(s))
+    error.status = s
+    raise error

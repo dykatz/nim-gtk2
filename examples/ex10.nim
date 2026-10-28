@@ -8,7 +8,7 @@ var
   buttonPressed: bool
 
 proc expose_proc(widget: PWidget, event: PEventExpose): gboolean {.cdecl.} =
-  let cr : PContext = widget.window.cairo_create()
+  let cr: ptr Context = widget.window.cairo_create()
   
   ### some texts
   cr.move_to(20, 110)

@@ -1,4 +1,3 @@
-{.deadCodeElim: on.}
 
 import
   glib2

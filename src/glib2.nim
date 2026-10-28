@@ -1,4 +1,3 @@
-{.deadCodeElim: on.}
 {.push gcsafe.}
 
 when defined(windows):
@@ -19,6 +18,12 @@ else:
 # gthreadlib = "libgthread-2.0.so"
 
 type
+  GError* {.pure, final.} = object
+    ## GLib-owned error; release with g_error_free, not Nim's allocator.
+    domain*: uint32
+    code*: cint
+    message*: cstring
+
   PGTypePlugin* = pointer
   PGParamSpecPool* = pointer
   PPchar* = ptr cstring
@@ -80,8 +85,9 @@ type
   gint32* = int32
   guint32* = uint32
   gint64* = int64
-  gssize* = int32
-  gsize* = int32
+  # GLib sizes follow the target pointer width (including 64-bit Windows).
+  gssize* = int
+  gsize* = uint
   Pgint8* = ptr gint8
   Pguint8* = ptr guint8
   Pgint16* = ptr gint16
@@ -98,7 +104,7 @@ type
   TGTypeCValue*{.final.} = object
     v_double*: gdouble
 
-  GType* = gulong
+  GType* = gsize
   PGType* = ptr GType
   PGTypeClass* = ptr TGTypeClass
   TGTypeClass*{.final.} = object
@@ -1197,9 +1203,9 @@ proc get_value_by_name*(flags_class: PGFlagsClass, name: cstring): PGFlagsValue{
     cdecl, dynlib: gliblib, importc: "g_flags_get_value_by_name".}
 proc get_value_by_nick*(flags_class: PGFlagsClass, nick: cstring): PGFlagsValue{.
     cdecl, dynlib: gliblib, importc: "g_flags_get_value_by_nick".}
-proc set_enum*(value: PGValue, v_enum: gint){.cdecl, dynlib: gliblib,
+proc set_enum*(value: PGValue, v_enum: gint){.cdecl, dynlib: gobjectlib,
     importc: "g_value_set_enum".}
-proc get_enum*(value: PGValue): gint{.cdecl, dynlib: gliblib,
+proc get_enum*(value: PGValue): gint{.cdecl, dynlib: gobjectlib,
     importc: "g_value_get_enum".}
 proc set_flags*(value: PGValue, v_flags: guint){.cdecl, dynlib: gliblib,
     importc: "g_value_set_flags".}
@@ -1506,6 +1512,8 @@ proc g_malloc0*(n_bytes: gulong): gpointer{.cdecl, dynlib: gliblib,
 proc g_realloc*(mem: gpointer, n_bytes: gulong): gpointer{.cdecl,
     dynlib: gliblib, importc: "g_realloc".}
 proc g_free*(mem: gpointer){.cdecl, dynlib: gliblib, importc: "g_free".}
+proc g_error_free*(error: ptr GError) {.cdecl, dynlib: gliblib,
+    importc: "g_error_free".}
 proc g_try_malloc*(n_bytes: gulong): gpointer{.cdecl, dynlib: gliblib,
     importc: "g_try_malloc".}
 proc g_try_realloc*(mem: gpointer, n_bytes: gulong): gpointer{.cdecl,
@@ -3476,7 +3484,7 @@ proc GUINT32_SWAP_LE_BE_CONSTANT*(val: guint32): guint32 =
       ((val and 0xFF000000'u32) shr 24'u32)
 
 proc GUINT_TO_POINTER*(i: guint): pointer =
-  result = cast[pointer](ByteAddress(i))
+  result = cast[pointer](uint(i))
 
 when false:
   type
@@ -3777,7 +3785,7 @@ proc TGIOChannel_set_is_seekable*(a: PGIOChannel, `is_seekable`: guint) =
       bm_TGIOChannel_is_seekable)
 
 proc utf8_next_char*(p: Pguchar): Pguchar =
-  result = cast[Pguchar](cast[ByteAddress](p) + 1) # p + ord((g_utf8_skip + p[] )[] )
+  result = cast[Pguchar](cast[uint](p) + 1'u) # p + ord((g_utf8_skip + p[] )[] )
 
 when false:
   proc GLIB_CHECK_VERSION*(major, minor, micro: guint): bool =
@@ -4446,7 +4454,7 @@ proc G_FLAGS_CLASS_TYPE*(class: pointer): GType =
   result = G_TYPE_FROM_CLASS(class)
 
 proc G_FLAGS_CLASS_TYPE_NAME*(class: pointer): cstring =
-  result = g_type_name(G_FLAGS_TYPE(cast[ByteAddress](class)))
+  result = g_type_name(G_FLAGS_TYPE(cast[uint](class)))
 
 proc G_VALUE_HOLDS_ENUM*(value: pointer): gboolean =
   result = G_TYPE_CHECK_VALUE_TYPE(value, G_TYPE_ENUM)
@@ -4463,7 +4471,7 @@ proc CLAMP*(x, MinX, MaxX: int): int =
     result = x
 
 proc GPOINTER_TO_SIZE*(p: gpointer): gsize =
-  result = gsize(cast[ByteAddress](p))
+  result = cast[gsize](p)
 
 proc GSIZE_TO_POINTER*(s: gsize): gpointer =
   result = cast[gpointer](s)

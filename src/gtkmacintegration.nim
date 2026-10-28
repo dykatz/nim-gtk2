@@ -1,4 +1,3 @@
-{.deadCodeElim: on.}
 {.push gcsafe.}
 import
   glib2, gdk2, gdk2pixbuf, gtk2
