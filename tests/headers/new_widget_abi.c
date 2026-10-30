@@ -3,6 +3,15 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_gdk_color(void) { return sizeof(GdkColor); }
+size_t nim_gtk2_offset_gdk_color_red(void) { return offsetof(GdkColor, red); }
+size_t nim_gtk2_offset_gdk_color_blue(void) { return offsetof(GdkColor, blue); }
+size_t nim_gtk2_sizeof_calendar_options(void) { return sizeof(GtkCalendarDisplayOptions); }
+int nim_gtk2_calendar_options(void) {
+  return GTK_CALENDAR_SHOW_HEADING | GTK_CALENDAR_SHOW_DAY_NAMES |
+    GTK_CALENDAR_NO_MONTH_CHANGE | GTK_CALENDAR_SHOW_WEEK_NUMBERS |
+    GTK_CALENDAR_SHOW_DETAILS;
+}
 size_t nim_gtk2_sizeof_error(void) { return sizeof(GError); }
 size_t nim_gtk2_sizeof_recent_data(void) { return sizeof(GtkRecentData); }
 size_t nim_gtk2_sizeof_recent_filter_info(void) { return sizeof(GtkRecentFilterInfo); }

@@ -4,7 +4,7 @@
 Raw bindings are imported as `headers/gtk2`, `headers/glib2`, etc.; see
 [source layout](source-layout.md). The former `gtk2ui` API is now exported by
 `gtk2`; its implementation lives under `src/gtk2/`.
-The raw `gtk2` API remains available for low-level operations. Both layers may
+The raw `headers/gtk2` API remains available for low-level operations. Both layers may
 change as this new SDK evolves; there is no legacy source-compatibility promise.
 This is an initial subset, not a complete replacement or a source-compatible
 port of gtkmm.
@@ -952,6 +952,98 @@ custom/editable renderers, drag-and-drop, and model replacement remain deferred.
 a scaled Image preview, filtering, sorting, selection, and activation. Validation
 compiles this sampler without launching visible windows.
 
+## Calendar and selector controls
+
+`Calendar`, `ColorButton`, `FontButton`, `ScaleButton`, and `VolumeButton` share
+ordinary widget ownership, typed borrowed `.raw`, and tracked safe connections.
+See [`examples/selectors.nim`](../examples/selectors.nim).
+
+### Calendar
+
+```nim
+let calendar = newCalendar(2024, 2, 29)
+calendar.date = (2025, 12, 31)
+calendar.selectDate(2025, 12, 0) # Explicitly clear the selected day.
+calendar.options = calendar.options + {calendarWeekNumbers}
+calendar.markDay(15)
+calendar.onDaySelected(proc (date: CalendarDate) =
+  echo date.year, "-", date.month, "-", date.day)
+```
+
+`CalendarDate` is a copied `(year, month, day: int)` tuple. Programmatic dates
+use years 1..9999, **one-based months** 1..12, and actual Gregorian days (including
+leap-year validation). Day 0 means no selection. `newCalendar()` initially uses
+GTK's current local date. Native navigation is not restricted to the setter's
+year range.
+
+`date`, `selectDate`, `markDay`, `unmarkDay`, and `clearMarks` do not retain
+native iterators or callback pointers. Mark/unmark require a day that exists in
+the currently displayed month: GTK2 otherwise emits invalidation warnings for
+e.g. February 31. Marks are day numbers, not dated events, and persist across
+month changes. Use `clearMarks()` to remove all marks, including those not
+currently visible.
+
+`CalendarOptions` is a set of `calendarHeading`, `calendarDayNames`,
+`calendarFixedMonth`, `calendarWeekNumbers`, and `calendarDetails`. `options=`
+replaces the complete option set. Week start follows GTK's locale; the obsolete
+Monday-start flag is not exposed. Custom detail/markup callbacks are deferred.
+
+`onDaySelected`, `onMonthChanged`, and `onDayActivated` receive copied dates.
+The last means native double-click activation. Native signals also fire during
+programmatic date selection; changing month first clears the old selected day
+so GTK2 never tries to invalidate January 31 in February. Notifications are
+**not atomic** and may report day 0 before the final selection. Destruction from
+these callbacks stops remaining native calls. Avoid recursively changing the
+date inside its own notifications.
+
+### Color and font buttons
+
+```nim
+let colors = newColorButton(rgba16(65535, 12000, 0, 32768), useAlpha = true)
+colors.onColorSet(proc (color: Color) = echo color.red, " / ", color.alpha)
+let fonts = newFontButton("Sans Bold 12")
+fonts.useFont = true
+fonts.onFontSet(proc (name: string) = echo name)
+```
+
+`Color` contains copied unsigned 16-bit `red`, `green`, `blue`, and `alpha`
+channels. `rgba16` validates integer channels in 0..65535; it does **not** use
+8-bit or floating-point channels. `color` reads/writes all four channels;
+`useAlpha` controls alpha UI without discarding the stored alpha. No GDK pixel
+or colormap identity escapes. Both buttons have copied UTF-8 `title` properties.
+
+`FontButton.fontName` accepts nonempty valid UTF-8 Pango descriptions, not a
+promise that a particular font is installed. GTK/Pango choose native fallbacks.
+GTK2's setter result is not font validation: the cached description updates even
+when no chooser has been created. `useFont`/`useSize` affect the button's own
+label; `showStyle`/`showSize` control the displayed description, not application
+text styling.
+
+`onColorSet` and `onFontSet` represent user acceptance in GTK's native chooser.
+Property assignments do not emit these signals. Callback colors/strings are
+copied before user code runs, and remain valid after changes or destruction.
+These buttons manage private child widgets; inherited `Button.text=` rejects
+replacing those widgets, even after an upcast. To open a chooser, use normal
+user interaction; tests never click them or launch a dialog.
+
+### Scale and volume buttons
+
+`newScaleButton(lower = 0, upper = 100, step = 1, icons = [],
+size = iconSmallToolbar)` creates a popup scale. Bounds and their span must be
+finite, lower < upper, and step positive with finite page increment. Icon names
+must be nonempty UTF-8 strings; `setIcons` copies a null-terminated native vector.
+An empty list clears custom icons. `newVolumeButton()` uses GTK's themed speaker
+icons and native 0..1 adjustment defaults.
+
+Both expose finite numeric `value`, with native clamping, and an owning shared
+`adjustment` getter/setter. A retrieved adjustment survives widget destruction
+and can be shared with `SpinButton`. Use the same UI-thread and explicit
+self-capture cleanup rules as other Adjustment handles. `onValueChanged(proc
+(value: float64) = ...)` receives the native double signal payload through a
+typed C trampoline, with exception containment and self-disconnection support.
+The popup, plus/minus buttons, and other private children are not exported as
+reparentable widgets. Inherited `Button.text=` is rejected here too.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -985,7 +1077,7 @@ not allowed to unwind through GTK's C stack.
 do not unref/dispose it, wrap it independently, or keep it after releasing its handle.
 Raw operations bypass this layer's argument/containment checks. Import raw GTK
 with a module alias and qualify raw names to avoid Nim's case-insensitive name
-collisions (e.g. `gtk2.WIDGET` versus `gtk2.Widget`).
+collisions (e.g. `rawGtk.WIDGET` versus `gtk2.Widget`).
 
 `window.run()` shows the widget tree and runs until that window is destroyed.
 Native close requests use GTK's normal default destruction behavior; unlike
@@ -1005,7 +1097,8 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2feedback.nim`, `tests/tgtk2dialogs.nim`,
 `tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
-`tests/tgtk2icons.nim`. These check controls,
+`tests/tgtk2icons.nim`, and `tests/tgtk2selectors.nim`. These check calendar
+validation, copied chooser values, scale signals/shared adjustments, controls,
 scrolling adapters, pane slots, notebook callbacks, retained-child reparenting,
 shared adjustment ownership/cache cleanup, numeric editing, text choices, image
 sources, status-message stacks, signed response callbacks, dialog parenting,

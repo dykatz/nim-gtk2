@@ -9,6 +9,8 @@ const
   CALENDAR_SHOW_WEEK_NUMBERS* = 1 shl 3
 const
   CALENDAR_WEEK_START_MONDAY* = 1 shl 4
+const
+  CALENDAR_SHOW_DETAILS* = 1 shl 5
 
 proc TYPE_CALENDAR*(): GType
 proc CALENDAR*(obj: pointer): PCalendar
@@ -35,6 +37,10 @@ proc display_options*(calendar: PCalendar,
 proc get_date*(calendar: PCalendar, year: Pguint, month: Pguint,
                         day: Pguint){.cdecl, dynlib: lib,
                                       importc: "gtk_calendar_get_date".}
+proc set_display_options*(calendar: PCalendar, flags: TCalendarDisplayOptions) {.
+    cdecl, dynlib: lib, importc: "gtk_calendar_set_display_options".}
+proc get_display_options*(calendar: PCalendar): TCalendarDisplayOptions {.
+    cdecl, dynlib: lib, importc: "gtk_calendar_get_display_options".}
 proc freeze*(calendar: PCalendar){.cdecl, dynlib: lib,
     importc: "gtk_calendar_freeze".}
 proc thaw*(calendar: PCalendar){.cdecl, dynlib: lib,

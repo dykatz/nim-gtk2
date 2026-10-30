@@ -53,7 +53,10 @@ see [`examples/trees.nim`](examples/trees.nim). Sorting/filtering proxies and
 stable row references add independent views without changing source order;
 see [`examples/proxies.nim`](examples/proxies.nim). Owned Pixbuf handles, image
 previews, and model-backed IconView are demonstrated in
-[`examples/icons.nim`](examples/icons.nim).
+[`examples/icons.nim`](examples/icons.nim). Calendar, ColorButton, FontButton,
+ScaleButton, and VolumeButton add checked dates, copied chooser selections, and
+popup values with shared adjustments; see
+[`examples/selectors.nim`](examples/selectors.nim).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

@@ -5,9 +5,15 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
+from headers/gdk2 import TColor
 
 {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc colorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gdk_color".}
+proc colorRedOffset(): csize_t {.cdecl, importc: "nim_gtk2_offset_gdk_color_red".}
+proc colorBlueOffset(): csize_t {.cdecl, importc: "nim_gtk2_offset_gdk_color_blue".}
+proc calendarOptionsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_calendar_options".}
+proc calendarOptions(): cint {.cdecl, importc: "nim_gtk2_calendar_options".}
 proc errorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_error".}
 proc recentDataSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_recent_data".}
 proc filterInfoSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_recent_filter_info".}
@@ -44,6 +50,12 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
 
 suite "new raw binding native header ABI":
   test "public struct sizes, offsets and enum widths match C":
+    check colorSize() == csize_t(sizeof(TColor))
+    check colorRedOffset() == csize_t(offsetOf(TColor, red))
+    check colorBlueOffset() == csize_t(offsetOf(TColor, blue))
+    check calendarOptionsSize() == csize_t(sizeof(gtk.TCalendarDisplayOptions))
+    check calendarOptions() == cint(gtk.CALENDAR_SHOW_HEADING or gtk.CALENDAR_SHOW_DAY_NAMES or
+      gtk.CALENDAR_NO_MONTH_CHANGE or gtk.CALENDAR_SHOW_WEEK_NUMBERS or gtk.CALENDAR_SHOW_DETAILS)
     check errorSize() == csize_t(sizeof(g.GError))
     check recentDataSize() == csize_t(sizeof(gtk.RecentData))
     check filterInfoSize() == csize_t(sizeof(gtk.RecentFilterInfo))

@@ -39,6 +39,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2trees.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2proxies.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2icons.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2selectors.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

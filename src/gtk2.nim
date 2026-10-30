@@ -3,6 +3,7 @@
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as rawPixbuf
+from headers/gdk2 import TColor
 
 when not (defined(gcArc) or defined(gcOrc)):
   {.error: "gtk2 requires --mm:arc or --mm:orc".}
@@ -200,7 +201,14 @@ proc backspace*(w: Entry) =
       rawGtk.delete_text(editable, position - 1, position)
       rawGtk.set_position(editable, position - 1)
 
-proc `text=`*(w: Button, text: string) = rawGtk.set_label(w.raw, checkedString(text))
+proc `text=`*(w: Button, text: string) =
+  let label = checkedString(text)
+  let p = w.raw
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.color_button_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.font_button_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.scale_button_get_type()):
+    raise newException(ValueError, "this button manages its own content")
+  rawGtk.set_label(p, label)
 proc text*(w: Button): string = $rawGtk.get_label(w.raw)
 proc `borderWidth=`*(w: Container, width: int) =
   rawGtk.set_border_width(cast[rawGtk.PContainer](w.raw), g.guint(checkedInt(width)))
@@ -333,3 +341,4 @@ include gtk2/models
 include gtk2/trees
 include gtk2/proxies
 include gtk2/icons
+include gtk2/selectors
