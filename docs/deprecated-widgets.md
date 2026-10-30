@@ -67,7 +67,7 @@ No existing example uses the removed widgets, so no example implementation
 needed replacing. All example programs are rebuilt with deprecations treated
 as errors, including the calculator.
 
-`tests/tmodernbindings.nim` no longer exercises CTree casts. It instead asserts
+`tests/headers/tmodernbindings.nim` no longer exercises CTree casts. It instead asserts
 that removed public types/constructors are absent and that modern replacements,
 related overloads, `HandleBox`, `TearoffMenuItem`, and modern tooltip callbacks
 still compile. `tests/tgtk2ui.nim` creates hidden `ProgressBar` and `Toolbar`

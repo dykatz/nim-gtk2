@@ -10,22 +10,22 @@ import std/distros
 foreignDep "gtk+"
 
 task testHeaderLayout, "Check raw-binding layout and include ownership":
-  exec "python3 tests/theaderlayout.py"
+  exec "python3 tests/headers/theaderlayout.py"
 
 task testBindings, "Check core GTK2 and bundled Cairo/X11/FreeType bindings without opening windows":
-  exec "nim check --path:src --warningAsError:Deprecated tests/tbindings.nim"
+  exec "nim check --path:src --warningAsError:Deprecated tests/headers/tbindings.nim"
 
 task testModernBindings, "Check core binding modernization without a display":
   exec "nim check --path:src --warningAsError:Deprecated examples/calculator.nim"
-  exec "nim r --path:src --warningAsError:Deprecated tests/tmodernbindings.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/headers/tmodernbindings.nim"
 
 task testRawWidgets, "Test new raw symbols/support APIs, then hidden widgets (requires a display)":
-  exec "nim r --path:src --warningAsError:Deprecated tests/tnewwidgets.nim"
-  exec "nim r --path:src --warningAsError:Deprecated tests/tnewwidgetsui.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/headers/tnewwidgets.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/headers/tnewwidgetsui.nim"
 
 task testRawWidgetAbi, "Verify generated bindings and native ABI (requires GTK2 headers, no display)":
   exec "python3 tools/generate_widgets.py --check"
-  exec "nim r --path:src --warningAsError:Deprecated tests/tnewwidgetsabi.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/headers/tnewwidgetsabi.nim"
 
 task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2ui.nim"

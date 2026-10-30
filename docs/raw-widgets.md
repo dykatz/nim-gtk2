@@ -123,7 +123,7 @@ python3 tools/generate_widgets.py --check
 ```
 
 Pass `--include-root PATH` if the headers are not under `/usr/include`.
-The generated symbol manifest is `tests/new_widget_symbols.txt`.
+The generated symbol manifest is `tests/headers/new_widget_symbols.txt`.
 
 Four **non-widget** RecentInfo timestamp helpers are intentionally omitted:
 `get_added`, `get_modified`, `get_visited`, and `get_application_info`. They
@@ -140,7 +140,7 @@ nimble testRawWidgetAbi     # generation check + native C ABI; GTK2 headers requ
 The no-display tests can also run alone:
 
 ```sh
-nim r --path:src --warningAsError:Deprecated tests/tnewwidgets.nim
+nim r --path:src --warningAsError:Deprecated tests/headers/tnewwidgets.nim
 ```
 
 Every added symbol is checked in the native GTK library. Hidden-widget tests

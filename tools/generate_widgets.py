@@ -309,7 +309,7 @@ def main():
         lines.extend(('  ' if unix else '') + d for d in declarations)
         files[dest.parent / ('newwidgets/' + stem + '.nim')] = '\n'.join(lines) + '\n'
     files[dest] = '\n'.join(umbrella) + '\n'
-    symbols = ROOT / 'tests/new_widget_symbols.txt'
+    symbols = ROOT / 'tests/headers/new_widget_symbols.txt'
     symbol_text = '\n'.join(('unix ' if unix else 'core ') + name
                             for unix, _, name, _ in functions) + '\n'
     files[symbols] = symbol_text

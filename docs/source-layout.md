@@ -89,9 +89,12 @@ python3 tools/generate_widgets.py --check
 
 The generator reads the legacy include tree while excluding its own additions,
 then produces a shared generated type section and per-header function files.
-The symbol manifest remains `tests/new_widget_symbols.txt`.
+The symbol manifest is `tests/headers/new_widget_symbols.txt`.
 
 ## Checks
+
+Raw-binding tests and their C ABI probe/symbol fixtures live in `tests/headers/`.
+High-level `gtk2ui` and calculator tests remain directly under `tests/`.
 
 `nimble testHeaderLayout` checks that raw modules stay under `headers`, includes
 resolve without cycles/duplicates, and no split fragments are orphaned. It needs
