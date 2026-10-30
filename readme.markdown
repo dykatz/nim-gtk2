@@ -51,7 +51,9 @@ see [`examples/models.nim`](examples/models.nim). TreeStore extends TreeView to
 hierarchies with copied paths, selection, expansion, and subtree editing;
 see [`examples/trees.nim`](examples/trees.nim). Sorting/filtering proxies and
 stable row references add independent views without changing source order;
-see [`examples/proxies.nim`](examples/proxies.nim).
+see [`examples/proxies.nim`](examples/proxies.nim). Owned Pixbuf handles, image
+previews, and model-backed IconView are demonstrated in
+[`examples/icons.nim`](examples/icons.nim).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 
@@ -60,7 +62,12 @@ integration tests; a display is required, but no visible windows are opened.
 
 # Additional raw widgets
 
-`import gtk2` now includes raw bindings for the non-deprecated widget gaps:
+Raw bindings live under `src/headers/`; import `headers/gtk2`, `headers/glib2`,
+`headers/cairo`, etc. The large combined bindings are split into native-header
+include fragments. See [source layout](docs/source-layout.md) for the organization
+and migration details. `import gtk2ui` is unchanged.
+
+`import headers/gtk2` now includes raw bindings for the non-deprecated widget gaps:
 assistants, expanders, icon views, color/font buttons, recent-document choosers,
 modern toolbar items and palettes, spinners, scale/volume buttons, and Unix print
 dialogs. Ergonomic coverage is still a subset of these raw APIs. See the

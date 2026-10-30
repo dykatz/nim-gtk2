@@ -1,6 +1,8 @@
 # gtk2ui: a Nim-style layer inspired by gtkmm 2
 
 `import gtk2ui` instead of the raw modules for a small, typed, ergonomic API.
+Raw bindings are imported as `headers/gtk2`, `headers/glib2`, etc.; see
+[source layout](source-layout.md). The high-level import is unchanged.
 The raw `gtk2` API remains available for low-level operations. Both layers may
 change as this new SDK evolves; there is no legacy source-compatibility promise.
 This is an initial subset, not a complete replacement or a source-compatible
@@ -324,8 +326,8 @@ effective sensitivity after taking ancestors into account.
 
 Unreadable files retain native GTK2 behavior: the image displays the missing-image
 stock icon rather than raising an I/O exception. File formats depend on installed
-GdkPixbuf loaders. In-memory pixbuf, animation, GIcon, and custom registered icon
-size wrappers are not included in this batch; use the raw API for those. GTK2
+GdkPixbuf loaders. In-memory pixbuf support is described below. Animation, GIcon,
+and custom registered icon size wrappers still require the raw API. GTK2
 stock icons are intentionally retained despite later GTK3 deprecation.
 
 ### Statusbar
@@ -566,12 +568,15 @@ echo rows.value(0, 0).stringValue
 ```
 
 A schema has at least one column. Kinds map exactly to `G_TYPE_STRING`,
-`G_TYPE_INT` (signed 32-bit), `G_TYPE_BOOLEAN`, and `G_TYPE_DOUBLE`.
+`G_TYPE_INT` (signed 32-bit), `G_TYPE_BOOLEAN`, `G_TYPE_DOUBLE`, and
+`GDK_TYPE_PIXBUF` (`cellPixbuf`).
 `cell(value)` builds a tagged `CellValue` with public `kind` and matching
-`stringValue`, `intValue`, `boolValue`, or `floatValue` field. Integer inputs must
+`stringValue`, `intValue`, `boolValue`, `floatValue`, or `pixbufValue` field. Integer inputs must
 fit `gint`, floating inputs must be finite, and strings must be valid, NUL-free
 UTF-8. The same checks apply when accepting directly constructed CellValues.
-No implicit cross-kind conversions occur.
+No implicit cross-kind conversions occur. Pixbuf cells retain native objects;
+reads return owning Pixbuf handles, including an empty handle for a NULL cell.
+See the IconView section below.
 
 - `columnCount`, `rowCount`, and `columnKind(column)` query the schema/data.
 - `value(row, column)` returns a copied value; returned strings do not borrow GTK.
@@ -666,7 +671,7 @@ Closing views does not invalidate retained models.
 See [`examples/models.nim`](../examples/models.nim) for shared TreeView/ComboBox
 data. It is compiled, not launched, during validation. Proxies and stable row
 references are covered below. Multiple selection, editable/custom cell renderers,
-model replacement, and pixbuf-backed IconView remain future work.
+and model replacement remain future work. Pixbuf-backed IconView is covered below.
 
 ## Hierarchical TreeStore and TreePath
 
@@ -872,6 +877,80 @@ See [`examples/proxies.nim`](../examples/proxies.nim) for sorting, visibility
 updates, coordinate conversion, and a stable source bookmark. It is compiled,
 not launched, during validation.
 
+## Pixbufs and IconView
+
+### Owned pixels and Image integration
+
+- `newPixbuf(width, height, rgba = 0x00000000'u32)` allocates and initializes an
+  8-bit RGBA buffer. The fill value is `0xRRGGBBAA`, not host-endian pixel bytes.
+- `loadPixbuf(filename)` loads a file through installed native loaders. Unlike
+  `newImageFromFile`, failures raise `PixbufError`, retaining the native numeric
+  `domain`, `code`, and copied message; native GErrors are freed. Filesystem names
+  reject embedded NUL. Supported formats depend on installed loaders.
+- `width`, `height`, and `hasAlpha` query a nonempty handle. Loaded images can be
+  RGB without alpha. `copy()` allocates independent pixels;
+  `scaled(width, height, interpolation = interpolateBilinear)` returns a new
+  buffer, with `interpolateNearest`, `interpolateTiles`, `interpolateBilinear`,
+  and `interpolateHyper` available.
+
+Construction/scaling require positive dimensions fitting `gint`; conservatively
+limit four-byte rowstride and total allocation to signed-gint range before native
+allocation. Allocation failure raises PixbufError. No mutable pixel slice or
+borrowed Nim-memory constructor is exposed. Use copies/new buffers for changes;
+raw pixel edits do not automatically notify model/view renderers.
+
+`newImage(pixbuf)`, `image.pixbuf = value`, and `image.pixbuf` provide in-memory
+image display. Setters retain pixels; getters return owning handles, never stolen
+references. The getter accepts empty/pixbuf storage and rejects stock/icon-name/
+animation storage before reaching native assertions.
+
+`Pixbuf()` is an explicit empty/NULL value: `isEmpty` is true, setting it on an
+Image clears the image, and `cell(Pixbuf())` represents a NULL pixbuf model cell.
+Dimensions, copying, scaling, and `.raw` require a nonempty handle. Pixbuf is a
+non-floating GObject using the shared weak ownership cache; it has no destroy
+signal or widget-style `destroy()`. Native references are released on the UI
+thread when their last owning handles disappear.
+
+### IconView
+
+`newIconView(model, pixbufColumn, textColumn = -1)` accepts a **flat** model with
+an actual pixbuf column and an optional plain string caption column. Bindings and
+model are fixed for its lifetime. No markup column is enabled, so captions such
+as `<b>Literal</b>` are displayed literally. NULL pixbuf cells are permitted.
+
+```nim
+let tiles = newListStore([cellString, cellPixbuf])
+discard tiles.appendRow([cell("Ruby"), cell(newPixbuf(48, 48, 0xd94141ff'u32))])
+let icons = newIconView(tiles, pixbufColumn = 1, textColumn = 0)
+scroll.add(icons) # Native GTK2 scrolling; no viewport adaptation.
+```
+
+`model` returns an owning read-only TreeModel. Flat sort/filter proxies work
+normally, including pixbuf reads. Sort by scalar caption/rank columns: sorting a
+pixbuf column is rejected before GTK's built-in comparator is called.
+
+- `selectedIndex` uses `-1` for no selection; assigning `-1` clears it.
+- `selectedPath` uses the virtual root for no selection. Other paths/indices
+  must identify existing rows. Native modes other than SINGLE are rejected.
+- `onSelectionChanged(proc () = ...)` observes native selection changes.
+- `onItemActivated(proc (index: int) = ...)` and
+  `onPathActivated(proc (path: TreePath) = ...)` deliver copied positional values.
+  `activateRow(index)` emits activation without selecting the row automatically.
+- `scrollToRow(index)` asks GTK to bring a row into view, including deferred
+  scrolling before realization.
+- `columns` and `itemWidth` accept positive values or `-1` for automatic sizing.
+  `spacing`, `rowSpacing`, `columnSpacing`, and `margin` accept nonnegative pixels.
+
+Native selected-item lists and every allocated path are freed after copying.
+Callbacks contain exceptions, support self-disconnection, and are disconnected
+on widget destruction. Model coordinates remain positional: convert proxy paths
+before source edits or use a stable source row reference. Multiple selection,
+custom/editable renderers, drag-and-drop, and model replacement remain deferred.
+
+[`examples/icons.nim`](../examples/icons.nim) demonstrates generated color tiles,
+a scaled Image preview, filtering, sorting, selection, and activation. Validation
+compiles this sampler without launching visible windows.
+
 ## Ownership and safety contract
 
 Call `gtk2ui.init()` before creating widgets. It raises `IOError` if no display
@@ -924,19 +1003,21 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2uilayout.nim`, `tests/tgtk2uiinputs.nim`,
 `tests/tgtk2uifeedback.nim`, `tests/tgtk2uidialogs.nim`,
 `tests/tgtk2uitext.nim`, `tests/tgtk2uimodels.nim`, and
-`tests/tgtk2uitrees.nim`, and `tests/tgtk2uiproxies.nim`. These check controls,
+`tests/tgtk2uitrees.nim`, `tests/tgtk2uiproxies.nim`, and
+`tests/tgtk2uiicons.nim`. These check controls,
 scrolling adapters, pane slots, notebook callbacks, retained-child reparenting,
 shared adjustment ownership/cache cleanup, numeric editing, text choices, image
 sources, status-message stacks, signed response callbacks, dialog parenting,
 literal message formatting, copied credits, Unicode editing/selection, shared
 text-buffer lifetime, typed atomic model rows, selection/activation callbacks,
 shared model ownership, hierarchical paths, expansion and subtree deletion,
-proxy coordinate mapping, reorder snapshots, stable references, native destruction,
+proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership,
+NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. No test opens a visible window or enters
 the GTK main loop.
 
 This layer intentionally does not yet wrap specialized file/recent/color/font
 chooser dialogs, assistants, menus, custom model comparison/predicate callbacks,
-IconView, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
+multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

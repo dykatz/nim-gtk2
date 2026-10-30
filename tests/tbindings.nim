@@ -1,7 +1,7 @@
 # Compile/check only: no external Nim Cairo/X11/FreeType packages, no windows,
 # and no calls into native libraries. Use actual typed expressions to check API
 # boundaries rather than just testing whether an old name happens to exist.
-import gtk2, cairo, cairoft, freetype, gtk2ui
+import headers/gtk2, headers/cairo, headers/cairoft, headers/freetype, gtk2ui
 
 static:
   doAssert compiles(block:
@@ -15,7 +15,7 @@ static:
     discard lockedFace)
 
 when defined(posix) and not defined(macosx):
-  import gdk2x, cairoxlib, x, xlib, xutil
+  import headers/gdk2x, headers/cairoxlib, headers/x, headers/xlib, headers/xutil
 
   static:
     doAssert compiles(block:

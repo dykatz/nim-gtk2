@@ -2,7 +2,7 @@
 adapted from https://github.com/nim-lang/Nim/issues/5685
 ]#
 
-import gtk2
+import headers/gtk2
 
 var
   win = windowNew WINDOW_TOPLEVEL

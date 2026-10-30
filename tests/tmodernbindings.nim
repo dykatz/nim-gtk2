@@ -1,11 +1,11 @@
 # No display required. Compile with --warningAsError:Deprecated, not suppression.
 import std/unittest
-import glib2 as g
-import gtk2 as rawGtk
-import gdk2
-import cairo
-import cairoft
-import pangoutils
+import headers/glib2 as g
+import headers/gtk2 as rawGtk
+import headers/gdk2
+import headers/cairo
+import headers/cairoft
+import headers/pangoutils
 
 static:
   doAssert sizeof(g.gsize) == sizeof(pointer)

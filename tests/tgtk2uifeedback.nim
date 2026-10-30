@@ -1,8 +1,8 @@
 # Hidden widgets only. No popup, dialog run, or visible toplevel.
 import std/[os, tempfiles, unittest]
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert sizeof(gtk2ui.ResponseId) == sizeof(cint)

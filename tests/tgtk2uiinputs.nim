@@ -1,8 +1,8 @@
 # Hidden-widget tests. Proc-local test variables force real closure captures.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert typeof(newAdjustment().raw) is rawGtk.PAdjustment

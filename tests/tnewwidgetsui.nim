@@ -1,8 +1,8 @@
 # Creates hidden native widgets only. No show(), dialog_run(), or main loop.
 import std/[os, tempfiles, unittest]
-import gtk2 as gtk
-import glib2 as g
-import gdk2
+import headers/gtk2 as gtk
+import headers/glib2 as g
+import headers/gdk2
 
 proc runTests() =
   let home = createTempDir("nim_gtk2_widgets_", "")

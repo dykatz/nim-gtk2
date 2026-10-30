@@ -1,6 +1,6 @@
 
 import 
-  gdk2, glib2, gtk2
+  headers/gdk2, headers/glib2, headers/gtk2
 
 proc destroy(widget: PWidget, data: Pgpointer){.cdecl.} = 
   main_quit()

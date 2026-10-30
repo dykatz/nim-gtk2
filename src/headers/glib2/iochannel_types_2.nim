@@ -1,0 +1,14 @@
+# Included by headers/glib2.nim; do not import directly.
+type
+  TGIOChannelError* = enum
+    G_IO_CHANNEL_ERROR_FBIG, G_IO_CHANNEL_ERROR_INVAL, G_IO_CHANNEL_ERROR_IO,
+    G_IO_CHANNEL_ERROR_ISDIR, G_IO_CHANNEL_ERROR_NOSPC, G_IO_CHANNEL_ERROR_NXIO,
+    G_IO_CHANNEL_ERROR_OVERFLOW, G_IO_CHANNEL_ERROR_PIPE,
+    G_IO_CHANNEL_ERROR_FAILED
+  PGIOChannelError* = ptr TGIOChannelError
+  TGIOStatus* = enum
+    G_IO_STATUS_ERROR, G_IO_STATUS_NORMAL, G_IO_STATUS_EOF, G_IO_STATUS_AGAIN
+  PGIOStatus* = ptr TGIOStatus
+  TGSeekType* = enum
+    G_SEEK_CUR, G_SEEK_SET, G_SEEK_END
+  PGSeekType* = ptr TGSeekType

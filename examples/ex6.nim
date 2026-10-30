@@ -1,6 +1,6 @@
 
 import 
-  glib2, gtk2
+  headers/glib2, headers/gtk2
 
 type 
   TButtonSignalState = object 

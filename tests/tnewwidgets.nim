@@ -1,8 +1,8 @@
 # No display required. Verify every added dynamic symbol, typed handles,
 # supporting printing objects, callback types, and explicit GError ownership.
 import std/[dynlib, os, strutils, unittest]
-import gtk2 as gtk
-import glib2 as g
+import headers/gtk2 as gtk
+import headers/glib2 as g
 
 static:
   doAssert not compiles(block:

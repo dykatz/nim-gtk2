@@ -1,0 +1,53 @@
+# Included by headers/gdk2.nim; do not import directly.
+const
+  KEY_CAPITAL_A* = 0x00000041
+const
+  KEY_CAPITAL_B* = 0x00000042
+const
+  KEY_CAPITAL_C* = 0x00000043
+const
+  KEY_CAPITAL_D* = 0x00000044
+const
+  KEY_CAPITAL_E* = 0x00000045
+const
+  KEY_CAPITAL_F* = 0x00000046
+const
+  KEY_CAPITAL_G* = 0x00000047
+const
+  KEY_CAPITAL_H* = 0x00000048
+const
+  KEY_CAPITAL_I* = 0x00000049
+const
+  KEY_CAPITAL_J* = 0x0000004A
+const
+  KEY_CAPITAL_K* = 0x0000004B
+const
+  KEY_CAPITAL_L* = 0x0000004C
+const
+  KEY_CAPITAL_M* = 0x0000004D
+const
+  KEY_CAPITAL_N* = 0x0000004E
+const
+  KEY_CAPITAL_O* = 0x0000004F
+const
+  KEY_CAPITAL_P* = 0x00000050
+const
+  KEY_CAPITAL_Q* = 0x00000051
+const
+  KEY_CAPITAL_R* = 0x00000052
+const
+  KEY_CAPITAL_S* = 0x00000053
+const
+  KEY_CAPITAL_T* = 0x00000054
+const
+  KEY_CAPITAL_U* = 0x00000055
+const
+  KEY_CAPITAL_V* = 0x00000056
+const
+  KEY_CAPITAL_W* = 0x00000057
+const
+  KEY_CAPITAL_X* = 0x00000058
+const
+  KEY_CAPITAL_Y* = 0x00000059
+const
+  KEY_CAPITAL_Z* = 0x0000005A

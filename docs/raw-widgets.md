@@ -1,11 +1,12 @@
 # Additional non-deprecated GTK2 raw widgets
 
-These additions target **GTK 2.24** and are exported by `import gtk2`.
+These additions target **GTK 2.24** and are exported by `import headers/gtk2`.
 They are raw C-ABI bindings, **not** `gtk2ui` wrappers. No deprecated widget
 families were restored.
 
-The generated declarations live in `src/gtk2/newwidgets.nim`, included by
-`src/gtk2.nim`. There are 564 added functions, covering the following widgets
+The generated umbrella `src/headers/gtk2/newwidgets.nim` includes shared types
+and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
+included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 564 added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
 ## Newly covered widgets
@@ -59,8 +60,8 @@ Narrowing the return pointer does not change the ABI.
 For example, existing container/widget operations need an explicit base cast:
 
 ```nim
-import gtk2
-import glib2
+import headers/gtk2
+import headers/glib2
 
 # After GTK initialization:
 let expander = expander_new("Details")

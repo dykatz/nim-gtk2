@@ -1,5 +1,5 @@
 import
-  gtk2, gdk2, cairo, glib2
+  headers/gtk2, headers/gdk2, headers/cairo, headers/glib2
 
 
 var

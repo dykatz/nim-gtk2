@@ -1,8 +1,8 @@
 # Requires a display; creates hidden widgets only, without a main loop.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert typeof(newCheckButton().raw) is rawGtk.PCheckButton

@@ -1,7 +1,8 @@
 ## Small, gtkmm-inspired GTK2 API for Nim ARC/ORC programs.
 ## See docs/gtk2ui.md for ownership, signal and threading rules.
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
+import headers/gdk2pixbuf as rawPixbuf
 
 when not (defined(gcArc) or defined(gcOrc)):
   {.error: "gtk2ui requires --mm:arc or --mm:orc".}
@@ -327,6 +328,8 @@ include gtk2ui/inputs
 include gtk2ui/feedback
 include gtk2ui/dialogs
 include gtk2ui/text
+include gtk2ui/pixbufs
 include gtk2ui/models
 include gtk2ui/trees
 include gtk2ui/proxies
+include gtk2ui/icons

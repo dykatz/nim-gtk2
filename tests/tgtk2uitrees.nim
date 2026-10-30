@@ -1,8 +1,8 @@
 # Hidden tree views only. Paths are value snapshots, not persistent row IDs.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert typeof(newTreeStore([cellString]).raw) is rawGtk.PTreeStore

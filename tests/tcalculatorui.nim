@@ -1,8 +1,8 @@
 # Constructs hidden widgets only; requires a display but never calls run/show.
 import std/[strutils, unittest]
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 import ../examples/calculator
 
 proc descendants(widget: rawGtk.PWidget): seq[rawGtk.PWidget] =

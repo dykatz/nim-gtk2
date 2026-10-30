@@ -1,13 +1,14 @@
 # Included by gtk2ui.nim. Typed models and text-cell views.
 type
   CellKind* = enum
-    cellString, cellInt, cellBool, cellFloat
+    cellString, cellInt, cellBool, cellFloat, cellPixbuf
   CellValue* = object
     case kind*: CellKind
     of cellString: stringValue*: string
     of cellInt: intValue*: int32
     of cellBool: boolValue*: bool
     of cellFloat: floatValue*: float64
+    of cellPixbuf: pixbufValue*: Pixbuf
   TreeModel* = object of ObjectHandle
   ListStore* = object of TreeModel
   TreeView* = object of Container
@@ -36,12 +37,14 @@ proc cell*[T: SomeInteger](value: T): CellValue =
   CellValue(kind: cellInt, intValue: int32(value))
 proc cell*[T: SomeFloat](value: T): CellValue =
   CellValue(kind: cellFloat, floatValue: finite(float64(value)))
+proc cell*(value: Pixbuf): CellValue = CellValue(kind: cellPixbuf, pixbufValue: value)
 proc cellType(kind: CellKind): g.GType =
   case kind
   of cellString: g.G_TYPE_STRING
   of cellInt: g.G_TYPE_INT
   of cellBool: g.G_TYPE_BOOLEAN
   of cellFloat: g.G_TYPE_DOUBLE
+  of cellPixbuf: rawPixbuf.pixbuf_get_type()
 proc checkFlatModel(p: rawGtk.PTreeModel) =
   if p == nil: raise newException(ValueError, "widget has no model")
   if (rawGtk.get_flags(p) and rawGtk.TTreeModelFlags(rawGtk.TREE_MODEL_LIST_ONLY)) == 0:
@@ -80,6 +83,8 @@ proc iterValue(m: TreeModel, iter: var rawGtk.TTreeIter, column: int): CellValue
   of cellInt: CellValue(kind: cellInt, intValue: g.get_int(addr value))
   of cellBool: CellValue(kind: cellBool, boolValue: g.toBool(g.get_boolean(addr value)))
   of cellFloat: CellValue(kind: cellFloat, floatValue: g.get_double(addr value))
+  of cellPixbuf: CellValue(kind: cellPixbuf,
+    pixbufValue: ownedPixbuf(cast[rawPixbuf.PPixbuf](g.get_object(addr value)), borrowed = true))
 proc value*(m: TreeModel, row, column: int): CellValue =
   var iter = rowIter(m, row)
   iterValue(m, iter, column)
@@ -97,6 +102,7 @@ proc initCell(value: CellValue, native: var g.TGValue) =
   of cellInt: g.set_int(addr native, value.intValue)
   of cellBool: g.set_boolean(addr native, g.gbool(value.boolValue))
   of cellFloat: g.set_double(addr native, value.floatValue)
+  of cellPixbuf: g.set_object(addr native, value.pixbufValue.pixbufPointer)
 proc setValue*(m: ListStore, row, column: int, value: CellValue) =
   checkCell(m, column, value)
   var iter = rowIter(m, row)

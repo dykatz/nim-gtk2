@@ -1,0 +1,51 @@
+# Included by headers/gdk2.nim; do not import directly.
+const
+  KEY_Greek_CAPITAL_ALPHA* = 0x000007C1
+const
+  KEY_Greek_CAPITAL_BETA* = 0x000007C2
+const
+  KEY_Greek_CAPITAL_GAMMA* = 0x000007C3
+const
+  KEY_Greek_CAPITAL_DELTA* = 0x000007C4
+const
+  KEY_Greek_CAPITAL_EPSILON* = 0x000007C5
+const
+  KEY_Greek_CAPITAL_ZETA* = 0x000007C6
+const
+  KEY_Greek_CAPITAL_ETA* = 0x000007C7
+const
+  KEY_Greek_CAPITAL_THETA* = 0x000007C8
+const
+  KEY_Greek_CAPITAL_IOTA* = 0x000007C9
+const
+  KEY_Greek_CAPITAL_KAPPA* = 0x000007CA
+const
+  KEY_Greek_CAPITAL_LAMDA* = 0x000007CB
+const
+  KEY_Greek_CAPITAL_LAMBDA* = 0x000007CB
+const
+  KEY_Greek_CAPITAL_MU* = 0x000007CC
+const
+  KEY_Greek_CAPITAL_NU* = 0x000007CD
+const
+  KEY_Greek_CAPITAL_XI* = 0x000007CE
+const
+  KEY_Greek_CAPITAL_OMICRON* = 0x000007CF
+const
+  KEY_Greek_CAPITAL_PI* = 0x000007D0
+const
+  KEY_Greek_CAPITAL_RHO* = 0x000007D1
+const
+  KEY_Greek_CAPITAL_SIGMA* = 0x000007D2
+const
+  KEY_Greek_CAPITAL_TAU* = 0x000007D4
+const
+  KEY_Greek_CAPITAL_UPSILON* = 0x000007D5
+const
+  KEY_Greek_CAPITAL_PHI* = 0x000007D6
+const
+  KEY_Greek_CAPITAL_CHI* = 0x000007D7
+const
+  KEY_Greek_CAPITAL_PSI* = 0x000007D8
+const
+  KEY_Greek_CAPITAL_OMEGA* = 0x000007D9

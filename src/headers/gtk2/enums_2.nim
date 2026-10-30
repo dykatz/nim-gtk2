@@ -1,0 +1,113 @@
+# Included by headers/gtk2.nim; do not import directly.
+const
+  BUTTONBOX_DEFAULT_STYLE* = 0
+const
+  BUTTONBOX_SPREAD* = 1
+const
+  BUTTONBOX_EDGE* = 2
+const
+  BUTTONBOX_START* = 3
+const
+  BUTTONBOX_END* = 4
+const
+  DELETE_CHARS* = 0
+const
+  DELETE_WORD_ENDS* = 1
+const
+  DELETE_WORDS* = 2
+const
+  DELETE_DISPLAY_LINES* = 3
+const
+  DELETE_DISPLAY_LINE_ENDS* = 4
+const
+  DELETE_PARAGRAPH_ENDS* = 5
+const
+  DELETE_PARAGRAPHS* = 6
+const
+  DELETE_WHITESPACE* = 7
+const
+  DIR_TAB_FORWARD* = 0
+const
+  DIR_TAB_BACKWARD* = 1
+const
+  DIR_UP* = 2
+const
+  DIR_DOWN* = 3
+const
+  DIR_LEFT* = 4
+const
+  DIR_RIGHT* = 5
+const
+  EXPANDER_COLLAPSED* = 0
+const
+  EXPANDER_SEMI_COLLAPSED* = 1
+const
+  EXPANDER_SEMI_EXPANDED* = 2
+const
+  EXPANDER_EXPANDED* = 3
+const
+  ICON_SIZE_INVALID* = 0
+const
+  ICON_SIZE_MENU* = 1
+const
+  ICON_SIZE_SMALL_TOOLBAR* = 2
+const
+  ICON_SIZE_LARGE_TOOLBAR* = 3
+const
+  ICON_SIZE_BUTTON* = 4
+const
+  ICON_SIZE_DND* = 5
+const
+  ICON_SIZE_DIALOG* = 6
+const
+  TEXT_DIR_NONE* = 0
+const
+  TEXT_DIR_LTR* = 1
+const
+  TEXT_DIR_RTL* = 2
+const
+  JUSTIFY_LEFT* = 0
+const
+  JUSTIFY_RIGHT* = 1
+const
+  JUSTIFY_CENTER* = 2
+const
+  JUSTIFY_FILL* = 3
+const
+  MENU_DIR_PARENT* = 0
+const
+  MENU_DIR_CHILD* = 1
+const
+  MENU_DIR_NEXT* = 2
+const
+  MENU_DIR_PREV* = 3
+const
+  MOVEMENT_LOGICAL_POSITIONS* = 0
+const
+  MOVEMENT_VISUAL_POSITIONS* = 1
+const
+  MOVEMENT_WORDS* = 2
+const
+  MOVEMENT_DISPLAY_LINES* = 3
+const
+  MOVEMENT_DISPLAY_LINE_ENDS* = 4
+const
+  MOVEMENT_PARAGRAPHS* = 5
+const
+  MOVEMENT_PARAGRAPH_ENDS* = 6
+const
+  MOVEMENT_PAGES* = 7
+const
+  MOVEMENT_BUFFER_ENDS* = 8
+const
+  ORIENTATION_HORIZONTAL* = 0
+const
+  ORIENTATION_VERTICAL* = 1
+const
+  CORNER_TOP_LEFT* = 0
+const
+  CORNER_BOTTOM_LEFT* = 1
+const
+  CORNER_TOP_RIGHT* = 2
+const
+  CORNER_BOTTOM_RIGHT* = 3

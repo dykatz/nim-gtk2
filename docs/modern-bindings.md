@@ -128,6 +128,18 @@ conversion correctly returns `gboolean`. A native-header check covers GtkSortTyp
 width/value. Proxy private layouts and custom comparator/predicate callbacks are
 not audited or wrapped by this batch.
 
+## Pixbuf-related raw corrections
+
+`PPixbuf` now points to an incomplete native struct rather than untyped `pointer`.
+GdkPixbuf colorspace, interpolation, alpha-mode, and error enums explicitly use
+native C enum width; the missing incomplete-animation error value is included.
+The file-load error parameter is a typed `GError**`. Native-header probes check
+these enum widths and the added value. Managed object-valued model cells retain
+pixbuf references before unsetting temporary GValues; selected IconView paths and
+lists are copied then freed. Native pixel storage is never backed by borrowed
+Nim memory. Animation and other legacy GdkPixbuf surfaces remain outside this
+focused audit.
+
 ## Remaining scope
 
 This is not a complete audit of every historical module. Other optional X11

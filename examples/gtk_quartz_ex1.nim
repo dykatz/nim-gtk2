@@ -2,7 +2,7 @@
 # Only compiles on OSX, obviously. Use -d:gtk_quartz when compiling.
 
 import
-  glib2, gtk2, gtkmacintegration, os
+  headers/glib2, headers/gtk2, headers/gtkmacintegration, os
 
 proc destroy(widget: PWidget, data: Pgpointer) {.cdecl.} =
   main_quit()

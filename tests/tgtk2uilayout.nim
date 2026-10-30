@@ -1,8 +1,8 @@
 # Hidden widgets only: no toplevel show(), dialog run, or GTK main loop.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert typeof(newScrolledWindow().raw) is rawGtk.PScrolledWindow

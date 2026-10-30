@@ -1,8 +1,8 @@
 # Hidden toplevels only. Never call present(), run(), or a nested GTK loop.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 static:
   doAssert sizeof(rawGtk.TButtonsType) == sizeof(cint)

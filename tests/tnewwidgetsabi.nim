@@ -2,8 +2,9 @@
 # Compiles the header probe in a separate C translation unit, so GTK prototypes
 # cannot conflict with Nim's header-free opaque handles. Does not need a display.
 import std/unittest
-import gtk2 as gtk
-import glib2 as g
+import headers/gtk2 as gtk
+import headers/glib2 as g
+import headers/gdk2pixbuf as pb
 
 {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
@@ -25,6 +26,11 @@ proc valueSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gvalue".}
 proc valueDataOffset(): csize_t {.cdecl, importc: "nim_gtk2_offset_gvalue_data".}
 proc textIterSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_text_iter".}
 proc textIterTail(): csize_t {.cdecl, importc: "nim_gtk2_offset_text_iter_tail".}
+proc colorspaceSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_colorspace".}
+proc interpolationSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_interpolation".}
+proc pixbufErrorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_pixbuf_error".}
+proc alphaModeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_alpha_mode".}
+proc incompleteAnimation(): cint {.cdecl, importc: "nim_gtk2_incomplete_animation".}
 proc sortTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_sort_type".}
 proc sortDescending(): cint {.cdecl, importc: "nim_gtk2_sort_descending".}
 proc wrapModeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_wrap_mode".}
@@ -56,6 +62,11 @@ suite "new raw binding native header ABI":
     check valueDataOffset() == csize_t(offsetOf(g.TGValue, data))
     check textIterSize() == csize_t(sizeof(gtk.TTextIter))
     check textIterTail() == csize_t(offsetOf(gtk.TTextIter, dummy14))
+    check colorspaceSize() == csize_t(sizeof(pb.TColorspace))
+    check interpolationSize() == csize_t(sizeof(pb.TInterpType))
+    check pixbufErrorSize() == csize_t(sizeof(pb.TPixbufError))
+    check alphaModeSize() == csize_t(sizeof(pb.TPixbufAlphaMode))
+    check incompleteAnimation() == cint(pb.PIXBUF_ERROR_INCOMPLETE_ANIMATION)
     check sortTypeSize() == csize_t(sizeof(gtk.TSortType))
     check sortDescending() == cint(gtk.SORT_DESCENDING)
     check wrapModeSize() == csize_t(sizeof(gtk.TWrapMode))

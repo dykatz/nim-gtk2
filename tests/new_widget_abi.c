@@ -21,6 +21,11 @@ size_t nim_gtk2_sizeof_gvalue(void) { return sizeof(GValue); }
 size_t nim_gtk2_offset_gvalue_data(void) { return offsetof(GValue, data); }
 size_t nim_gtk2_sizeof_text_iter(void) { return sizeof(GtkTextIter); }
 size_t nim_gtk2_offset_text_iter_tail(void) { return offsetof(GtkTextIter, dummy14); }
+size_t nim_gtk2_sizeof_colorspace(void) { return sizeof(GdkColorspace); }
+size_t nim_gtk2_sizeof_interpolation(void) { return sizeof(GdkInterpType); }
+size_t nim_gtk2_sizeof_pixbuf_error(void) { return sizeof(GdkPixbufError); }
+size_t nim_gtk2_sizeof_alpha_mode(void) { return sizeof(GdkPixbufAlphaMode); }
+int nim_gtk2_incomplete_animation(void) { return GDK_PIXBUF_ERROR_INCOMPLETE_ANIMATION; }
 size_t nim_gtk2_sizeof_sort_type(void) { return sizeof(GtkSortType); }
 int nim_gtk2_sort_descending(void) { return GTK_SORT_DESCENDING; }
 size_t nim_gtk2_sizeof_wrap_mode(void) { return sizeof(GtkWrapMode); }

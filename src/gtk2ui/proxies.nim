@@ -40,10 +40,12 @@ proc model*(r: TreeRowReference): TreeModel = ownedTreeModel(rawGtk.reference_ge
 proc childModel*(m: TreeModelSort): TreeModel = ownedTreeModel(rawGtk.sort_get_model(m.raw))
 proc childModel*(m: TreeModelFilter): TreeModel = ownedTreeModel(rawGtk.tree_model_filter_get_model(m.raw))
 proc sortBy*(m: TreeModelSort, column: int, order = sortAscending) =
-  discard m.columnKind(column) # Restrict builtin sorting to the supported scalar kinds.
+  if m.columnKind(column) == cellPixbuf:
+    raise newException(ValueError, "pixbuf columns cannot be sorted")
   rawGtk.set_sort_column_id(cast[rawGtk.PTreeSortable](m.raw), g.gint(column), rawGtk.TSortType(ord(order)))
 proc newTreeModelSort*(child: TreeModel, column: int, order = sortAscending): TreeModelSort =
-  discard child.columnKind(column)
+  if child.columnKind(column) == cellPixbuf:
+    raise newException(ValueError, "pixbuf columns cannot be sorted")
   result.state = adoptObject(rawGtk.sort_new(child.raw), cache = true,
     hasDestroySignal = false, sink = false)
   result.sortBy(column, order)

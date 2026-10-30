@@ -2,8 +2,8 @@
 # or enters the GTK main loop.
 import std/unittest
 import gtk2ui
-import gtk2 as rawGtk
-import glib2 as g
+import headers/gtk2 as rawGtk
+import headers/glib2 as g
 
 # Verify the surface can be used without raw casts and unsupported signals
 # cannot accidentally be registered on the wrong widget type.

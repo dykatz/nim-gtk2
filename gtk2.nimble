@@ -9,6 +9,9 @@ requires "nim >= 2.0.0"
 import std/distros
 foreignDep "gtk+"
 
+task testHeaderLayout, "Check raw-binding layout and include ownership":
+  exec "python3 tests/theaderlayout.py"
+
 task testBindings, "Check core GTK2 and bundled Cairo/X11/FreeType bindings without opening windows":
   exec "nim check --path:src --warningAsError:Deprecated tests/tbindings.nim"
 
@@ -35,6 +38,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uimodels.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uitrees.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uiproxies.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uiicons.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"
