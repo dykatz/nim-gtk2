@@ -3,6 +3,11 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_arrow_type(void) { return sizeof(GtkArrowType); }
+size_t nim_gtk2_sizeof_shadow_type(void) { return sizeof(GtkShadowType); }
+size_t nim_gtk2_sizeof_position_type(void) { return sizeof(GtkPositionType); }
+int nim_gtk2_arrow_none(void) { return GTK_ARROW_NONE; }
+int nim_gtk2_position_bottom(void) { return GTK_POS_BOTTOM; }
 size_t nim_gtk2_sizeof_gdk_color(void) { return sizeof(GdkColor); }
 size_t nim_gtk2_offset_gdk_color_red(void) { return offsetof(GdkColor, red); }
 size_t nim_gtk2_offset_gdk_color_blue(void) { return offsetof(GdkColor, blue); }

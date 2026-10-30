@@ -9,7 +9,7 @@ proc g_timeout_add_full*(priority: gint, interval: guint, function,
 proc g_idle_add*(function, data: gpointer): guint {.
   cdecl, dynlib: gliblib, importc: "g_idle_add".}
 
-proc g_idle_add_full*(priority: guint, function,
+proc g_idle_add_full*(priority: gint, function,
   data, notify: gpointer): guint {.cdecl, dynlib: gliblib,
   importc: "g_idle_add_full".}
 

@@ -1044,6 +1044,96 @@ typed C trampoline, with exception containment and self-disconnection support.
 The popup, plus/minus buttons, and other private children are not exported as
 reparentable widgets. Inherited `Button.text=` is rejected here too.
 
+## Scales, scrollbars, and Arrow
+
+`HScale`, `VScale`, `HScrollbar`, and `VScrollbar` derive from the public `Range`
+handle. Scales also derive from `Scale`, and scrollbars from `Scrollbar`.
+These bases have typed borrowed `.raw` but no abstract-widget constructors.
+See [`examples/ranges.nim`](../examples/ranges.nim).
+
+```nim
+let amount = newAdjustment(25, 0, 100, 1, 10)
+let slider = newHScale(amount)
+let numeric = newSpinButton(amount)
+slider.digits = 1
+slider.valuePosition = valueRight
+slider.addMark(50, "Middle <50> & center") # Plain text, not Pango markup.
+slider.onValueChanged(proc (value: float64) = echo value)
+let pages = newHScrollbar(pageSize = 20)
+pages.value = 100 # Native clamp to 80 = upper - pageSize.
+```
+
+### Numeric ranges and ownership
+
+Scales accept an existing `Adjustment` or numeric `lower`, `upper`, `step`
+arguments (defaults 0, 100, 1). Numeric scale constructors require finite bounds
+and span, lower < upper, and a positive finite step with finite ten-step page
+increment. GTK computes the initial precision from the step.
+
+Scrollbar constructors accept an existing Adjustment or named `value`, `lower`,
+`upper`, `stepIncrement`, `pageIncrement`, and `pageSize` (defaults 0, 0, 100, 1,
+10, 10). Their numeric validation matches `newAdjustment`. For scrollbars the
+maximum value is `upper - pageSize`; the page also controls thumb size. Normally
+use pageSize 0 for scales. Native allocation/scrolling can change adjustments
+shared with other widgets.
+
+`adjustment` returns an owning, shared handle, never a stolen native reference.
+It survives range destruction; `adjustment=` replaces the model without
+invalidating handles to the previous one. The same Adjustment can drive multiple
+ranges and SpinButtons. Do not explicitly destroy an Adjustment still in use by
+widgets; normally release its handles instead.
+
+All ranges have finite `value` with native clamping, `inverted`, and `flippable`
+(right-to-left mirroring eligibility). `setIncrements(step, page)` validates
+both finite nonnegative values before changing anything. `setBounds(lower,
+upper)` requires a positive finite span large enough for the current page size.
+It preserves adjustment identity, increments, and page size, using the native
+Adjustment configure operation to notify shared consumers safely.
+
+### Scale display and marks
+
+`digits` accepts -1 (no input rounding) or 0..64. It controls display precision
+and native interactive input rounding, not decimal arithmetic or rounding of
+all programmatic Adjustment writes. `drawValue` toggles the numeric label.
+`valuePosition` uses `valueLeft`, `valueRight`, `valueTop`, and `valueBottom`.
+
+`addMark(value, text = "", position = valueBottom)` accepts finite positions
+and valid UTF-8 plain text. Labels are markup-escaped, copied by GTK, and the
+temporary escaped native string is freed. Empty text produces a tick only;
+`clearMarks()` removes all ticks and labels. Mark positions outside current
+bounds are left to GTK's native clipping. Custom formatting callbacks, arbitrary
+markup, fill-level overlays, and special update policies are deferred.
+
+### Deferred value observers
+
+Unlike ordinary synchronous widget signals, `Range.onValueChanged(proc (value:
+float64) = ...)` delivers the **latest copied value on a subsequent UI idle
+turn**. Repeated changes before delivery coalesce. Registration and value
+setters do not start or pump a loop; delivery requires ordinary main-context
+iteration (normally `window.run()`).
+
+This is intentional: GTK2's keyboard/scroll handlers continue accessing a range
+and its Adjustment after their native value-changed signals. Destroying a range
+from those signals can crash inside GTK. Idle delivery permits closing windows,
+destroying the emitter, or self-disconnecting without leaving GTK's input stack
+using disposed objects. Do not attach raw callbacks and assume they have these
+stronger safety semantics.
+
+The observer follows `adjustment=` replacements, unregistering from the old
+Adjustment. A replacement with a different value queues the new snapshot.
+Assignments with no numeric change do not queue notifications. Disconnecting or
+destroying the widget cancels pending delivery and releases captures. Exceptions
+are contained as for other callbacks; a callback-triggered value change is
+delivered on a later idle turn. Self-captures still require explicit cleanup.
+
+### Decorative Arrow
+
+`newArrow(direction = arrowDown, shadow = shadowOut)` creates a noninteractive
+widget. `direction` uses `arrowUp`, `arrowDown`, `arrowLeft`, `arrowRight`, or
+`arrowNone`; `shadow` reuses `ShadowStyle`. Properties preserve the other setting,
+or set both with `setArrow(direction, shadow)`. Getters use native enum properties,
+not private struct fields. Arrow has no button signals or child container API.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1097,7 +1187,9 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2feedback.nim`, `tests/tgtk2dialogs.nim`,
 `tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
-`tests/tgtk2icons.nim`, and `tests/tgtk2selectors.nim`. These check calendar
+`tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, and `tests/tgtk2ranges.nim`.
+These check range adjustment ownership/replacement, deferred coalesced observers,
+keyboard-action destruction, literal scale marks, arrow enums, calendar
 validation, copied chooser values, scale signals/shared adjustments, controls,
 scrolling adapters, pane slots, notebook callbacks, retained-child reparenting,
 shared adjustment ownership/cache cleanup, numeric editing, text choices, image

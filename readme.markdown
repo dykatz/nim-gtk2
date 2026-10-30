@@ -56,7 +56,10 @@ previews, and model-backed IconView are demonstrated in
 [`examples/icons.nim`](examples/icons.nim). Calendar, ColorButton, FontButton,
 ScaleButton, and VolumeButton add checked dates, copied chooser selections, and
 popup values with shared adjustments; see
-[`examples/selectors.nim`](examples/selectors.nim).
+[`examples/selectors.nim`](examples/selectors.nim). HScale/VScale,
+HScrollbar/VScrollbar, shared range models, safe deferred value observers,
+plain-text scale marks, and decorative Arrow widgets are demonstrated in
+[`examples/ranges.nim`](examples/ranges.nim).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

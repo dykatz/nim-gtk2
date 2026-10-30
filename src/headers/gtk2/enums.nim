@@ -41,3 +41,5 @@ const
   ARROW_LEFT* = 2
 const
   ARROW_RIGHT* = 3
+const
+  ARROW_NONE* = 4

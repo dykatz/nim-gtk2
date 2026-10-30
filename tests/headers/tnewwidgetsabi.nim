@@ -9,6 +9,11 @@ from headers/gdk2 import TColor
 
 {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc arrowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_arrow_type".}
+proc shadowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_shadow_type".}
+proc positionTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_position_type".}
+proc arrowNone(): cint {.cdecl, importc: "nim_gtk2_arrow_none".}
+proc positionBottom(): cint {.cdecl, importc: "nim_gtk2_position_bottom".}
 proc colorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gdk_color".}
 proc colorRedOffset(): csize_t {.cdecl, importc: "nim_gtk2_offset_gdk_color_red".}
 proc colorBlueOffset(): csize_t {.cdecl, importc: "nim_gtk2_offset_gdk_color_blue".}
@@ -50,6 +55,11 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
 
 suite "new raw binding native header ABI":
   test "public struct sizes, offsets and enum widths match C":
+    check arrowTypeSize() == csize_t(sizeof(gtk.TArrowType))
+    check shadowTypeSize() == csize_t(sizeof(gtk.TShadowType))
+    check positionTypeSize() == csize_t(sizeof(gtk.TPositionType))
+    check arrowNone() == cint(gtk.ARROW_NONE)
+    check positionBottom() == cint(gtk.POS_BOTTOM)
     check colorSize() == csize_t(sizeof(TColor))
     check colorRedOffset() == csize_t(offsetOf(TColor, red))
     check colorBlueOffset() == csize_t(offsetOf(TColor, blue))

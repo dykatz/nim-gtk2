@@ -38,6 +38,10 @@ proc set_inverted*(range: PRange, setting: gboolean){.cdecl, dynlib: lib,
     importc: "gtk_range_set_inverted".}
 proc get_inverted*(range: PRange): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_range_get_inverted".}
+proc set_flippable*(range: PRange, setting: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_range_set_flippable".}
+proc get_flippable*(range: PRange): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_range_get_flippable".}
 proc set_increments*(range: PRange, step: gdouble, page: gdouble){.cdecl,
     dynlib: lib, importc: "gtk_range_set_increments".}
 proc set_range*(range: PRange, min: gdouble, max: gdouble){.cdecl,

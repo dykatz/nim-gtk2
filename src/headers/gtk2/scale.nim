@@ -22,6 +22,9 @@ proc set_value_pos*(scale: PScale, pos: TPositionType){.cdecl,
     dynlib: lib, importc: "gtk_scale_set_value_pos".}
 proc get_value_pos*(scale: PScale): TPositionType{.cdecl, dynlib: lib,
     importc: "gtk_scale_get_value_pos".}
+proc add_mark*(scale: PScale, value: gdouble, position: TPositionType, markup: cstring) {.
+    cdecl, dynlib: lib, importc: "gtk_scale_add_mark".}
+proc clear_marks*(scale: PScale) {.cdecl, dynlib: lib, importc: "gtk_scale_clear_marks".}
 proc get_value_size*(scale: PScale, width: Pgint, height: Pgint){.cdecl,
     dynlib: lib, importc: "_gtk_scale_get_value_size".}
 proc format_value*(scale: PScale, value: gdouble): cstring{.cdecl,
