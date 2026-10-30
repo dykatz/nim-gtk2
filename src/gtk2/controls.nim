@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim: shares the ownership and signal machinery.
+# Included by gtk2.nim: shares the ownership and signal machinery.
 type
   ToggleButton* = object of Button
   CheckButton* = object of ToggleButton

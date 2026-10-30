@@ -1,10 +1,10 @@
 ## In-memory icons, owned pixel values, filtering/sorting and image previews.
 ## Build: nim c --path:src examples/icons.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui icon palette", 720, 440)
+  gtk2.init()
+  let window = newWindow("gtk2 icon palette", 720, 440)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)

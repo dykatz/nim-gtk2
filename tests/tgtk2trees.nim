@@ -1,6 +1,6 @@
 # Hidden tree views only. Paths are value snapshots, not persistent row IDs.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -12,8 +12,8 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui hierarchical trees":
+  gtk2.init()
+  suite "gtk2 hierarchical trees":
     test "paths own their indices and distinguish the virtual root":
       let path = treePath(1, 2, 3)
       check path.depth == 3
@@ -25,7 +25,7 @@ proc runTests() =
       check path.indices == @[1, 2, 3]
       check treePath().isRoot
       check treePath(0).parentPath.isRoot
-      check gtk2ui.TreePath() == treePath()
+      check gtk2.TreePath() == treePath()
       expect ValueError: discard treePath(-1)
       expect ValueError: discard path.childPath(-1)
       expect ValueError: discard treePath().parentPath
@@ -34,15 +34,15 @@ proc runTests() =
       let store = newTreeStore([cellString, cellInt, cellBool, cellFloat])
       check not store.isFlat
       check store.rowCount == 0
-      var inserted, changed, deleted: seq[gtk2ui.TreePath]
-      store.onPathInserted(proc (path: gtk2ui.TreePath) =
+      var inserted, changed, deleted: seq[gtk2.TreePath]
+      store.onPathInserted(proc (path: gtk2.TreePath) =
         inserted.add(path)
         check store.value(path, 0).stringValue.len > 0
         check store.value(path, 1).intValue != 0
         check store.value(path, 2).boolValue
         check store.value(path, 3).floatValue > 0)
-      store.onPathChanged(proc (path: gtk2ui.TreePath) = changed.add(path))
-      store.onPathDeleted(proc (path: gtk2ui.TreePath) = deleted.add(path))
+      store.onPathChanged(proc (path: gtk2.TreePath) = changed.add(path))
+      store.onPathDeleted(proc (path: gtk2.TreePath) = deleted.add(path))
       let root = store.appendRow([cell("Root"), cell(1), cell(true), cell(1.0)])
       let child = store.appendRow([cell("Child"), cell(2), cell(true), cell(2.0)], parent = root)
       let grandchild = store.appendRow([cell("Grandchild"), cell(3), cell(true), cell(3.0)], parent = child)
@@ -80,8 +80,8 @@ proc runTests() =
 
     test "path values and signals also work for flat models":
       let store = newListStore([cellString])
-      var inserted: seq[gtk2ui.TreePath]
-      store.onPathInserted(proc (path: gtk2ui.TreePath) = inserted.add(path))
+      var inserted: seq[gtk2.TreePath]
+      store.onPathInserted(proc (path: gtk2.TreePath) = inserted.add(path))
       discard store.appendRow([cell("Flat")])
       check store.isFlat
       check inserted == @[treePath(0)]
@@ -116,8 +116,8 @@ proc runTests() =
       check view.pathExpanded(branch)
       check not view.expandPath(leaf)
       check changes == 1
-      var activated: seq[gtk2ui.TreePath]
-      view.onPathActivated(proc (path: gtk2ui.TreePath) = activated.add(path))
+      var activated: seq[gtk2.TreePath]
+      view.onPathActivated(proc (path: gtk2.TreePath) = activated.add(path))
       view.activateRow(leaf)
       check activated == @[leaf]
       check view.model.value(view.selectedPath, 0).stringValue == "Leaf"
@@ -183,20 +183,20 @@ proc runTests() =
 
     test "copied path callbacks self-disconnect, contain errors and survive mutations":
       let store = newTreeStore([cellString])
-      var paths: seq[gtk2ui.TreePath]
+      var paths: seq[gtk2.TreePath]
       var once: Connection
-      once = store.onPathInserted(proc (path: gtk2ui.TreePath) =
+      once = store.onPathInserted(proc (path: gtk2.TreePath) =
         once.disconnect()
         paths.add(path))
       let root = store.appendRow([cell("Root")])
       discard store.appendRow([cell("Child")], parent = root)
       check paths == @[treePath(0)]
-      store.onPathChanged(proc (path: gtk2ui.TreePath) =
+      store.onPathChanged(proc (path: gtk2.TreePath) =
         raise newException(ValueError, "expected tree path error"))
-      store.onPathChanged(proc (path: gtk2ui.TreePath) = paths.add(path))
+      store.onPathChanged(proc (path: gtk2.TreePath) = paths.add(path))
       store.setValue(treePath(0, 0), 0, cell("Changed"))
       check paths == @[treePath(0), treePath(0, 0)]
-      store.onPathDeleted(proc (path: gtk2ui.TreePath) = paths.add(path))
+      store.onPathDeleted(proc (path: gtk2.TreePath) = paths.add(path))
       store.removeRow(root)
       check paths[^1] == treePath(0)
       check paths[1] == treePath(0, 0) # Native paths are already freed/reused.
@@ -204,7 +204,7 @@ proc runTests() =
       let view = newTreeView(store)
       defer: view.destroy()
       let next = store.appendRow([cell("Next")])
-      view.onPathActivated(proc (path: gtk2ui.TreePath) = view.destroy())
+      view.onPathActivated(proc (path: gtk2.TreePath) = view.destroy())
       view.activateRow(next)
       check view.isDestroyed
 
@@ -231,7 +231,7 @@ proc runTests() =
         result = window.raw
         g.weak_ref(cast[g.PGObject](result), finalizedCallback, windowFlag)
         g.weak_ref(cast[g.PGObject](store.raw), finalizedCallback, modelFlag)
-        store.onPathChanged(proc (path: gtk2ui.TreePath) = window.title = store.value(path, 0).stringValue)
+        store.onPathChanged(proc (path: gtk2.TreePath) = window.title = store.value(path, 0).stringValue)
         view.onSelectionChanged(proc () = window.title = $view.selectedPath)
         window.onDestroy(proc () = store.disconnectSignals())
         view.selectedPath = root

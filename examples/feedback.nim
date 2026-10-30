@@ -1,10 +1,10 @@
 ## Images, an InfoBar notice, and independent status-message contexts.
 ## Build: nim c --path:src examples/feedback.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui feedback", 620, 280)
+  gtk2.init()
+  let window = newWindow("gtk2 feedback", 620, 280)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 10)

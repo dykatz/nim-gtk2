@@ -1,10 +1,10 @@
 ## Shared TextBuffer, editable/read-only views and nonblocking status updates.
 ## Build: nim c --path:src examples/text.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui text editor", 760, 460)
+  gtk2.init()
+  let window = newWindow("gtk2 text editor", 760, 460)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)

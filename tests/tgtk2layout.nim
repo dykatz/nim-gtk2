@@ -1,6 +1,6 @@
 # Hidden widgets only: no toplevel show(), dialog run, or GTK main loop.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -14,9 +14,9 @@ static:
   doAssert not compiles(newHPaned().add(newLabel()))
   doAssert not compiles(newLabel().onSwitchPage(proc (index: int) = discard))
 
-gtk2ui.init()
+gtk2.init()
 
-suite "gtk2ui scrolling and layout":
+suite "gtk2 scrolling and layout":
   test "scroll policies, shadows and automatic viewport adaptation":
     let scroll = newScrolledWindow()
     let content = newVBox()
@@ -29,7 +29,7 @@ suite "gtk2ui scrolling and layout":
     check scroll.shadow == shadowEtchedIn
     content.packStart(label)
     # Upcasting must not bypass the scrolling adapter or containment checks.
-    let bin = gtk2ui.Bin(scroll)
+    let bin = gtk2.Bin(scroll)
     bin.add(content)
     let adapter = rawGtk.get_child(cast[rawGtk.PBin](scroll.raw))
     check rawGtk.IS_VIEWPORT(adapter)
@@ -299,8 +299,8 @@ suite "gtk2ui scrolling and layout":
     proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
       cast[ptr bool](data)[] = true
     block:
-      let widgets = @[gtk2ui.Widget(newScrolledWindow()), gtk2ui.Widget(newViewport()),
-        gtk2ui.Widget(newNotebook()), gtk2ui.Widget(newHPaned()), gtk2ui.Widget(newVPaned())]
+      let widgets = @[gtk2.Widget(newScrolledWindow()), gtk2.Widget(newViewport()),
+        gtk2.Widget(newNotebook()), gtk2.Widget(newHPaned()), gtk2.Widget(newVPaned())]
       for i, widget in widgets:
         g.weak_ref(cast[g.PGObject](widget.raw), finalizedCallback, addr finalized[i])
     for done in finalized: check done

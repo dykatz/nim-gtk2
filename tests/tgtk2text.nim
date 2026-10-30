@@ -1,6 +1,6 @@
 # Hidden widgets only; no GTK main loop or visible windows.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -14,8 +14,8 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui text buffers and views":
+  gtk2.init()
+  suite "gtk2 text buffers and views":
     test "Unicode character offsets, ordered ranges and copied text":
       let buffer = newTextBuffer("Aλ🙂e\u0301\nZ")
       check buffer.characterCount == 7
@@ -210,8 +210,8 @@ proc runTests() =
       expect ValueError: discard buffer.onDestroy(proc () = discard)
       expect ValueError: discard buffer.onChanged(nil)
       expect ValueError: discard buffer.onCursorMoved(nil)
-      expect ValueError: discard newTextView(gtk2ui.TextBuffer())
-      expect ValueError: view.buffer = gtk2ui.TextBuffer()
+      expect ValueError: discard newTextView(gtk2.TextBuffer())
+      expect ValueError: view.buffer = gtk2.TextBuffer()
       check view.text == "Kept"
 
     test "plain GObject ownership and state-scoped callbacks do not leak":

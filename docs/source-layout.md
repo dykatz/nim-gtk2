@@ -1,13 +1,13 @@
 # Source layout
 
-`src/gtk2ui.nim` and `src/gtk2ui/` contain the ergonomic ARC/ORC API.
+`src/gtk2.nim` and `src/gtk2/` contain the ergonomic ARC/ORC API.
 All raw bindings, platform adapters, and vendored Nim dependencies live under
 `src/headers/`. These are Nim declarations, not bundled native C headers.
 
 ```text
 src/
-  gtk2ui.nim
-  gtk2ui/
+  gtk2.nim
+  gtk2/
   headers/
     gtk2.nim                  # Raw GTK umbrella
     gtk2/
@@ -43,11 +43,12 @@ src/
 
 ## Importing
 
-Applications using only `gtk2ui` need no import changes. Raw imports now use the
-`headers/` namespace, with the same public symbol names:
+`import gtk2` is the public ergonomic API (formerly `gtk2ui`). Its implementation
+lives in `src/gtk2/`, included by `src/gtk2.nim`. Raw imports use the separate
+`headers/` namespace, with the same native symbol names:
 
 ```nim
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as rawPixbuf
@@ -55,8 +56,9 @@ import headers/gdk2pixbuf as rawPixbuf
 
 Other raw modules follow the same rule, e.g. `headers/cairo`, `headers/xlib`,
 and `headers/freetype`. Keep `--path:src`; do not add `src/headers` as a separate
-search path or mix old and new import styles. No compatibility modules remain
-at the old `src/gtk2.nim`, `src/glib2.nim`, etc. paths.
+search path or mix old and new raw import styles. `src/gtk2.nim` is the ergonomic
+entrypoint, not a raw-binding compatibility module. Other old raw paths, such as
+`src/glib2.nim`, remain absent. There is no `gtk2ui` compatibility module.
 
 ## Include fragments and dependencies
 
@@ -94,7 +96,7 @@ The symbol manifest is `tests/headers/new_widget_symbols.txt`.
 ## Checks
 
 Raw-binding tests and their C ABI probe/symbol fixtures live in `tests/headers/`.
-High-level `gtk2ui` and calculator tests remain directly under `tests/`.
+High-level `gtk2` and calculator tests remain directly under `tests/`.
 
 `nimble testHeaderLayout` checks that raw modules stay under `headers`, includes
 resolve without cycles/duplicates, and no split fragments are orphaned. It needs

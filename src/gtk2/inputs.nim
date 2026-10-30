@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Adjustment is a GtkObject, NOT a widget.
+# Included by gtk2.nim. Adjustment is a GtkObject, NOT a widget.
 type
   Adjustment* = object of ObjectHandle
   SpinButton* = object of Entry

@@ -1,6 +1,6 @@
 # Hidden-widget tests. Proc-local test variables force real closure captures.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -17,8 +17,8 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui numeric and text-choice inputs":
+  gtk2.init()
+  suite "gtk2 numeric and text-choice inputs":
     test "adjustment properties, atomic configuration, clamping and signals":
       let a = newAdjustment(value = 5)
       defer: a.destroy()
@@ -112,7 +112,7 @@ proc runTests() =
       retained.destroy()
       check retained.isDestroyed
       # Explicit destruction invalidates, but the last handle still owns a ref.
-      retained = gtk2ui.Adjustment()
+      retained = gtk2.Adjustment()
       check finalized
 
     test "adjustment state cache is weak and gets cleared before state release":
@@ -261,7 +261,7 @@ proc runTests() =
       expect ValueError: combo.activeIndex = 1
       expect ValueError: combo.activeIndex = -2
       check combo.itemCount == 1
-      expect ValueError: discard gtk2ui.Adjustment().raw
+      expect ValueError: discard gtk2.Adjustment().raw
 
     test "real heap callbacks may self-disconnect, raise, and break cycles":
       let a = newAdjustment()

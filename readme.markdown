@@ -24,14 +24,14 @@ requires "nim >= 2.0.0", "https://github.com/dykatz/nim-gtk2.git#head"
 
 # Ergonomic API
 
-For new applications, `import gtk2ui` provides a small gtkmm-inspired layer:
+For new applications, `import gtk2` provides a small gtkmm-inspired layer:
 typed widgets, Nim properties, layout helpers, and closure-based signals.
 Raw bindings remain available for low-level access. This SDK has no legacy
 source-compatibility requirement; the calculator is the primary regression target.
 GTK2-deprecated widget families are intentionally excluded; see the
 [removal inventory and replacements](docs/deprecated-widgets.md).
 See the
-[API guide and ownership rules](docs/gtk2ui.md) and
+[API guide and ownership rules](docs/gtk2.md) and
 [`examples/ergonomic.nim`](examples/ergonomic.nim).
 The control wrappers include toggle/check/radio/link buttons, progress bars,
 spinners, frames, expanders, separators, and basic drawing-area handles; see
@@ -65,7 +65,8 @@ integration tests; a display is required, but no visible windows are opened.
 Raw bindings live under `src/headers/`; import `headers/gtk2`, `headers/glib2`,
 `headers/cairo`, etc. The large combined bindings are split into native-header
 include fragments. See [source layout](docs/source-layout.md) for the organization
-and migration details. `import gtk2ui` is unchanged.
+and migration details. `import gtk2` is the public ergonomic API; the former
+`gtk2ui` module has been renamed without a compatibility shim.
 
 `import headers/gtk2` now includes raw bindings for the non-deprecated widget gaps:
 assistants, expanders, icon views, color/font buttons, recent-document choosers,

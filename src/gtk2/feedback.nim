@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim: display widgets, status stacks and response signals.
+# Included by gtk2.nim: display widgets, status stacks and response signals.
 type
   Image* = object of Widget
   Statusbar* = object of Box

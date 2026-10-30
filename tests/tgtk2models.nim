@@ -1,6 +1,6 @@
 # Hidden widgets only; no GTK loop, realization, or popup menus.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -16,8 +16,8 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui flat models and text-cell views":
+  gtk2.init()
+  suite "gtk2 flat models and text-cell views":
     test "typed schemas, copied values, atomic inserts and updates":
       let store = newListStore([cellString, cellInt, cellBool, cellFloat])
       check store.columnCount == 4

@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Non-floating GObjects; no destroy signal.
+# Included by gtk2.nim. Non-floating GObjects; no destroy signal.
 type
   Pixbuf* = object of ObjectHandle
   Interpolation* = enum

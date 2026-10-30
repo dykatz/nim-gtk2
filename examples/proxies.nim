@@ -1,10 +1,10 @@
 ## Sorting/filtering without mutating source order, plus a stable source bookmark.
 ## Build: nim c --path:src examples/proxies.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui sorted and filtered rows", 660, 420)
+  gtk2.init()
+  let window = newWindow("gtk2 sorted and filtered rows", 660, 420)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)

@@ -1,5 +1,5 @@
 import std/[unittest, os, tempfiles]
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/gdk2pixbuf as pb
 import headers/glib2 as g
@@ -7,8 +7,8 @@ import headers/glib2 as g
 proc finalized(data: pointer, obj: g.PGObject) {.cdecl.} = cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui pixbufs and icon views":
+  gtk2.init()
+  suite "gtk2 pixbufs and icon views":
     test "owned RGBA buffers, copies, scaling and checked dimensions":
       let image = newPixbuf(8, 6, 0x12345678'u32)
       check image.width == 8
@@ -28,12 +28,12 @@ proc runTests() =
       expect ValueError: discard newPixbuf(high(g.gint).int, 2)
       expect ValueError: discard image.scaled(0, 2)
       expect ValueError: discard image.scaled(high(g.gint).int, 2)
-      check gtk2ui.Pixbuf().isEmpty
-      expect ValueError: discard gtk2ui.Pixbuf().width
+      check gtk2.Pixbuf().isEmpty
+      expect ValueError: discard gtk2.Pixbuf().width
       expect ValueError: discard image.onDestroy(proc () = discard)
 
     test "file loading copies native errors and owns loaded RGB pixels":
-      let (file, path) = createTempFile("gtk2ui-pixbuf-", ".ppm")
+      let (file, path) = createTempFile("gtk2-pixbuf-", ".ppm")
       file.close()
       defer: removeFile(path)
       writeFile(path, "P6\n2 1\n255\n" & "\xff\x00\x00\x00\xff\x00")
@@ -45,21 +45,21 @@ proc runTests() =
       try:
         discard loadPixbuf(path)
         check false
-      except gtk2ui.PixbufError as error:
+      except gtk2.PixbufError as error:
         check error.domain != 0
         check error.msg.len > 0
-      expect gtk2ui.PixbufError: discard loadPixbuf(path & ".missing")
+      expect gtk2.PixbufError: discard loadPixbuf(path & ".missing")
       expect ValueError: discard loadPixbuf("bad\0file")
 
     test "image and model getters retain pixbufs, null cells remain explicit":
       var flag = false
-      proc keepPixels(flag: pointer): gtk2ui.Pixbuf =
+      proc keepPixels(flag: pointer): gtk2.Pixbuf =
         let pixels = newPixbuf(5, 7, 0x102030ff'u32)
         g.weak_ref(cast[g.PGObject](pixels.raw), finalized, flag)
         let widget = newImage(pixels)
         result = widget.pixbuf
         check result.raw == pixels.raw
-        widget.pixbuf = gtk2ui.Pixbuf()
+        widget.pixbuf = gtk2.Pixbuf()
         check widget.storageKind == imageEmpty
         check widget.pixbuf.isEmpty
         widget.destroy()
@@ -75,12 +75,12 @@ proc runTests() =
       let store = newListStore([cellString, cellPixbuf])
       let pixels = newPixbuf(4, 4)
       discard store.appendRow([cell("First"), cell(pixels)])
-      discard store.appendRow([cell("None"), cell(gtk2ui.Pixbuf())])
+      discard store.appendRow([cell("None"), cell(gtk2.Pixbuf())])
       check store.columnKind(1) == cellPixbuf
       check store.value(0, 1).pixbufValue.raw == pixels.raw
       check store.value(1, 1).pixbufValue.isEmpty
       let kept = store.value(0, 1).pixbufValue
-      store.setValue(0, 1, cell(gtk2ui.Pixbuf()))
+      store.setValue(0, 1, cell(gtk2.Pixbuf()))
       store.clear()
       check kept.width == 4
       let tree = newTreeStore([cellPixbuf])
@@ -146,7 +146,7 @@ proc runTests() =
     test "icon view composes with proxies and validates fixed bindings before GTK":
       let source = newListStore([cellString, cellPixbuf, cellBool])
       discard source.appendRow([cell("Zulu"), cell(newPixbuf(8, 8)), cell(true)])
-      discard source.appendRow([cell("Alpha"), cell(gtk2ui.Pixbuf()), cell(true)])
+      discard source.appendRow([cell("Alpha"), cell(gtk2.Pixbuf()), cell(true)])
       let filtered = newTreeModelFilter(source, 2)
       let sorted = newTreeModelSort(filtered, 0)
       let view = newIconView(sorted, 1, 0)
@@ -171,9 +171,9 @@ proc runTests() =
       let source = newListStore([cellPixbuf])
       discard source.appendRow([cell(newPixbuf(8, 8))])
       let view = newIconView(source, 0)
-      var paths: seq[gtk2ui.TreePath]
+      var paths: seq[gtk2.TreePath]
       var once: Connection
-      once = view.onPathActivated(proc (path: gtk2ui.TreePath) =
+      once = view.onPathActivated(proc (path: gtk2.TreePath) =
         paths.add(path)
         once.disconnect())
       view.activateRow(0)

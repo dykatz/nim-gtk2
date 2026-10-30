@@ -5,7 +5,7 @@ The calculator is the primary consumer and regression target. Obsolete aliases,
 rename shims, and address-integer overloads are removed rather than maintained
 for hypothetical callers.
 
-The raw modules still describe the C ABI, while `gtk2ui` owns references and
+The raw modules still describe the C ABI, while `gtk2` owns references and
 converts Nim application concepts (strings, booleans, closures) at the boundary.
 Modernizing does not mean replacing C pointers with GC-managed `ref` objects,
 changing C structs into managed classes, or using one-byte Nim booleans for C
@@ -22,7 +22,7 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | `ByteAddress` | `uint` for address bits/arithmetic; deprecated CTree helpers have been removed entirely. |
 | Cairo `PContext`, `PSurface`, `TContext`, etc. | Removed aliases: use `ptr Context`, `ptr Surface`, `Context`, etc. |
 | Cairo status mapped to `AssertionError` or `IOError` | `CairoError`, a `CatchableError` with the native `status` field. A failed native operation is not a Nim assertion defect. |
-| Old `nimrod_init` spelling | Removed; use `nim_init` in raw code or `gtk2ui.init` in application code. |
+| Old `nimrod_init` spelling | Removed; use `nim_init` in raw code or `gtk2.init` in application code. |
 | Old X11 rename pragmas | Removed from `x`, `xlib`, `xutil`, and `xrender`; use their canonical names. |
 | Xlib `cuchar` fields | `uint8`, preserving unsigned byte width. |
 | `TFile` | `File` for the C `FILE*` in the optional Pango utility binding. |
@@ -58,7 +58,7 @@ to write eight-byte outputs into four-byte Nim variables on a 64-bit host.
 
 Do not change `gulong` itself to `uint`: it must continue to match the platform's
 C `unsigned long`. Likewise, raw GTK `TWidget`/`PWidget` names are not inherently
-invalid Nim types; the application-facing `gtk2ui.Widget` provides the clean
+invalid Nim types; the application-facing `gtk2.Widget` provides the clean
 high-level API without confusing C struct pointers with managed references.
 
 ## Layout-related raw corrections

@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Paths are copied positions, never persistent iterators.
+# Included by gtk2.nim. Paths are copied positions, never persistent iterators.
 type
   TreePath* = object
     parts: seq[int]

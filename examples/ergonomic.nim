@@ -1,7 +1,7 @@
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
+  gtk2.init()
   let window = newWindow("Hello from Nim", width = 360, height = 180)
   defer: window.destroy()
   window.borderWidth = 12

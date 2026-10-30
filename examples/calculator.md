@@ -1,7 +1,7 @@
 # MATE-style calculator
 
 [`calculator.nim`](calculator.nim) is a standalone desktop calculator written
-using **only `gtk2ui`** for its UI. It takes inspiration from MATE Calculator's
+using **only `gtk2`** for its UI. It takes inspiration from MATE Calculator's
 basic/scientific layouts; no MATE code, artwork, or C++ runtime is used.
 
 From the repository root:

@@ -1,10 +1,10 @@
 ## Nonblocking Dialog, MessageDialog and AboutDialog examples.
 ## Build: nim c --path:src examples/dialogs.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui dialogs", 440, 240)
+  gtk2.init()
+  let window = newWindow("gtk2 dialogs", 440, 240)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -43,7 +43,7 @@ proc main() =
     dialog.present()
 
   aboutButton.onClicked do ():
-    let dialog = newAboutDialog(window, "gtk2ui dialog sampler", "1.0")
+    let dialog = newAboutDialog(window, "gtk2 dialog sampler", "1.0")
     dialog.comments = "Owned Nim handles and nonblocking GTK2 dialog responses."
     dialog.authors = @["Nim GTK2 SDK contributors"]
     dialog.license = "Example application from the MIT-licensed SDK."

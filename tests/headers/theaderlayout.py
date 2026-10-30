@@ -12,9 +12,9 @@ INCLUDE = re.compile(r'^include\s+(?:"([^"]+)"|([\w/]+))[^\S\n]*$', re.M)
 
 class HeaderLayout(unittest.TestCase):
     def test_only_ergonomic_module_remains_at_source_root(self):
-        self.assertEqual({p.name for p in (ROOT / 'src').glob('*.nim')}, {'gtk2ui.nim'})
+        self.assertEqual({p.name for p in (ROOT / 'src').glob('*.nim')}, {'gtk2.nim'})
         self.assertEqual({p.name for p in (ROOT / 'src').iterdir() if p.is_dir()},
-                         {'headers', 'gtk2ui'})
+                         {'headers', 'gtk2'})
 
     def test_header_fragments_are_reachable_and_included_once(self):
         for module in UMBRELLAS:
@@ -40,7 +40,10 @@ class HeaderLayout(unittest.TestCase):
 
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):
-            self.assertFalse((ROOT / 'src' / module.name).exists(), module.name)
+            if module.stem != 'gtk2': # src/gtk2.nim is now the ergonomic public API.
+                self.assertFalse((ROOT / 'src' / module.name).exists(), module.name)
+        self.assertFalse((ROOT / 'src/gtk2ui.nim').exists())
+        self.assertFalse((ROOT / 'src/gtk2ui').exists())
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
 ## Small, gtkmm-inspired GTK2 API for Nim ARC/ORC programs.
-## See docs/gtk2ui.md for ownership, signal and threading rules.
+## See docs/gtk2.md for ownership, signal and threading rules.
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as rawPixbuf
 
 when not (defined(gcArc) or defined(gcOrc)):
-  {.error: "gtk2ui requires --mm:arc or --mm:orc".}
+  {.error: "gtk2 requires --mm:arc or --mm:orc".}
 
 type
   ObjectStateObj = object
@@ -36,7 +36,7 @@ type
   Callback = ref object
     fn: proc () {.closure.}
 
-const objectStateKey = "nim-gtk2ui-owned-object-state"
+const objectStateKey = "nim-gtk2-owned-object-state"
 
 proc `=destroy`(s: var ObjectStateObj) =
   if s.p != nil:
@@ -249,7 +249,7 @@ proc releaseCallback(data: pointer, closure: g.PGClosure) {.cdecl.} =
 proc reportSignalError(error: ref Exception) =
   # Even a closed stderr must not unwind through C.
   try:
-    stderr.writeLine("gtk2ui signal callback: " & error.msg)
+    stderr.writeLine("gtk2 signal callback: " & error.msg)
   except Exception:
     discard
 
@@ -302,7 +302,7 @@ proc disconnect*(c: Connection) =
         break
 
 proc disconnectObjectSignals(w: ObjectHandle) =
-  # Disconnect every gtk2ui callback tracked by this shared object state.
+  # Disconnect every gtk2 callback tracked by this shared object state.
   let p = nativePointer(w)
   let handlers = w.state.handlers
   w.state.handlers = @[]
@@ -322,14 +322,14 @@ proc run*(w: Window) =
   finally:
     connection.disconnect()
 
-include gtk2ui/controls
-include gtk2ui/layout
-include gtk2ui/inputs
-include gtk2ui/feedback
-include gtk2ui/dialogs
-include gtk2ui/text
-include gtk2ui/pixbufs
-include gtk2ui/models
-include gtk2ui/trees
-include gtk2ui/proxies
-include gtk2ui/icons
+include gtk2/controls
+include gtk2/layout
+include gtk2/inputs
+include gtk2/feedback
+include gtk2/dialogs
+include gtk2/text
+include gtk2/pixbufs
+include gtk2/models
+include gtk2/trees
+include gtk2/proxies
+include gtk2/icons

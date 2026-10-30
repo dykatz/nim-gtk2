@@ -1,7 +1,7 @@
 # Additional non-deprecated GTK2 raw widgets
 
 These additions target **GTK 2.24** and are exported by `import headers/gtk2`.
-They are raw C-ABI bindings, **not** `gtk2ui` wrappers. No deprecated widget
+They are raw C-ABI bindings, **not** `gtk2` wrappers. No deprecated widget
 families were restored.
 
 The generated umbrella `src/headers/gtk2/newwidgets.nim` includes shared types

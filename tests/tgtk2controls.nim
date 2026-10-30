@@ -1,6 +1,6 @@
 # Requires a display; creates hidden widgets only, without a main loop.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -14,23 +14,23 @@ static:
   doAssert not compiles(newDrawingArea().onToggled(proc () = discard))
   doAssert not compiles(newExpander().packStart(newLabel()))
 
-proc nativeBool(w: gtk2ui.Widget, name: cstring): bool =
+proc nativeBool(w: gtk2.Widget, name: cstring): bool =
   var value: g.TGValue
   discard g.init(addr value, g.G_TYPE_BOOLEAN)
   defer: g.unset(addr value)
   g.get_property(cast[g.PGObject](w.raw), name, addr value)
   g.toBool(g.get_boolean(addr value))
 
-proc nativeFloat(w: gtk2ui.Widget, name: cstring): g.gfloat =
+proc nativeFloat(w: gtk2.Widget, name: cstring): g.gfloat =
   var value: g.TGValue
   discard g.init(addr value, g.G_TYPE_FLOAT)
   defer: g.unset(addr value)
   g.get_property(cast[g.PGObject](w.raw), name, addr value)
   g.get_float(addr value)
 
-gtk2ui.init()
+gtk2.init()
 
-suite "gtk2ui controls and simple containers":
+suite "gtk2 controls and simple containers":
   test "toggle/check buttons inherit text, clicks and tracked closure signals":
     let toggle = newToggleButton("_Toggle", mnemonic = true)
     let checkButton = newCheckButton("_Check", mnemonic = true)
@@ -228,12 +228,12 @@ suite "gtk2ui controls and simple containers":
       cast[ptr bool](data)[] = true
     block:
       let widgets = @[
-        gtk2ui.Widget(newToggleButton()), gtk2ui.Widget(newCheckButton()),
-        gtk2ui.Widget(newRadioButton()), gtk2ui.Widget(newLinkButton("https://example.invalid/")),
-        gtk2ui.Widget(newProgressBar()), gtk2ui.Widget(newSpinner()),
-        gtk2ui.Widget(newFrame()), gtk2ui.Widget(newAspectFrame()),
-        gtk2ui.Widget(newExpander()), gtk2ui.Widget(newHSeparator()),
-        gtk2ui.Widget(newVSeparator()), gtk2ui.Widget(newDrawingArea())]
+        gtk2.Widget(newToggleButton()), gtk2.Widget(newCheckButton()),
+        gtk2.Widget(newRadioButton()), gtk2.Widget(newLinkButton("https://example.invalid/")),
+        gtk2.Widget(newProgressBar()), gtk2.Widget(newSpinner()),
+        gtk2.Widget(newFrame()), gtk2.Widget(newAspectFrame()),
+        gtk2.Widget(newExpander()), gtk2.Widget(newHSeparator()),
+        gtk2.Widget(newVSeparator()), gtk2.Widget(newDrawingArea())]
       for i, widget in widgets:
         g.weak_ref(cast[g.PGObject](widget.raw), finalizedCallback, addr finalized[i])
     for done in finalized: check done

@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim; all handles share its ownership/signal machinery.
+# Included by gtk2.nim; all handles share its ownership/signal machinery.
 type
   ScrolledWindow* = object of Bin
   Viewport* = object of Bin

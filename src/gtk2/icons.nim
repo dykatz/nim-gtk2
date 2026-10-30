@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Flat models, fixed bindings, plain text, single selection.
+# Included by gtk2.nim. Flat models, fixed bindings, plain text, single selection.
 type IconView* = object of Container
 proc raw*(w: IconView): ptr rawGtk.IconView = cast[ptr rawGtk.IconView](raw(Widget(w)))
 proc model*(w: IconView): TreeModel = ownedTreeModel(rawGtk.icon_view_get_model(w.raw))

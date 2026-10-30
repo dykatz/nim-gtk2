@@ -1,10 +1,10 @@
 ## Scrolling, notebook pages and horizontal/vertical split panes.
 ## Build: nim c --path:src examples/layout.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui layout", 720, 480)
+  gtk2.init()
+  let window = newWindow("gtk2 layout", 720, 480)
   defer: window.destroy()
   window.borderWidth = 8
   let split = newHPaned()

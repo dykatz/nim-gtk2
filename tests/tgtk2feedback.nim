@@ -1,22 +1,22 @@
 # Hidden widgets only. No popup, dialog run, or visible toplevel.
 import std/[os, tempfiles, unittest]
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
 static:
-  doAssert sizeof(gtk2ui.ResponseId) == sizeof(cint)
+  doAssert sizeof(gtk2.ResponseId) == sizeof(cint)
   doAssert sizeof(rawGtk.TImageType) == sizeof(cint)
   doAssert sizeof(rawGtk.TMessageType) == sizeof(cint)
   doAssert typeof(newImage().raw) is rawGtk.PImage
   doAssert typeof(newStatusbar().raw) is rawGtk.PStatusbar
   doAssert typeof(newInfoBar().raw) is rawGtk.PInfoBar
   doAssert not compiles(newInfoBar().add(newLabel()))
-  doAssert not compiles(gtk2ui.Box(newInfoBar()))
-  doAssert not compiles(newInfoBar().addActionWidget(newLabel(), gtk2ui.responseOk))
-  doAssert not compiles(newImage().onResponse(proc (id: gtk2ui.ResponseId) = discard))
+  doAssert not compiles(gtk2.Box(newInfoBar()))
+  doAssert not compiles(newInfoBar().addActionWidget(newLabel(), gtk2.responseOk))
+  doAssert not compiles(newImage().onResponse(proc (id: gtk2.ResponseId) = discard))
 
-proc nativeStatusText(bar: gtk2ui.Statusbar): string =
+proc nativeStatusText(bar: gtk2.Statusbar): string =
   # Use documented native widget access, never old private struct fields.
   let area = rawGtk.get_message_area(bar.raw)
   let children = rawGtk.get_children(cast[rawGtk.PContainer](area))
@@ -31,21 +31,21 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
+  gtk2.init()
   let directory = createTempDir("nim_gtk2_feedback_", "")
   defer: removeDir(directory)
   let imageFile = directory / "pixels.ppm"
   writeFile(imageFile, "P3\n2 1\n255\n255 0 0 0 255 0\n")
 
-  suite "gtk2ui display and feedback":
+  suite "gtk2 display and feedback":
     test "images switch sources, copy identifiers, clear and validate storage":
       let image = newImage()
       defer: image.destroy()
-      check image.storageKind == gtk2ui.imageEmpty
+      check image.storageKind == gtk2.imageEmpty
       expect ValueError: discard image.iconName
       expect ValueError: discard image.stockId
       image.setFromIcon("dialog-information", iconDialog)
-      check image.storageKind == gtk2ui.imageIconName
+      check image.storageKind == gtk2.imageIconName
       check image.iconName == "dialog-information"
       let saved = image.iconName
       image.pixelSize = 24
@@ -54,13 +54,13 @@ proc runTests() =
       check image.pixelSize == -1
       image.setFromStock("gtk-dialog-warning", iconMenu)
       check saved == "dialog-information"
-      check image.storageKind == gtk2ui.imageStock
+      check image.storageKind == gtk2.imageStock
       check image.stockId == "gtk-dialog-warning"
       image.setFromFile(imageFile)
-      check image.storageKind == gtk2ui.imagePixbuf
+      check image.storageKind == gtk2.imagePixbuf
       expect ValueError: discard image.stockId
       image.clear()
-      check image.storageKind == gtk2ui.imageEmpty
+      check image.storageKind == gtk2.imageEmpty
       image.destroy()
       expect ValueError: image.clear()
 
@@ -73,10 +73,10 @@ proc runTests() =
       defer: named.destroy()
       defer: stock.destroy()
       defer: missing.destroy()
-      check fileImage.storageKind == gtk2ui.imagePixbuf
+      check fileImage.storageKind == gtk2.imagePixbuf
       check named.iconName == "dialog-information"
       check stock.stockId == "gtk-info"
-      check missing.storageKind == gtk2ui.imageStock
+      check missing.storageKind == gtk2.imageStock
       check missing.stockId == "gtk-missing-image"
 
     test "status contexts share native stacks and messages remove independently":
@@ -161,25 +161,25 @@ proc runTests() =
       let area = rawGtk.get_content_area(bar.raw)
       check rawGtk.get_parent(cast[rawGtk.PWidget](image.raw)) == cast[rawGtk.PWidget](area)
       check rawGtk.get_parent(cast[rawGtk.PWidget](label.raw)) == cast[rawGtk.PWidget](area)
-      for kind in [gtk2ui.messageWarning, gtk2ui.messageQuestion, gtk2ui.messageError,
-                   gtk2ui.messageOther, gtk2ui.messageInfo]:
+      for kind in [gtk2.messageWarning, gtk2.messageQuestion, gtk2.messageError,
+                   gtk2.messageOther, gtk2.messageInfo]:
         bar.messageKind = kind
         check bar.messageKind == kind
-      let close = bar.addButton("_Close", gtk2ui.responseClose)
+      let close = bar.addButton("_Close", gtk2.responseClose)
       check close.text == "_Close"
       bar.addActionWidget(custom, customResponse(1024))
       bar.defaultResponse = customResponse(1024)
-      bar.defaultResponse = gtk2ui.responseClose
-      bar.setResponseSensitive(gtk2ui.responseClose, false)
+      bar.defaultResponse = gtk2.responseClose
+      bar.setResponseSensitive(gtk2.responseClose, false)
       check not close.sensitive
-      bar.setResponseSensitive(gtk2ui.responseClose, true)
+      bar.setResponseSensitive(gtk2.responseClose, true)
       check close.sensitive
-      var responses: seq[gtk2ui.ResponseId]
-      let connection = bar.onResponse(proc (id: gtk2ui.ResponseId) = responses.add(id))
+      var responses: seq[gtk2.ResponseId]
+      let connection = bar.onResponse(proc (id: gtk2.ResponseId) = responses.add(id))
       close.click()
       custom.click()
-      bar.respond(gtk2ui.responseCancel)
-      check responses == @[gtk2ui.responseClose, customResponse(1024), gtk2ui.responseCancel]
+      bar.respond(gtk2.responseCancel)
+      check responses == @[gtk2.responseClose, customResponse(1024), gtk2.responseCancel]
       bar.destroy()
       check not connection.connected
       check close.isDestroyed
@@ -190,25 +190,25 @@ proc runTests() =
       expect ValueError: discard bar.messageKind
 
     test "response callbacks self-disconnect, contain errors and allow destruction":
-      let bar = newInfoBar(gtk2ui.messageWarning)
+      let bar = newInfoBar(gtk2.messageWarning)
       defer: bar.destroy()
       var calls = 0
       var once: Connection
-      once = bar.onResponse(proc (id: gtk2ui.ResponseId) =
+      once = bar.onResponse(proc (id: gtk2.ResponseId) =
         once.disconnect()
-        check id == gtk2ui.responseOk
+        check id == gtk2.responseOk
         inc calls)
-      bar.respond(gtk2ui.responseOk)
-      bar.respond(gtk2ui.responseCancel)
+      bar.respond(gtk2.responseOk)
+      bar.respond(gtk2.responseCancel)
       check calls == 1
-      let raises = bar.onResponse(proc (id: gtk2ui.ResponseId) =
+      let raises = bar.onResponse(proc (id: gtk2.ResponseId) =
         raise newException(ValueError, "expected InfoBar callback error"))
-      bar.onResponse(proc (id: gtk2ui.ResponseId) = inc calls)
+      bar.onResponse(proc (id: gtk2.ResponseId) = inc calls)
       bar.respond(customResponse(65536))
       check calls == 2
       raises.disconnect()
-      bar.onResponse(proc (id: gtk2ui.ResponseId) = bar.destroy())
-      bar.respond(gtk2ui.responseClose)
+      bar.onResponse(proc (id: gtk2.ResponseId) = bar.destroy())
+      bar.respond(gtk2.responseClose)
       check bar.isDestroyed
 
     test "invalid inputs and containment are rejected before native calls":
@@ -231,8 +231,8 @@ proc runTests() =
       expect ValueError: StatusContext().pop()
       expect ValueError: StatusMessage().remove()
       expect ValueError: discard customResponse(-1)
-      expect ValueError: discard bar.addButton("a\0b", gtk2ui.responseOk)
-      expect ValueError: bar.defaultResponse = gtk2ui.responseOk
+      expect ValueError: discard bar.addButton("a\0b", gtk2.responseOk)
+      expect ValueError: bar.defaultResponse = gtk2.responseOk
       expect ValueError: bar.packStart(label, padding = -1)
       expect ValueError: bar.packStart(bar)
       expect ValueError: bar.packStart(window)
@@ -244,7 +244,7 @@ proc runTests() =
       defer: parent.destroy()
       let button = newButton()
       parent.add(button)
-      expect ValueError: bar.addActionWidget(button, gtk2ui.responseOk)
+      expect ValueError: bar.addActionWidget(button, gtk2.responseOk)
       when sizeof(int) > sizeof(cint):
         expect ValueError: discard customResponse(high(cint).int + 1)
         expect ValueError: image.pixelSize = high(cint).int + 1
@@ -255,8 +255,8 @@ proc runTests() =
         let bar = newInfoBar()
         result = bar.raw
         g.weak_ref(cast[g.PGObject](result), finalizedCallback, flag)
-        bar.onResponse(proc (id: gtk2ui.ResponseId) = discard bar.messageKind)
-        bar.respond(gtk2ui.responseOk)
+        bar.onResponse(proc (id: gtk2.ResponseId) = discard bar.messageKind)
+        bar.respond(gtk2.responseOk)
       proc makeStatus(flag: pointer): rawGtk.PStatusbar =
         let bar = newStatusbar()
         result = bar.raw
@@ -275,8 +275,8 @@ proc runTests() =
     test "all three unparented feedback widgets finalize":
       var finalized: array[3, bool]
       block:
-        let widgets = @[gtk2ui.Widget(newImage()), gtk2ui.Widget(newStatusbar()),
-          gtk2ui.Widget(newInfoBar())]
+        let widgets = @[gtk2.Widget(newImage()), gtk2.Widget(newStatusbar()),
+          gtk2.Widget(newInfoBar())]
         for i, widget in widgets:
           g.weak_ref(cast[g.PGObject](widget.raw), finalizedCallback, addr finalized[i])
       for done in finalized: check done

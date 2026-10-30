@@ -1,10 +1,10 @@
 ## Hierarchical TreeStore with copied paths, editing and expansion.
 ## Build: nim c --path:src examples/trees.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui tree explorer", 620, 420)
+  gtk2.init()
+  let window = newWindow("gtk2 tree explorer", 620, 420)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)

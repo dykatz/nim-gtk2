@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Typed models and text-cell views.
+# Included by gtk2.nim. Typed models and text-cell views.
 type
   CellKind* = enum
     cellString, cellInt, cellBool, cellFloat, cellPixbuf

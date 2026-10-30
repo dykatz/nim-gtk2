@@ -1,6 +1,6 @@
 # Hidden widgets only. No popups, visible windows or GTK main loop.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -14,8 +14,8 @@ proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui proxies and stable row references":
+  gtk2.init()
+  suite "gtk2 proxies and stable row references":
     test "sort proxies preserve source order and support all scalar kinds":
       let source = newListStore([cellString, cellInt, cellBool, cellFloat])
       discard source.appendRow([cell("Bravo"), cell(20), cell(false), cell(2.0)])
@@ -41,7 +41,7 @@ proc runTests() =
       check sorted.childModel.value(0, 0).stringValue == "Bravo"
       # Exercise the corrected native gboolean result as well as path conversion.
       var childIter, proxyIter: rawGtk.TTreeIter
-      require g.toBool(rawGtk.iter_nth_child(gtk2ui.TreeModel(source).raw, addr childIter, nil, 0))
+      require g.toBool(rawGtk.iter_nth_child(gtk2.TreeModel(source).raw, addr childIter, nil, 0))
       check g.toBool(rawGtk.tree_model_sort_convert_child_iter_to_iter(sorted.raw, addr proxyIter, addr childIter))
 
     test "boolean filtering reacts to source edits and composes with sorting":
@@ -123,9 +123,9 @@ proc runTests() =
       check not alias.valid
       expect ValueError: discard reference.path
       check reference.model.rowCount == 1
-      check not gtk2ui.TreeRowReference().valid
-      expect ValueError: discard gtk2ui.TreeRowReference().path
-      expect ValueError: discard gtk2ui.TreeRowReference().raw
+      check not gtk2.TreeRowReference().valid
+      expect ValueError: discard gtk2.TreeRowReference().path
+      expect ValueError: discard gtk2.TreeRowReference().raw
 
     test "proxy references track reorder and filtering does not resurrect hidden rows":
       let source = newListStore([cellString, cellInt, cellBool])
@@ -158,9 +158,9 @@ proc runTests() =
       let anchor = newTreeRowReference(sorted, treePath(0))
       require anchor.valid # Keep this cache level referenced so GTK emits reorders.
       var orders: seq[seq[int]]
-      var parents: seq[gtk2ui.TreePath]
+      var parents: seq[gtk2.TreePath]
       var once: Connection
-      once = sorted.onRowsReordered(proc (parent: gtk2ui.TreePath, order: seq[int]) =
+      once = sorted.onRowsReordered(proc (parent: gtk2.TreePath, order: seq[int]) =
         once.disconnect()
         parents.add(parent)
         orders.add(order))
@@ -170,9 +170,9 @@ proc runTests() =
       check orders == @[@[2, 1, 0]]
       sorted.sortBy(0)
       check orders == @[@[2, 1, 0]]
-      sorted.onRowsReordered(proc (parent: gtk2ui.TreePath, order: seq[int]) =
+      sorted.onRowsReordered(proc (parent: gtk2.TreePath, order: seq[int]) =
         raise newException(ValueError, "expected reorder callback error"))
-      sorted.onRowsReordered(proc (parent: gtk2ui.TreePath, order: seq[int]) = orders.add(order))
+      sorted.onRowsReordered(proc (parent: gtk2.TreePath, order: seq[int]) = orders.add(order))
       sorted.sortBy(0, sortDescending)
       check orders.len == 2
       sorted.disconnectSignals()
@@ -184,7 +184,7 @@ proc runTests() =
       check sortedTree.childCount(root) == 2
       let childAnchor = newTreeRowReference(sortedTree, treePath(0, 0))
       require childAnchor.valid
-      sortedTree.onRowsReordered(proc (parent: gtk2ui.TreePath, order: seq[int]) = parents.add(parent))
+      sortedTree.onRowsReordered(proc (parent: gtk2.TreePath, order: seq[int]) = parents.add(parent))
       sortedTree.sortBy(0, sortDescending)
       check root in parents
       sortedTree.disconnectSignals()
@@ -213,7 +213,7 @@ proc runTests() =
     test "boxed references retain models and proxy handles/getters do not steal references":
       var finalized = false
       proc holdModel(flag: pointer) =
-        var reference: gtk2ui.TreeRowReference
+        var reference: gtk2.TreeRowReference
         block:
           let source = newListStore([cellInt])
           discard source.appendRow([cell(1)])
@@ -253,7 +253,7 @@ proc runTests() =
         for i, obj in [cast[g.PGObject](source.raw), cast[g.PGObject](filter.raw),
                        cast[g.PGObject](sorter.raw), cast[g.PGObject](result)]:
           g.weak_ref(obj, finalizedCallback, addr flags[][i])
-        sorter.onRowsReordered(proc (parent: gtk2ui.TreePath, order: seq[int]) =
+        sorter.onRowsReordered(proc (parent: gtk2.TreePath, order: seq[int]) =
           if anchor.valid: window.title = $sorter.rowCount)
         window.onDestroy(proc () = sorter.disconnectSignals())
         sorter.sortBy(0, sortDescending)

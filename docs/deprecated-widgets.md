@@ -37,7 +37,7 @@ removal pass.
 This does **not** remove unrelated names that happen to contain these words:
 `TextView`, `TextBuffer`, `TreeView`, `TreeModel`, `ListStore`, `ComboBox`,
 `TargetList`, `ProgressBar`, GDK `Pixmap`, and ATK `Text` remain available.
-Some replacements have raw bindings only and still need ergonomic `gtk2ui`
+Some replacements have raw bindings only and still need ergonomic `gtk2`
 wrappers; custom drawing and device configuration may need additional API work.
 
 ## ABI details that must remain
@@ -70,7 +70,7 @@ as errors, including the calculator.
 `tests/headers/tmodernbindings.nim` no longer exercises CTree casts. It instead asserts
 that removed public types/constructors are absent and that modern replacements,
 related overloads, `HandleBox`, `TearoffMenuItem`, and modern tooltip callbacks
-still compile. `tests/tgtk2ui.nim` creates hidden `ProgressBar` and `Toolbar`
+still compile. `tests/tgtk2.nim` creates hidden `ProgressBar` and `Toolbar`
 widgets to exercise the retained native layouts.
 
 ```sh

@@ -1,12 +1,18 @@
 # Compile/check only: no external Nim Cairo/X11/FreeType packages, no windows,
 # and no calls into native libraries. Use actual typed expressions to check API
 # boundaries rather than just testing whether an old name happens to exist.
-import headers/gtk2, headers/cairo, headers/cairoft, headers/freetype, gtk2ui
+import gtk2
+import headers/gtk2 as rawGtk
+import headers/cairo, headers/cairoft, headers/freetype
 
 static:
+  # The package entrypoint is ergonomic; C-style handles stay in headers/gtk2.
+  doAssert not compiles(block:
+    let widget: gtk2.PWidget = nil
+    discard widget)
   doAssert compiles(block:
-    let window: gtk2ui.Window = gtk2ui.newWindow()
-    let widget: gtk2.PWidget = cast[gtk2.PWidget](window.raw)
+    let window: gtk2.Window = gtk2.newWindow()
+    let widget: rawGtk.PWidget = cast[rawGtk.PWidget](window.raw)
     let face: freetype.FT_Face = nil
     let fontFace: ptr cairo.FontFace = cairoft.ftFontFaceCreateForFtFace(face, 0)
     let lockedFace: freetype.FT_Face = cairoft.ftScaledFontLockFace(nil)

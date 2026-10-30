@@ -1,11 +1,11 @@
-## MATE-style scientific calculator built entirely with gtk2ui widgets.
+## MATE-style scientific calculator built entirely with gtk2 widgets.
 ## Build: nim c --path:src examples/calculator.nim
 import std/strutils
-import gtk2ui
+import gtk2
 import calculator_engine
 
 proc newCalculatorWindow*(): Window =
-  ## Call gtk2ui.init() first. The returned window has not been shown.
+  ## Call gtk2.init() first. The returned window has not been shown.
   let window = newWindow("Calculator", width = 480, height = 600)
   window.borderWidth = 12
   let content = newVBox(spacing = 6)
@@ -200,7 +200,7 @@ proc newCalculatorWindow*(): Window =
   result = window
 
 proc calculatorMain() =
-  gtk2ui.init()
+  gtk2.init()
   let window = newCalculatorWindow()
   defer: window.destroy()
   window.run()

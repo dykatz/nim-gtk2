@@ -1,6 +1,6 @@
 # Constructs hidden widgets only; requires a display but never calls run/show.
 import std/[strutils, unittest]
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 import ../examples/calculator
@@ -34,7 +34,7 @@ proc hasLabel(widgets: seq[rawGtk.PWidget], fragment: string): bool =
     if rawGtk.IS_LABEL(widget) and fragment in $rawGtk.get_text(cast[rawGtk.PLabel](widget)):
       return true
 
-gtk2ui.init()
+gtk2.init()
 suite "calculator hidden-window integration":
   test "keypad, Enter, memory, errors, mode switches and history":
     let window = newCalculatorWindow()

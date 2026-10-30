@@ -1,7 +1,7 @@
 # Requires a display (use Xvfb on headless hosts). Never opens a visible window
 # or enters the GTK main loop.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -11,7 +11,7 @@ static:
   doAssert not compiles(newLabel().onClicked(proc () = discard))
   doAssert not compiles(newVBox().add(newLabel()))
 
-gtk2ui.init()
+gtk2.init()
 
 suite "gtkmm-inspired Nim API":
   test "properties, packing, closure signals, disconnect and destroy":
@@ -131,7 +131,7 @@ suite "gtkmm-inspired Nim API":
     expect ValueError: window.add(newLabel())
     expect ValueError: discard newVBox(spacing = -1)
     expect ValueError: discard newLabel("a\0b")
-    expect ValueError: discard gtk2ui.Widget().raw
+    expect ValueError: discard gtk2.Widget().raw
 
   test "destroy breaks self-capturing closure cycles":
     var finalized = false

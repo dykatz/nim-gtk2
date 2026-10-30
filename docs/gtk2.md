@@ -1,8 +1,9 @@
-# gtk2ui: a Nim-style layer inspired by gtkmm 2
+# gtk2: a Nim-style layer inspired by gtkmm 2
 
-`import gtk2ui` instead of the raw modules for a small, typed, ergonomic API.
+`import gtk2` instead of the raw modules for a small, typed, ergonomic API.
 Raw bindings are imported as `headers/gtk2`, `headers/glib2`, etc.; see
-[source layout](source-layout.md). The high-level import is unchanged.
+[source layout](source-layout.md). The former `gtk2ui` API is now exported by
+`gtk2`; its implementation lives under `src/gtk2/`.
 The raw `gtk2` API remains available for low-level operations. Both layers may
 change as this new SDK evolves; there is no legacy source-compatibility promise.
 This is an initial subset, not a complete replacement or a source-compatible
@@ -37,7 +38,7 @@ The spiritual translation uses Nim conventions rather than copying C++ syntax:
 | `sigc::connection` | `Connection.connected`, `.disconnect()` |
 | `pack_start(child, Gtk::PACK_SHRINK)` | `box.packStart(child, packShrink)` |
 | `gobj()` | `.raw` (typed, borrowed pointer) |
-| `Gtk::Main` | `gtk2ui.init()`, `window.run()`, `gtk2ui.quit()` |
+| `Gtk::Main` | `gtk2.init()`, `window.run()`, `gtk2.quit()` |
 | stack widgets / `Gtk::manage()` | shared Nim handles plus GTK parent ownership |
 
 There is deliberately no `manage(new ...)` ceremony, manual signal function
@@ -46,10 +47,10 @@ cast, `cstring` conversion, or `gboolean` conversion in normal application code.
 ## Example
 
 ```nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
+  gtk2.init()
   let window = newWindow("Greeting", width = 360, height = 180)
   defer: window.destroy()
   window.borderWidth = 12
@@ -97,7 +98,7 @@ Compile with `nim c --path:src examples/ergonomic.nim` from this checkout.
 
 The first expansion adds these twelve concrete widgets. They use the same shared
 handles, checked `.raw`, parenting, closure connections, and destruction tracking
-as the core API; import only `gtk2ui`.
+as the core API; import only `gtk2`.
 
 | Widgets / constructors | Ergonomic operations |
 | --- | --- |
@@ -535,7 +536,7 @@ they disconnect when its last handle/Connection disappears, even if a native vie
 still owns the buffer. Retain a buffer or Connection to keep these registrations.
 Callbacks capturing their own buffer or widget trees can keep that state alive;
 **disconnect them explicitly**. `buffer.disconnectSignals()` disconnects every
-gtk2ui callback tracked by that shared buffer state, including callbacks registered
+gtk2 callback tracked by that shared buffer state, including callbacks registered
 through other aliases:
 
 ```nim
@@ -953,7 +954,7 @@ compiles this sampler without launching visible windows.
 
 ## Ownership and safety contract
 
-Call `gtk2ui.init()` before creating widgets. It raises `IOError` if no display
+Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
 is available rather than terminating the process. It does not parse application
 command-line arguments. All operations, callbacks, and final handle releases
 must happen on the GTK/UI thread; do not send handles to worker threads.
@@ -984,7 +985,7 @@ not allowed to unwind through GTK's C stack.
 do not unref/dispose it, wrap it independently, or keep it after releasing its handle.
 Raw operations bypass this layer's argument/containment checks. Import raw GTK
 with a module alias and qualify raw names to avoid Nim's case-insensitive name
-collisions (e.g. `gtk2.WIDGET` versus `gtk2ui.Widget`).
+collisions (e.g. `gtk2.WIDGET` versus `gtk2.Widget`).
 
 `window.run()` shows the widget tree and runs until that window is destroyed.
 Native close requests use GTK's normal default destruction behavior; unlike
@@ -999,12 +1000,12 @@ loops and custom close-event handling are not part of this initial layer.
 integration tests using hidden widgets and requires a display; on headless Linux
 hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 
-`testUi` includes the core tests, `tests/tgtk2uicontrols.nim`,
-`tests/tgtk2uilayout.nim`, `tests/tgtk2uiinputs.nim`,
-`tests/tgtk2uifeedback.nim`, `tests/tgtk2uidialogs.nim`,
-`tests/tgtk2uitext.nim`, `tests/tgtk2uimodels.nim`, and
-`tests/tgtk2uitrees.nim`, `tests/tgtk2uiproxies.nim`, and
-`tests/tgtk2uiicons.nim`. These check controls,
+`testUi` includes the core tests, `tests/tgtk2controls.nim`,
+`tests/tgtk2layout.nim`, `tests/tgtk2inputs.nim`,
+`tests/tgtk2feedback.nim`, `tests/tgtk2dialogs.nim`,
+`tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
+`tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
+`tests/tgtk2icons.nim`. These check controls,
 scrolling adapters, pane slots, notebook callbacks, retained-child reparenting,
 shared adjustment ownership/cache cleanup, numeric editing, text choices, image
 sources, status-message stacks, signed response callbacks, dialog parenting,

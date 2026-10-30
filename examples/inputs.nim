@@ -1,11 +1,11 @@
 ## Numeric input, a shared adjustment, and fixed/editable text choices.
 ## Build: nim c --path:src examples/inputs.nim
 import std/strutils
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui measurement inputs", 480, 260)
+  gtk2.init()
+  let window = newWindow("gtk2 measurement inputs", 480, 260)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)

@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Read-only proxies and boxed stable row references.
+# Included by gtk2.nim. Read-only proxies and boxed stable row references.
 type
   SortOrder* = enum
     sortAscending, sortDescending

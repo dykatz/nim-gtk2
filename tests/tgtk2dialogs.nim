@@ -1,6 +1,6 @@
 # Hidden toplevels only. Never call present(), run(), or a nested GTK loop.
 import std/unittest
-import gtk2ui
+import gtk2
 import headers/gtk2 as rawGtk
 import headers/glib2 as g
 
@@ -9,15 +9,15 @@ static:
   doAssert typeof(newDialog().raw) is rawGtk.PDialog
   doAssert typeof(newMessageDialog("Test").raw) is rawGtk.PMessageDialog
   doAssert typeof(newAboutDialog().raw) is ptr rawGtk.AboutDialog
-  doAssert compiles(newAboutDialog().onResponse(proc (id: gtk2ui.ResponseId) = discard))
+  doAssert compiles(newAboutDialog().onResponse(proc (id: gtk2.ResponseId) = discard))
   doAssert not compiles(newLabel().modal = true)
 
 proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
 proc runTests() =
-  gtk2ui.init()
-  suite "gtk2ui nonblocking dialogs":
+  gtk2.init()
+  suite "gtk2 nonblocking dialogs":
     test "dialog content, actions, response IDs, defaults and modal state":
       let parent = newWindow("Parent")
       defer: parent.destroy()
@@ -35,20 +35,20 @@ proc runTests() =
       dialog.packEnd(label)
       let area = rawGtk.get_content_area(dialog.raw)
       check rawGtk.get_parent(cast[rawGtk.PWidget](entry.raw)) == area
-      let close = dialog.addButton("_Close", gtk2ui.responseClose)
+      let close = dialog.addButton("_Close", gtk2.responseClose)
       let custom = newButton("Custom")
       dialog.addActionWidget(custom, customResponse(1024))
       dialog.defaultResponse = customResponse(1024)
-      dialog.setResponseSensitive(gtk2ui.responseClose, false)
+      dialog.setResponseSensitive(gtk2.responseClose, false)
       check not close.sensitive
-      dialog.setResponseSensitive(gtk2ui.responseClose, true)
+      dialog.setResponseSensitive(gtk2.responseClose, true)
       check close.sensitive
-      var responses: seq[gtk2ui.ResponseId]
-      let connection = dialog.onResponse(proc (id: gtk2ui.ResponseId) = responses.add(id))
+      var responses: seq[gtk2.ResponseId]
+      let connection = dialog.onResponse(proc (id: gtk2.ResponseId) = responses.add(id))
       close.click()
       custom.click()
-      dialog.respond(gtk2ui.responseCancel)
-      check responses == @[gtk2ui.responseClose, customResponse(1024), gtk2ui.responseCancel]
+      dialog.respond(gtk2.responseCancel)
+      check responses == @[gtk2.responseClose, customResponse(1024), gtk2.responseCancel]
       check not dialog.isDestroyed # Respond does not auto-close a nonblocking dialog.
       dialog.destroy()
       check not connection.connected
@@ -92,12 +92,12 @@ proc runTests() =
 
     test "message formats are literal, setters remain plain and secondary text clears":
       let literal = "%n %s %d 100% <b>plain</b> & λ"
-      let dialog = newMessageDialog(literal, gtk2ui.messageWarning, buttonsOkCancel,
+      let dialog = newMessageDialog(literal, gtk2.messageWarning, buttonsOkCancel,
                                     title = "Literal message")
       defer: dialog.destroy()
       check dialog.text == literal
       check dialog.title == "Literal message"
-      check dialog.messageKind == gtk2ui.messageWarning
+      check dialog.messageKind == gtk2.messageWarning
       dialog.secondaryText = literal
       check dialog.secondaryText == literal
       let saved = dialog.secondaryText
@@ -109,8 +109,8 @@ proc runTests() =
       check dialog.text == "<b>unclosed & %n"
       dialog.secondaryText = ""
       check dialog.secondaryText == ""
-      for kind in [gtk2ui.messageInfo, gtk2ui.messageWarning, gtk2ui.messageQuestion,
-                   gtk2ui.messageError, gtk2ui.messageOther]:
+      for kind in [gtk2.messageInfo, gtk2.messageWarning, gtk2.messageQuestion,
+                   gtk2.messageError, gtk2.messageOther]:
         dialog.messageKind = kind
         check dialog.messageKind == kind
       for buttons in [buttonsNone, buttonsOk, buttonsClose, buttonsCancel, buttonsYesNo, buttonsOkCancel]:
@@ -163,21 +163,21 @@ proc runTests() =
       defer: dialog.destroy()
       var calls = 0
       var once: Connection
-      once = dialog.onResponse(proc (id: gtk2ui.ResponseId) =
+      once = dialog.onResponse(proc (id: gtk2.ResponseId) =
         once.disconnect()
         check id == customResponse(65536)
         inc calls)
       dialog.respond(customResponse(65536))
-      dialog.respond(gtk2ui.responseCancel)
+      dialog.respond(gtk2.responseCancel)
       check calls == 1
-      let throws = dialog.onResponse(proc (id: gtk2ui.ResponseId) =
+      let throws = dialog.onResponse(proc (id: gtk2.ResponseId) =
         raise newException(ValueError, "expected dialog callback error"))
-      dialog.onResponse(proc (id: gtk2ui.ResponseId) = inc calls)
-      dialog.respond(gtk2ui.responseOk)
+      dialog.onResponse(proc (id: gtk2.ResponseId) = inc calls)
+      dialog.respond(gtk2.responseOk)
       check calls == 2
       throws.disconnect()
-      dialog.onResponse(proc (id: gtk2ui.ResponseId) = dialog.destroy())
-      dialog.respond(gtk2ui.responseClose)
+      dialog.onResponse(proc (id: gtk2.ResponseId) = dialog.destroy())
+      dialog.respond(gtk2.responseClose)
       check dialog.isDestroyed
 
     test "invalid strings, parent handles and child containment fail early":
@@ -196,7 +196,7 @@ proc runTests() =
       expect ValueError: message.secondaryText = "a\0b"
       check message.text == "Kept"
       expect ValueError: about.website = "a\0b"
-      expect ValueError: discard dialog.addButton("a\0b", gtk2ui.responseOk)
+      expect ValueError: discard dialog.addButton("a\0b", gtk2.responseOk)
       expect ValueError: dialog.add(child) # GtkDialog already owns its internal VBox.
       expect ValueError: dialog.packStart(dialog)
       dialog.packStart(child)
@@ -215,8 +215,8 @@ proc runTests() =
         let dialog = newDialog()
         result = dialog.raw
         g.weak_ref(cast[g.PGObject](result), finalizedCallback, flag)
-        dialog.onResponse(proc (id: gtk2ui.ResponseId) = discard dialog.title)
-        dialog.respond(gtk2ui.responseOk)
+        dialog.onResponse(proc (id: gtk2.ResponseId) = discard dialog.title)
+        dialog.respond(gtk2.responseOk)
       let native = makeCycle(addr finalized)
       require not finalized
       rawGtk.destroy(cast[rawGtk.PWidget](native))
@@ -225,8 +225,8 @@ proc runTests() =
     test "explicit toplevel destruction followed by handle release finalizes all three":
       var finalized: array[3, bool]
       block:
-        let widgets = @[gtk2ui.Widget(newDialog()), gtk2ui.Widget(newMessageDialog("Test")),
-          gtk2ui.Widget(newAboutDialog())]
+        let widgets = @[gtk2.Widget(newDialog()), gtk2.Widget(newMessageDialog("Test")),
+          gtk2.Widget(newAboutDialog())]
         for i, widget in widgets:
           g.weak_ref(cast[g.PGObject](widget.raw), finalizedCallback, addr finalized[i])
           widget.destroy()

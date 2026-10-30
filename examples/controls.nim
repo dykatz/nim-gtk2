@@ -1,10 +1,10 @@
-## A small interactive sampler for the next gtk2ui widget batch.
+## A small interactive sampler for the next gtk2 widget batch.
 ## Build: nim c --path:src examples/controls.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui controls", 480, 420)
+  gtk2.init()
+  let window = newWindow("gtk2 controls", 480, 420)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)

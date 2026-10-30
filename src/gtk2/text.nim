@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. TextBuffer is a non-floating GObject, not GtkObject.
+# Included by gtk2.nim. TextBuffer is a non-floating GObject, not GtkObject.
 type
   TextBuffer* = object of ObjectHandle
   TextView* = object of Container

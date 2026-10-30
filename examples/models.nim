@@ -1,10 +1,10 @@
 ## A typed flat model shared by TreeView and model-backed ComboBox.
 ## Build: nim c --path:src examples/models.nim
-import gtk2ui
+import gtk2
 
 proc main() =
-  gtk2ui.init()
-  let window = newWindow("gtk2ui shared list model", 640, 400)
+  gtk2.init()
+  let window = newWindow("gtk2 shared list model", 640, 400)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)

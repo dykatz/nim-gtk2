@@ -1,4 +1,4 @@
-# Included by gtk2ui.nim. Nonblocking dialogs reuse Window lifecycle semantics.
+# Included by gtk2.nim. Nonblocking dialogs reuse Window lifecycle semantics.
 type
   Dialog* = object of Window
   MessageDialog* = object of Dialog
