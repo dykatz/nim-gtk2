@@ -3,6 +3,19 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_gsize(void) { return sizeof(gsize); }
+size_t nim_gtk2_sizeof_gtype(void) { return sizeof(GType); }
+size_t nim_gtk2_sizeof_gobject_class(void) { return sizeof(GObjectClass); }
+size_t nim_gtk2_sizeof_layout(void) { return sizeof(GtkLayout); }
+size_t nim_gtk2_sizeof_layout_class(void) { return sizeof(GtkLayoutClass); }
+size_t nim_gtk2_sizeof_handlebox(void) { return sizeof(GtkHandleBox); }
+size_t nim_gtk2_sizeof_handlebox_class(void) { return sizeof(GtkHandleBoxClass); }
+size_t nim_gtk2_layout_extent_width(void) { return sizeof(((GtkLayout *)0)->width); }
+int nim_gtk2_automatic_snap_edge(void) { return (int)(GtkPositionType)-1; }
+typedef void (*NimHandleChildFunc)(GtkHandleBox *, GtkWidget *, gpointer);
+void nim_gtk2_invoke_handle_child(NimHandleChildFunc fn, gpointer data) {
+  fn((GtkHandleBox *)(guintptr)0x123, (GtkWidget *)(guintptr)0x456, data);
+}
 size_t nim_gtk2_sizeof_orientation(void) { return sizeof(GtkOrientation); }
 size_t nim_gtk2_sizeof_toolbar_style(void) { return sizeof(GtkToolbarStyle); }
 size_t nim_gtk2_sizeof_relief_style(void) { return sizeof(GtkReliefStyle); }

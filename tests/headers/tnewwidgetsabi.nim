@@ -7,8 +7,23 @@ import headers/glib2 as g
 import headers/gdk2pixbuf as pb
 from headers/gdk2 import TColor
 
-{.passC: staticExec("pkg-config --cflags gtk+-2.0").}
+when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
+  # The default pkg-config directory selects 32-bit glibconfig.h on these OSes.
+  {.passC: staticExec("PKG_CONFIG_PATH=/usr/lib/64/pkgconfig:$PKG_CONFIG_PATH pkg-config --cflags gtk+-2.0").}
+else:
+  {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc glibSizeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gsize".}
+proc glibTypeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gtype".}
+proc objectClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gobject_class".}
+proc layoutSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_layout".}
+proc layoutClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_layout_class".}
+proc handleboxSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_handlebox".}
+proc handleboxClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_handlebox_class".}
+proc layoutExtentWidth(): csize_t {.cdecl, importc: "nim_gtk2_layout_extent_width".}
+proc automaticSnapEdge(): cint {.cdecl, importc: "nim_gtk2_automatic_snap_edge".}
+type HandleChildFunc = proc (box: gtk.PHandleBox, child: gtk.PWidget, data: pointer) {.cdecl.}
+proc invokeHandleChild(fn: HandleChildFunc, data: pointer) {.cdecl, importc: "nim_gtk2_invoke_handle_child".}
 proc orientationSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_orientation".}
 proc toolbarStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_toolbar_style".}
 proc reliefStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_relief_style".}
@@ -67,6 +82,15 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
 
 suite "new raw binding native header ABI":
   test "public struct sizes, offsets and enum widths match C":
+    check glibSizeWidth() == csize_t(sizeof(g.gsize))
+    check glibTypeWidth() == csize_t(sizeof(g.GType))
+    check objectClassSize() == csize_t(sizeof(g.TGObjectClass))
+    check layoutSize() == csize_t(sizeof(gtk.TLayout))
+    check layoutClassSize() == csize_t(sizeof(gtk.TLayoutClass))
+    check handleboxSize() == csize_t(sizeof(gtk.THandleBox))
+    check handleboxClassSize() == csize_t(sizeof(gtk.THandleBoxClass))
+    check layoutExtentWidth() == csize_t(sizeof(g.guint))
+    check automaticSnapEdge() == -1
     check orientationSize() == csize_t(sizeof(gtk.TOrientation))
     check toolbarStyleSize() == csize_t(sizeof(gtk.TToolbarStyle))
     check reliefStyleSize() == csize_t(sizeof(gtk.TReliefStyle))
@@ -120,6 +144,13 @@ suite "new raw binding native header ABI":
     check imageGIcon() == cint(ord(gtk.IMAGE_GICON))
     check messageOther() == cint(ord(gtk.MESSAGE_OTHER))
   test "C invokes cdecl callbacks with the expected arguments and results":
+    var childCalls = 0
+    proc childSignal(box: gtk.PHandleBox, child: gtk.PWidget, data: pointer) {.cdecl.} =
+      doAssert cast[uint](box) == 0x123'u
+      doAssert cast[uint](child) == 0x456'u
+      inc cast[ptr int](data)[]
+    invokeHandleChild(childSignal, addr childCalls)
+    check childCalls == 1
     var calls = 0
     proc forward(page: g.gint, data: pointer): g.gint {.cdecl, gcsafe.} =
       inc cast[ptr int](data)[]

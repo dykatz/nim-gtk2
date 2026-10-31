@@ -153,5 +153,8 @@ GTK2 has an empty-recent-list cleanup bug with modern GLib; a populated fixture
 avoids that native bug without suppressing warnings.
 
 The optional C probe verifies public struct sizes/offsets, enum widths, and C-to-Nim
-callback invocation. Native tests currently run on 64-bit illumos with GTK 2.24.33;
+callback invocation, including Layout/HandleBox instance/class sizes and child
+signal argument order. It checks GLib gsize/GType/GObjectClass widths first. On
+64-bit illumos/Solaris it selects `/usr/lib/64/pkgconfig` so a default 32-bit
+`glibconfig.h` cannot produce misleading class-layout results. Native tests currently run on 64-bit illumos with GTK 2.24.33;
 Windows/macOS semantic checks are not substitutes for native platform ABI tests.

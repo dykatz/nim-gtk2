@@ -1479,6 +1479,83 @@ construct groups in order. Drag-and-drop, custom group-header widgets, custom
 labels/overflow proxies, and GtkAction integration remain raw APIs. No hover
 styling workaround is installed.
 
+## Scrollable Layout and detachable HandleBox
+
+[`examples/positioned.nim`](../examples/positioned.nim) combines a scrollable
+positioned canvas with a detachable toolbar.
+
+```nim
+let scroller = newScrolledWindow()
+let canvas = newLayout(1600, 1000)
+scroller.add(canvas) # Native scrolling; no Viewport.
+let button = newButton("Move me")
+canvas.put(button, 40, 90)
+canvas.move(button, 200, 120)
+echo canvas.position(button)
+
+let dock = newHandleBox(handleLeft, shadowOut, snapTop)
+dock.add(newToolbar())
+dock.onChildDetached(proc (child: Widget) = echo "Detached")
+dock.onChildAttached(proc (child: Widget) = echo "Attached")
+```
+
+### Layout
+
+`newLayout(width=100, height=100)` creates its own native adjustments. The overload
+`newLayout(horizontalAdjustment, verticalAdjustment, width=100, height=100)` shares
+live models. The owning `horizontalAdjustment`/`verticalAdjustment` getters retain
+native references; corresponding setters replace models without invalidating old
+retained handles. Adding to ScrolledWindow installs that scroller's adjustments,
+so obtain the getters after parenting when observing the current scrolling models.
+Native allocation may update adjustment bounds and page sizes.
+
+`setSize(width, height)` sets the virtual canvas, and `dimensions` copies the stored
+size, not the allocated viewport size. Dimensions accept 0..high(cint), conservatively
+limiting GTK's unsigned fields to signed GDK geometry. Both values are validated
+before any native change. Placing children does not enlarge the canvas automatically;
+children may overlap or have coordinates outside its extents.
+
+`put(child, x, y)` requires an unparented, non-window child and rejects containment
+cycles. Coordinates must fit signed gint, including negative values. `move(child,
+x, y)`, `position(child)`, and inherited `remove(child)` require direct membership.
+Movement validates both coordinates before changing either. `childCount` and
+`childAt(index)` inspect native insertion order; the latter returns an owning
+cached generic Widget alias and accepts 0..<childCount. Retain the specialized
+handle to edit a Button/Entry/etc. Removed retained children remain live; destroying
+the Layout destroys its children and invalidates aliases. Freeze/thaw and direct
+bin-window drawing remain outside this wrapper batch.
+
+### HandleBox
+
+HandleBox is a single-child Bin; `add(child)` and inherited `remove(child)` preserve
+normal checked parenting. `hasChild` inspects its slot, and `child` returns an owning
+cached generic Widget alias (empty when unoccupied). Retained removed content can
+be reparented; destroying the box also destroys its child, including a toolbar tree.
+
+`handlePosition` is `handleLeft`, `handleRight`, `handleTop`, or `handleBottom`;
+`shadow` uses the shared ShadowStyle. `snapEdge` accepts `snapLeft`, `snapRight`,
+`snapTop`, `snapBottom`, or `snapAutomatic`. Automatic snapping is native value -1,
+not an unsigned bitfield value: the wrapper calls GTK methods and preserves that
+sentinel. `childDetached` is a read-only native boolean. Drag the handle to detach;
+drag back to snap, or close the native floating window to reattach. GTK owns that
+floating GdkWindow; no public setter for detached state or private-window handle
+is exposed. Detachment is meaningful only once the widget is realized by GTK.
+
+**`onChildAttached` and `onChildDetached` are deferred to UI idle and coalesced per
+connection**, unlike ordinary synchronous button callbacks. GTK2 drag handlers
+continue accessing native windows after emitting these signals, so immediate user
+code must not destroy the box there. Each observer retains the latest owning child
+snapshot for its signal. An event payload is not a promise of the current attachment
+state; query `childDetached` for that. Pending notifications are cancelled on
+connection disconnection/box destruction, and destroyed children are not delivered.
+Callbacks contain exceptions and permit self-disconnection, removal, and destruction.
+All delivery and final releases remain on the UI thread.
+
+Hidden tests inject attachment signals and pump bounded idle work; they never start
+a drag, detach content, realize a floating window, or show the example. The raw
+HandleBox binding now includes the native boolean getter and removes the obsolete
+snap-edge bitfield helpers that collided with the real GTK setter.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1534,7 +1611,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
-`tests/tgtk2toolbars.nim`. Toolbar tests cover checked membership, native radio
+`tests/tgtk2toolbars.nim`, and `tests/tgtk2positioned.nim`. Positioned-container
+tests check geometry, native scrolling, automatic snap-edge values, deferred
+owning child snapshots, cancellation, and recursive cleanup. Toolbar tests cover
+checked membership, native radio
 groups, image/menu aliases, palette packing/scrolling, recursive destruction,
 and closure/native finalization without showing windows. These check menu logical
 ownership/cycles, tearoff parenting/title/state without opening detached windows,

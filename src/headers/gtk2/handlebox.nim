@@ -15,7 +15,6 @@ proc in_drag*(a: PHandleBox): guint
 proc set_in_drag*(a: PHandleBox, `in_drag`: guint)
 proc shrink_on_detach*(a: PHandleBox): guint
 proc set_shrink_on_detach*(a: PHandleBox, `shrink_on_detach`: guint)
-proc snap_edge*(a: PHandleBox): TPositionType
 
 proc handle_box_get_type*(): TType{.cdecl, dynlib: lib,
                                     importc: "gtk_handle_box_get_type".}
@@ -34,6 +33,8 @@ proc set_snap_edge*(handle_box: PHandleBox, edge: TPositionType){.
     cdecl, dynlib: lib, importc: "gtk_handle_box_set_snap_edge".}
 proc get_snap_edge*(handle_box: PHandleBox): TPositionType{.cdecl,
     dynlib: lib, importc: "gtk_handle_box_get_snap_edge".}
+proc get_child_detached*(handle_box: PHandleBox): gboolean {.cdecl,
+    dynlib: lib, importc: "gtk_handle_box_get_child_detached".}
 const
   bm_TGtkPaned_position_set = 0x0001'u16
 const

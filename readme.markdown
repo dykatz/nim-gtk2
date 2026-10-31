@@ -71,6 +71,10 @@ The nine modern toolbar/palette widgets provide checked ToolItem insertion,
 custom content, toggle/radio tools, dropdown menus, and collapsible groups; see
 [`examples/toolbars.nim`](examples/toolbars.nim) and the
 [toolbar guide](docs/gtk2.md#toolbars-and-tool-palettes).
+Scrollable Layout canvases and detachable HandleBox content add checked pixel
+geometry, shared scrolling models, and safe deferred attachment observers; see
+[`examples/positioned.nim`](examples/positioned.nim) and the
+[positioned-container guide](docs/gtk2.md#scrollable-layout-and-detachable-handlebox).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 
