@@ -15,6 +15,10 @@ proc image_menu_item_new_with_mnemonic*(`label`: cstring): PImageMenuItem{.
     cdecl, dynlib: lib, importc: "gtk_image_menu_item_new_with_mnemonic".}
 proc image_menu_item_new_from_stock*(stock_id: cstring, accel_group: PAccelGroup): PImageMenuItem{.
     cdecl, dynlib: lib, importc: "gtk_image_menu_item_new_from_stock".}
+proc set_always_show_image*(item: PImageMenuItem, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_image_menu_item_set_always_show_image".}
+proc get_always_show_image*(item: PImageMenuItem): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_image_menu_item_get_always_show_image".}
 proc item_set_image*(image_menu_item: PImageMenuItem, image: PWidget){.
     cdecl, dynlib: lib, importc: "gtk_image_menu_item_set_image".}
 proc item_get_image*(image_menu_item: PImageMenuItem): PWidget{.

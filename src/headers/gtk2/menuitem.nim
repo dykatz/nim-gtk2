@@ -26,6 +26,14 @@ proc menu_item_new*(`label`: cstring): PMenuItem{.cdecl, dynlib: lib,
     importc: "gtk_menu_item_new_with_label".}
 proc menu_item_new_with_mnemonic*(`label`: cstring): PMenuItem{.cdecl,
     dynlib: lib, importc: "gtk_menu_item_new_with_mnemonic".}
+proc set_label*(menu_item: PMenuItem, label: cstring) {.cdecl, dynlib: lib,
+    importc: "gtk_menu_item_set_label".}
+proc get_label*(menu_item: PMenuItem): cstring {.cdecl, dynlib: lib,
+    importc: "gtk_menu_item_get_label".}
+proc set_use_underline*(menu_item: PMenuItem, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_menu_item_set_use_underline".}
+proc get_use_underline*(menu_item: PMenuItem): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_menu_item_get_use_underline".}
 proc set_submenu*(menu_item: PMenuItem, submenu: PWidget){.cdecl,
     dynlib: lib, importc: "gtk_menu_item_set_submenu".}
 proc get_submenu*(menu_item: PMenuItem): PWidget{.cdecl, dynlib: lib,

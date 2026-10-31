@@ -1221,6 +1221,152 @@ Destroying a container still destroys its remaining descendants, releases their
 callbacks, and invalidates retained aliases. No compatibility or raw-pointer
 adoption helpers are introduced.
 
+## Menu-bar trees and accelerator labels
+
+The public menu family includes `MenuBar`, `Menu`, `MenuItem`, `CheckMenuItem`,
+`RadioMenuItem`, `ImageMenuItem`, `SeparatorMenuItem`, `TearoffMenuItem`, and
+`AccelLabel`. `Item`
+and `MenuShell` are hierarchy bases with no abstract constructors. See
+[`examples/menus.nim`](../examples/menus.nim).
+
+Tearoff menus are supported for GTK2. Their later GTK3.4 deprecation does not
+exclude them from this GTK2 API.
+
+```nim
+let bar = newMenuBar()
+let file = newMenuItem("_File", mnemonic = true)
+let actions = newMenu()
+bar.append(file)
+file.submenu = actions
+let close = newMenuItem("_Close", mnemonic = true)
+actions.append(close)
+close.onActivate(proc () = window.destroy())
+```
+
+Pack a MenuBar into a normal box; native GTK handles menu navigation and label
+mnemonics. Menu item constructors take checked UTF-8 text and optional
+`mnemonic = true`. `text` copies strings and `useUnderline` toggles mnemonic
+interpretation. Normal Label/AccelLabel text writes also validate UTF-8, including
+after Label upcasts. Menu labels are not interpreted as markup.
+
+### Insertion and submenu ownership
+
+`append(item)`, `prepend(item)`, and `insert(item, index)` accept MenuItems, not
+arbitrary widgets. Indices are zero-based; insertion accepts 0..itemCount.
+`itemAt(index)` returns an owning generic MenuItem handle, sharing cached state
+with an existing typed handle. Keep the original CheckMenuItem/RadioMenuItem/etc.
+handle for specialized operations. Removing an item uses checked
+`Container.remove(item)` and does not destroy an explicitly retained handle.
+
+Assign `item.submenu = menu` to attach a Menu. Menus have private popup-window
+parents in GTK2, so validation follows their **logical attach widgets**, not just
+native widget-parent pointers. Already-owned menus and ownership cycles are
+rejected, both when assigning a submenu and when inserting an item that already
+owns the destination menu. Reassigning the same submenu to the same item is a
+no-op. `clearSubmenu()` detaches it; retained submenu handles remain live.
+`hasSubmenu` tests availability; `submenu` returns an empty Menu handle when absent
+(`isDestroyed` is true). No borrowed pointer or private popup window escapes.
+
+Separators belong only in Menus, not MenuBars. Even after upcasts they reject
+text, activation, submenus, and child content. Tearoff items are also menu-only
+and reject labels, mnemonics, submenus, and child content, but allow activation
+once inserted into a Menu. General sensitivity and visibility operations remain
+ordinary Widget methods.
+
+### Tearoff menus
+
+Prepend `newTearoffMenuItem()` to a Menu to provide GTK2's detachable-menu row.
+User activation toggles its native floating window. Programmatic `activate()`
+also works, but rejects unparented tearoff items before calling GTK. Both
+activation and `tornOff = true` realize the Menu first when necessary: GTK2
+otherwise dereferences a missing GdkWindow if the menu has never been opened.
+As with other widgets, show the menu's intended items (`window.showAll()` or
+`menu.showAll()`) before displaying it.
+
+`menu.tornOff` reads/writes the native tearoff state. **Setting it true opens a
+visible detached window**; false returns the menu to its normal state.
+`menu.tearoffTitle` is a copied, checked UTF-8 string for that window's custom
+title. Assign an empty string to restore GTK's automatic title from the attaching
+menu item; the getter then returns empty, not the computed automatic title.
+Destroying the menu destroys its native floating window as well. No separately
+owned Window handle or private tearoff child is exposed.
+
+`onTearoffChanged(proc (tornOff: bool) = ...)` observes copied native state after
+a row activation, programmatic change, or window-manager close. Connections
+support self-disconnection and exception containment; destruction cancels them.
+
+The sampler includes the dashed tearoff row, a separate **Detach/Reattach File
+menu** button, and a live state indicator. GTK initially leaves a detached menu
+at the popup's position, which can look unchanged under window managers that
+do not decorate menu windows. Click its arrow/dashed row to reattach, or use the
+explicit button. `buildMenuExample()` builds the same UI for integration tests
+without showing it or starting a loop.
+
+Normal hidden tests only construct, insert/remove, validate titles, inspect
+state, and set tornOff=false. Actual detach/reattach tests live separately in
+`tests/tmappedmenus.nim` and must run on an isolated virtual display:
+
+```sh
+GTK2_TEST_VIRTUAL_DISPLAY=1 G_DEBUG=fatal-warnings xvfb-run -a nimble testMappedMenus
+```
+
+They exercise the actual example, first-popup realization, native menu-shell
+activation, live title changes, reattachment, floating-window close/destruction,
+and callback cleanup. Without the explicit environment opt-in, the test exits
+before initializing GTK. Do not run these mapped tests on your desktop display.
+
+### Stateful and image items
+
+CheckMenuItem exposes `active`, `inconsistent`, and `drawAsRadio`. The last changes
+appearance only; use RadioMenuItem for actual groups. `newRadioMenuItem(group,
+text)` joins a live member's group without exposing a borrowed GSList.
+`joinGroup(group)` normalizes GTK2's otherwise possible two-active-member merge,
+keeping the existing group's choice before later explicit activation. Joining
+the same group is a no-op.
+
+`onActivate` and `onToggled` are tracked closure connections, run after native
+signal defaults. They support self-disconnection, exception containment, and
+closing/destroying the menu's owner tree. `activate()` is programmatic native
+activation, not a promise to honor user-interaction eligibility such as
+sensitivity. GTK2 implements CheckMenuItem `active=` through activation: a changed
+assignment can emit **both toggled and activate**. Do not use activation callbacks
+as an indication that only a physical user click occurred.
+
+ImageMenuItem has an owning optional `image` getter, checked `image=` assignment,
+`clearImage()`, and `alwaysShowImage`. Only unparented Images can be installed;
+setting the current Image again is a no-op. The native theme can hide menu images
+unless `alwaysShowImage` is true. GTK2 clears this private image slot on item
+destruction: retained Image handles remain live and unparented, unlike ordinary
+children destroyed recursively with a container. Dispose of unused retained
+images normally.
+
+### AccelLabel and lifetime
+
+`newAccelLabel(text)` derives from Label. `accelWidget=` monitors a live widget;
+self-monitoring is rejected. `accelWidget` returns an owning generic Widget handle,
+or an empty handle when no target is installed. GTK holds a strong reference to
+the monitored widget; `clearAccelWidget()` releases it. `refetch()` refreshes
+native accelerator display state and `accelWidth` reads its native column width.
+A destroyed monitored target is never resurrected through a getter: cached
+destruction tombstones raise ValueError until the target is cleared/replaced.
+Custom accelerator groups/key registration are not wrapped in this batch; raw
+GTK can install shortcuts on monitored widgets, while ordinary menu mnemonics
+work without extra registration.
+
+Widget constructors now use the same weak native-state cache as borrowed
+getters, so aliases share destruction tracking and connections without stealing
+references or introducing a cache ownership cycle. GTK2 menu trees and accelerator
+labels can themselves contain **native** reference cycles. Explicitly destroy
+standalone/unattached menu roots and unused unparented menu items; do not rely on
+merely dropping their Nim handles. For an attached menu bar, explicitly destroying
+its window destroys the menu tree and releases captures. Also destroy standalone
+AccelLabels or clear their monitored widgets when done. All operations and final
+releases remain on the UI thread.
+
+This batch is for menu-bar trees. Standalone popup positioning, custom accelerator
+routing, menu grid attachment, and action/UIManager abstractions remain raw APIs.
+Tearoff floating-window internals remain owned and managed by GTK.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1275,7 +1421,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
-`tests/tgtk2containers.nim`. These check validated layout geometry, native child
+`tests/tgtk2containers.nim` and `tests/tgtk2menus.nim`. These check menu logical
+ownership/cycles, tearoff parenting/title/state without opening detached windows,
+activation cleanup, image slots, cached owning getters, validated
+layout geometry, native child
 properties, table bounds, retained-child removal/reparenting, range adjustment ownership/replacement, deferred coalesced observers,
 keyboard-action destruction, literal scale marks, arrow enums, calendar
 validation, copied chooser values, scale signals/shared adjustments, controls,
@@ -1287,11 +1436,12 @@ text-buffer lifetime, typed atomic model rows, selection/activation callbacks,
 shared model ownership, hierarchical paths, expansion and subtree deletion,
 proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership,
 NULL cells, icon selection/activation, native destruction,
-heap-closure cycles, and invalid inputs. No test opens a visible window or enters
-the GTK main loop.
+heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
+enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windows
+only on an isolated virtual display, as described above.
 
 This layer intentionally does not yet wrap specialized file/recent/color/font
-chooser dialogs, assistants, menus, custom model comparison/predicate callbacks,
+chooser dialogs, assistants, standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

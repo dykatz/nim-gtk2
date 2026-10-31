@@ -24,6 +24,10 @@ proc item_set_active*(check_menu_item: PCheckMenuItem,
     importc: "gtk_check_menu_item_set_active".}
 proc item_get_active*(check_menu_item: PCheckMenuItem): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_check_menu_item_get_active".}
+proc set_draw_as_radio*(item: PCheckMenuItem, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_check_menu_item_set_draw_as_radio".}
+proc get_draw_as_radio*(item: PCheckMenuItem): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_check_menu_item_get_draw_as_radio".}
 proc item_toggled*(check_menu_item: PCheckMenuItem){.cdecl,
     dynlib: lib, importc: "gtk_check_menu_item_toggled".}
 proc item_set_inconsistent*(check_menu_item: PCheckMenuItem,

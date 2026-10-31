@@ -9,12 +9,6 @@ type
 proc raw*(b: TextBuffer): rawGtk.PTextBuffer = cast[rawGtk.PTextBuffer](nativePointer(b))
 proc raw*(w: TextView): rawGtk.PTextView = cast[rawGtk.PTextView](raw(Widget(w)))
 
-proc checkedUtf8Text(text: string): cstring =
-  result = checkedString(text)
-  discard checkedInt(text.len)
-  if not g.toBool(g.g_utf8_validate(result, g.gssize(text.len), nil)):
-    raise newException(ValueError, "GTK text must be valid UTF-8")
-
 proc newTextBuffer*(text = ""): TextBuffer =
   let value = checkedUtf8Text(text)
   result.state = adoptObject(rawGtk.text_buffer_new(nil), cache = true,

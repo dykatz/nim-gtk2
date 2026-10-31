@@ -93,7 +93,7 @@ proc adoptObject(p: pointer, borrowed = false, cache = false,
       cast[g.TGCallback](markDestroyed), cast[pointer](result), nil,
       g.G_CONNECT_AFTER)
 
-proc adoptWidget(p: pointer): ObjectState = adoptObject(p)
+proc adoptWidget(p: pointer): ObjectState = adoptObject(p, cache = true)
 
 proc nativePointer(w: ObjectHandle): pointer =
   if w.state == nil or w.state.destroyed:
@@ -120,6 +120,12 @@ proc checkedInt(n: int): g.gint =
   if n < 0 or n > high(g.gint).int:
     raise newException(ValueError, "GTK size must fit a nonnegative gint")
   g.gint(n)
+
+proc checkedUtf8Text(text: string): cstring =
+  result = checkedString(text)
+  discard checkedInt(text.len)
+  if not g.toBool(g.g_utf8_validate(result, g.gssize(text.len), nil)):
+    raise newException(ValueError, "GTK text must be valid UTF-8")
 
 proc checkedBoxSpacing(value: int): g.gint =
   if value < 0 or value > high(int16).int:
@@ -150,7 +156,7 @@ proc newButton*(text = "", mnemonic = false): Button =
                       else: rawGtk.button_new(t))
 
 proc newLabel*(text = ""): Label =
-  result.state = adoptWidget(rawGtk.label_new(checkedString(text)))
+  result.state = adoptWidget(rawGtk.label_new(checkedUtf8Text(text)))
 
 proc newEntry*(text = ""): Entry =
   let t = checkedString(text)
@@ -173,7 +179,7 @@ proc destroy*(w: Widget) =
 
 proc `title=`*(w: Window, text: string) = rawGtk.set_title(w.raw, checkedString(text))
 proc title*(w: Window): string = $rawGtk.get_title(w.raw)
-proc `text=`*(w: Label, text: string) = rawGtk.set_text(w.raw, checkedString(text))
+proc `text=`*(w: Label, text: string) = rawGtk.set_text(w.raw, checkedUtf8Text(text))
 proc text*(w: Label): string = $rawGtk.get_text(w.raw)
 proc `text=`*(w: Entry, text: string) = rawGtk.set_text(w.raw, checkedString(text))
 proc text*(w: Entry): string = $rawGtk.get_text(w.raw)
@@ -239,6 +245,8 @@ proc checkChild(parent: Container, child: Widget) =
 proc add*(parent: Bin, child: Widget) =
   ## Single-child containers only. Use packStart/packEnd for boxes.
   checkChild(parent, child)
+  if rawGtk.IS_SEPARATOR_MENU_ITEM(parent.raw) or rawGtk.IS_TEAROFF_MENU_ITEM(parent.raw):
+    raise newException(ValueError, "separator and tearoff menu items cannot have child content")
   if rawGtk.get_child(cast[rawGtk.PBin](parent.raw)) != nil:
     raise newException(ValueError, "container already has a child")
   # GtkScrolledWindow requires the GTK2 scroll-adjustments protocol. Adapt
@@ -354,3 +362,4 @@ include gtk2/icons
 include gtk2/selectors
 include gtk2/ranges
 include gtk2/containers
+include gtk2/menus

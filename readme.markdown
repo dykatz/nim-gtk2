@@ -62,12 +62,18 @@ plain-text scale marks, and decorative Arrow widgets are demonstrated in
 [`examples/ranges.nim`](examples/ranges.nim). Alignment, HButtonBox/VButtonBox,
 Table, Fixed, and EventBox provide padded placement, action groups, checked grid
 spans, signed pixel positioning, and native event-window flags; see
-[`examples/containers.nim`](examples/containers.nim).
+[`examples/containers.nim`](examples/containers.nim). MenuBar/Menu trees, checked
+submenu ownership, standard/check/radio/image/separator/tearoff items, activation
+closures, and AccelLabel are demonstrated in [`examples/menus.nim`](examples/menus.nim).
+GTK2 tearoff menus include checked detached-window title/state properties and
+state callbacks; the sampler has an explicit Detach/Reattach control.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 
 Requires ARC or ORC (Nim 2's default). Run `nimble testUi` for hidden-widget
 integration tests; a display is required, but no visible windows are opened.
+For actual tearoff window transitions, use the separate opt-in virtual-display
+[menu integration tests](docs/gtk2.md#tearoff-menus), never your desktop display.
 
 # Additional raw widgets
 

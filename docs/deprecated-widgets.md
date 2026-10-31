@@ -56,10 +56,12 @@ that the entire historical binding has undergone a native ABI audit.
 The status-icon `query_tooltip` callback now uses the existing modern
 `PTooltip`, correcting its former use of deprecated `PTooltips`.
 
-`HandleBox` and `TearoffMenuItem` are **retained**: they were not deprecated in
-GTK2. Likewise, `ColorSelection` and `FontSelection` are not removed merely
-because later GTK versions deprecated them. `Item` remains as the native base
-class for menu items.
+`HandleBox` and `TearoffMenuItem` are **retained in the raw bindings**: they were
+not deprecated in GTK2. `TearoffMenuItem` also has a public `gtk2` wrapper, with
+menu tearoff-state/title properties. Its later GTK3.4 deprecation does not change
+this GTK2 policy. Likewise, `ColorSelection` and `FontSelection` are not removed
+merely because later GTK versions deprecated them. `Item` remains as the native
+base class for menu items.
 
 ## Examples and regression tests
 
