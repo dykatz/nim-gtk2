@@ -367,3 +367,4 @@ include gtk2/containers
 include gtk2/menus
 include gtk2/toolbars
 include gtk2/positioned
+include gtk2/choosers

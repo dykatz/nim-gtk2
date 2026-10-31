@@ -16,6 +16,14 @@ else:
 proc glibSizeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gsize".}
 proc glibTypeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gtype".}
 proc objectClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gobject_class".}
+proc colorSelectionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection".}
+proc colorSelectionClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection_class".}
+proc colorSelectionDialogSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection_dialog".}
+proc colorSelectionDialogClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection_dialog_class".}
+proc fontSelectionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_font_selection".}
+proc fontSelectionClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_font_selection_class".}
+proc fontSelectionDialogSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_font_selection_dialog".}
+proc fontSelectionDialogClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_font_selection_dialog_class".}
 proc layoutSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_layout".}
 proc layoutClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_layout_class".}
 proc handleboxSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_handlebox".}
@@ -85,6 +93,14 @@ suite "new raw binding native header ABI":
     check glibSizeWidth() == csize_t(sizeof(g.gsize))
     check glibTypeWidth() == csize_t(sizeof(g.GType))
     check objectClassSize() == csize_t(sizeof(g.TGObjectClass))
+    check colorSelectionSize() == csize_t(sizeof(gtk.TColorSelection))
+    check colorSelectionClassSize() == csize_t(sizeof(gtk.TColorSelectionClass))
+    check colorSelectionDialogSize() == csize_t(sizeof(gtk.TColorSelectionDialog))
+    check colorSelectionDialogClassSize() == csize_t(sizeof(gtk.TColorSelectionDialogClass))
+    check fontSelectionSize() == csize_t(sizeof(gtk.TFontSelection))
+    check fontSelectionClassSize() == csize_t(sizeof(gtk.TFontSelectionClass))
+    check fontSelectionDialogSize() == csize_t(sizeof(gtk.TFontSelectionDialog))
+    check fontSelectionDialogClassSize() == csize_t(sizeof(gtk.TFontSelectionDialogClass))
     check layoutSize() == csize_t(sizeof(gtk.TLayout))
     check layoutClassSize() == csize_t(sizeof(gtk.TLayoutClass))
     check handleboxSize() == csize_t(sizeof(gtk.THandleBox))

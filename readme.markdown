@@ -75,6 +75,10 @@ Scrollable Layout canvases and detachable HandleBox content add checked pixel
 geometry, shared scrolling models, and safe deferred attachment observers; see
 [`examples/positioned.nim`](examples/positioned.nim) and the
 [positioned-container guide](docs/gtk2.md#scrollable-layout-and-detachable-handlebox).
+Standalone ColorSelection/FontSelection panels and directly managed chooser
+dialogs complement the existing selector buttons with embedding, copied values,
+and safe deferred live observers; see [`examples/choosers.nim`](examples/choosers.nim)
+and the [chooser guide](docs/gtk2.md#standalone-colorfont-choosers).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

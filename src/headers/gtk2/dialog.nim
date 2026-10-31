@@ -46,6 +46,8 @@ proc add_action_widget*(dialog: PDialog, child: PWidget,
     importc: "gtk_dialog_add_action_widget".}
 proc add_button*(dialog: PDialog, button_text: cstring, response_id: gint): PWidget{.
     cdecl, dynlib: lib, importc: "gtk_dialog_add_button".}
+proc get_widget_for_response*(dialog: PDialog, response_id: gint): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_dialog_get_widget_for_response".}
 proc set_response_sensitive*(dialog: PDialog, response_id: gint,
                                     setting: gboolean){.cdecl, dynlib: lib,
     importc: "gtk_dialog_set_response_sensitive".}

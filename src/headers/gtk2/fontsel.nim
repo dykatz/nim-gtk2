@@ -14,6 +14,16 @@ proc font_selection_get_type*(): TType{.cdecl, dynlib: lib,
                                         importc: "gtk_font_selection_get_type".}
 proc font_selection_new*(): PFontSelection{.cdecl, dynlib: lib,
     importc: "gtk_font_selection_new".}
+proc get_family_list*(fontsel: PFontSelection): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_font_selection_get_family_list".}
+proc get_face_list*(fontsel: PFontSelection): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_font_selection_get_face_list".}
+proc get_size_list*(fontsel: PFontSelection): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_font_selection_get_size_list".}
+proc get_preview_entry*(fontsel: PFontSelection): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_font_selection_get_preview_entry".}
+proc get_font_selection*(dialog: PFontSelectionDialog): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_font_selection_dialog_get_font_selection".}
 proc get_font_name*(fontsel: PFontSelection): cstring{.cdecl,
     dynlib: lib, importc: "gtk_font_selection_get_font_name".}
 proc set_font_name*(fontsel: PFontSelection, fontname: cstring): gboolean{.

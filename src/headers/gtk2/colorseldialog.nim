@@ -8,3 +8,5 @@ proc color_selection_dialog_get_type*(): TType{.cdecl, dynlib: lib,
     importc: "gtk_color_selection_dialog_get_type".}
 proc color_selection_dialog_new*(title: cstring): PColorSelectionDialog{.cdecl,
     dynlib: lib, importc: "gtk_color_selection_dialog_new".}
+proc get_color_selection*(dialog: PColorSelectionDialog): PWidget {.cdecl,
+    dynlib: lib, importc: "gtk_color_selection_dialog_get_color_selection".}

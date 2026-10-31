@@ -1556,6 +1556,95 @@ a drag, detach content, realize a floating window, or show the example. The raw
 HandleBox binding now includes the native boolean getter and removes the obsolete
 snap-edge bitfield helpers that collided with the real GTK setter.
 
+## Standalone color/font choosers
+
+[`examples/choosers.nim`](../examples/choosers.nim) demonstrates ColorSelection,
+FontSelection, ColorSelectionDialog, and FontSelectionDialog. These complement,
+not replace, the existing ColorButton/FontButton: use a button for a compact
+control with its own popup, a panel for embedding, or a dialog for direct
+nonblocking lifecycle and response control. GTK2.24 supports all four widgets.
+
+```nim
+let colors = newColorSelection(rgba16(12000, 28000, 48000, 50000), useAlpha = true)
+root.packStart(colors)
+colors.onColorChanged(proc (value: Color) = echo value.red)
+let fonts = newFontSelection()
+root.packStart(fonts) # root must already belong to a Window before setting font.
+fonts.fontName = "Sans 12"
+fonts.previewText = "The quick brown fox — café 123"
+fonts.onFontChanged(proc (name: string) = echo name)
+```
+
+### Color panels and dialogs
+
+`newColorSelection(color=rgba16(0,0,0), useAlpha=false, hasPalette=false)` creates an
+embeddable VBox-derived panel. `newColorSelectionDialog(title="Pick a Color",
+color=..., useAlpha=false, hasPalette=false, modal=false)` creates a hidden dialog;
+the parent overload adds checked transient ownership and defaults
+`destroyWithParent=true`. Both types expose copied `color`, `previousColor`,
+`useAlpha`, `hasPalette`, and read-only `isAdjusting`. Constructors initialize
+current and previous swatches to the supplied color.
+
+Colors reuse the existing checked `rgba16`/Color value type (channels 0..65535).
+**Native ColorSelection getters report alpha 65535 while opacity controls are
+disabled**, for both current and previous colors. Stored opacity is preserved;
+enable `useAlpha` to read or edit it. Assigning a full RGBA value updates native
+RGB and alpha sequentially, not as an atomic GTK transaction. `previousColor`
+updates the comparison swatch, not the current selection. `isAdjusting` is a
+current native drag-state query, not a guarantee that an idle observer is still
+inside that drag.
+
+### Font panels and dialogs
+
+`newFontSelection()` creates an embeddable VBox-derived panel;
+`newFontSelectionDialog(title="Pick a Font", modal=false)` creates a hidden dialog,
+with the same parent/destroyWithParent overload as other dialogs. Both expose
+`fontName`, `setFontName(description)`, `fontName=`, and `previewText`.
+Descriptions must be nonempty valid UTF-8 without NUL; previews accept empty
+valid UTF-8 plain text. Font-name getters copy and free GTK's transfer-full string,
+unlike the borrowed-string getter on FontButton.
+
+**Parent a FontSelection into a Window before setting its font.** It needs a screen,
+even though the window need not be realized, shown, or mapped. `setFontName` returns
+GTK's boolean result (false for an unanchored panel); the property setter raises
+ValueError on false. A FontSelectionDialog already anchors its managed panel.
+GTK2 may normalize/substitute descriptions and may report true even for an unknown
+family, so true is not an installed-font guarantee: read `fontName` for the actual
+selection. Native font changes may restore GTK's sample text when the preview is
+empty; empty previews are not guaranteed to remain empty across changes.
+
+### Nonblocking dialogs and safe observers
+
+Both dialogs inherit the normal Window/Dialog title, modal/transient, `present`,
+`onResponse`, `respond`, and response-sensitivity APIs. No blocking dialog run loop
+is introduced. **Read the selected value in onResponse before destroying the
+dialog.** Responding does not close automatically, and Cancel does not roll back
+programmatic/live changes; the example copies changes to its embedded panels only
+on OK/Apply. Private managed selectors/buttons are not exposed as reparentable SDK
+handles. Use the standalone panels for embedding instead.
+
+ColorSelectionDialog's `showHelp` and FontSelectionDialog's `showApply` default
+false and remain hidden under `present()`/`showAll()`. Setting either true shows
+that standard response button; setting false hides it again. These options do not
+install Help behavior or an Apply handler.
+
+**`onColorChanged(proc (value: Color) = ...)` and
+`onFontChanged(proc (value: string) = ...)` are deferred/coalesced at UI idle** on
+both panels and dialogs. They report changed copied final values, not every
+intermediate native event, and do not emit an initial value. Font observers watch
+private selection/preview signals as well as font-name notification because GTK2
+omits the latter on some user-list changes. Color observers also follow effective
+alpha changes caused by `useAlpha`. These are live-selection notifications, not
+user acceptance signals; programmatic changes can notify too.
+
+Observers support self-disconnection, exception containment, reentrant changes,
+and owner destruction. Disconnection/destruction cancels pending idle delivery,
+releases captures, and disconnects private watched emitters. Cleanup remains valid
+if temporary Nim wrapper states have already gone away. Observer delivery is
+deferred out of GTK's native change handlers so those handlers can finish safely;
+explicit `destroy()` remains immediate. All GTK
+operations and final releases remain on the UI thread.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1611,7 +1700,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
-`tests/tgtk2toolbars.nim`, and `tests/tgtk2positioned.nim`. Positioned-container
+`tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
+`tests/tgtk2choosers.nim`. Chooser tests cover copied selections, alpha semantics,
+screen anchoring, native font-list changes, nonblocking responses, hidden response
+buttons, observer cancellation, and native/heap finalization. Positioned-container
 tests check geometry, native scrolling, automatic snap-edge values, deferred
 owning child snapshots, cancellation, and recursive cleanup. Toolbar tests cover
 checked membership, native radio

@@ -6,6 +6,14 @@
 size_t nim_gtk2_sizeof_gsize(void) { return sizeof(gsize); }
 size_t nim_gtk2_sizeof_gtype(void) { return sizeof(GType); }
 size_t nim_gtk2_sizeof_gobject_class(void) { return sizeof(GObjectClass); }
+size_t nim_gtk2_sizeof_color_selection(void) { return sizeof(GtkColorSelection); }
+size_t nim_gtk2_sizeof_color_selection_class(void) { return sizeof(GtkColorSelectionClass); }
+size_t nim_gtk2_sizeof_color_selection_dialog(void) { return sizeof(GtkColorSelectionDialog); }
+size_t nim_gtk2_sizeof_color_selection_dialog_class(void) { return sizeof(GtkColorSelectionDialogClass); }
+size_t nim_gtk2_sizeof_font_selection(void) { return sizeof(GtkFontSelection); }
+size_t nim_gtk2_sizeof_font_selection_class(void) { return sizeof(GtkFontSelectionClass); }
+size_t nim_gtk2_sizeof_font_selection_dialog(void) { return sizeof(GtkFontSelectionDialog); }
+size_t nim_gtk2_sizeof_font_selection_dialog_class(void) { return sizeof(GtkFontSelectionDialogClass); }
 size_t nim_gtk2_sizeof_layout(void) { return sizeof(GtkLayout); }
 size_t nim_gtk2_sizeof_layout_class(void) { return sizeof(GtkLayoutClass); }
 size_t nim_gtk2_sizeof_handlebox(void) { return sizeof(GtkHandleBox); }
