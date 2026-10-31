@@ -10,6 +10,10 @@ proc alignment_get_type*(): TType{.cdecl, dynlib: lib,
 proc alignment_new*(xalign: gfloat, yalign: gfloat, xscale: gfloat,
                     yscale: gfloat): PAlignment{.cdecl, dynlib: lib,
     importc: "gtk_alignment_new".}
+proc set_padding*(alignment: PAlignment, top, bottom, left, right: guint) {.
+    cdecl, dynlib: lib, importc: "gtk_alignment_set_padding".}
+proc get_padding*(alignment: PAlignment, top, bottom, left, right: Pguint) {.
+    cdecl, dynlib: lib, importc: "gtk_alignment_get_padding".}
 proc set*(alignment: PAlignment, xalign: gfloat, yalign: gfloat,
                     xscale: gfloat, yscale: gfloat){.cdecl, dynlib: lib,
     importc: "gtk_alignment_set".}

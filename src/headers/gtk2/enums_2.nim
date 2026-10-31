@@ -10,6 +10,8 @@ const
 const
   BUTTONBOX_END* = 4
 const
+  BUTTONBOX_CENTER* = 5
+const
   DELETE_CHARS* = 0
 const
   DELETE_WORD_ENDS* = 1

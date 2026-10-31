@@ -10,6 +10,8 @@ proc get_layout*(widget: PButtonBox): TButtonBoxStyle{.cdecl,
     dynlib: lib, importc: "gtk_button_box_get_layout".}
 proc set_layout*(widget: PButtonBox, layout_style: TButtonBoxStyle){.
     cdecl, dynlib: lib, importc: "gtk_button_box_set_layout".}
+proc get_child_secondary*(widget: PButtonBox, child: PWidget): gboolean {.
+    cdecl, dynlib: lib, importc: "gtk_button_box_get_child_secondary".}
 proc set_child_secondary*(widget: PButtonBox, child: PWidget,
                                      is_secondary: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_button_box_set_child_secondary".}

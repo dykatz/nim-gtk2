@@ -1134,6 +1134,93 @@ widget. `direction` uses `arrowUp`, `arrowDown`, `arrowLeft`, `arrowRight`, or
 or set both with `setArrow(direction, shadow)`. Getters use native enum properties,
 not private struct fields. Arrow has no button signals or child container API.
 
+## Additional layout containers
+
+`Alignment`, `HButtonBox`, `VButtonBox`, `Table`, `Fixed`, and `EventBox` are
+supported GTK2.24 widgets, regardless of their later GTK3 deprecation status.
+They use normal shared widget ownership and typed borrowed `.raw` access. See
+[`examples/containers.nim`](../examples/containers.nim).
+
+### Alignment and EventBox
+
+`newAlignment(xalign = 0.5, yalign = 0.5, xscale = 0, yscale = 0)` is a
+single-child `Bin`. Alignment fractions place the natural-size child, and scale
+fractions control how much extra allocation it receives. All four values must
+be finite and in 0..1. `alignment` returns a copied tuple; `setAlignment` validates
+all four values before applying them. `setPadding(top, bottom, left, right)`
+sets pixel padding, with a copied `padding` getter. Values and combined opposing
+padding must fit a nonnegative native gint.
+
+`newEventBox(visibleWindow = true, aboveChild = false)` is another single-child
+Bin. `visibleWindow` controls whether GTK creates its own visible GDK window;
+`aboveChild` controls event-window stacking relative to its child. A visible GDK
+window does not show the widget by itself. These are native flags, not high-level
+mouse/key callbacks; broader event APIs remain deferred. Both containers use
+checked `add`, rejecting occupied bins, already-parented children, toplevels,
+and cycles.
+
+### Button boxes
+
+`newHButtonBox(spacing = 6, style = buttonsEnd)` and `newVButtonBox(...)` derive
+from `ButtonBox`, itself a `Box`. Use inherited `packStart`/`packEnd`, usually with
+`packShrink`. `layoutStyle` accepts `buttonsDefault`, `buttonsSpread`,
+`buttonsEdge`, `buttonsStart`, `buttonsEnd`, or `buttonsCenter`.
+`setSecondary(child, value = true)` places a direct child in GTK's secondary
+group; `secondary(child)` reads that flag. Nonmembers are rejected before GTK.
+The actual placement of the secondary group depends on the chosen layout style
+and native right-to-left direction.
+
+`spacing` is 0..32767, matching GtkBox's signed 16-bit storage. All Box
+constructors now enforce that bound, and inherited packing padding is restricted
+to 0..65535 to prevent truncation in native GtkBoxChild storage.
+
+### Table
+
+```nim
+let table = newTable(2, 2)
+table.rowSpacing = 6
+table.columnSpacing = 10
+table.attach(newLabel("Name:"), 0, 1, 0, 1, xoptions = {}, yoptions = {})
+table.attach(newEntry(), 1, 2, 0, 1, yoptions = {})
+```
+
+Dimensions are 1..65535, matching native 16-bit row/column storage. `dimensions`,
+`rowCount`, `columnCount`, and `homogeneous` expose native state.
+`attach(child, left, right, top, bottom, ...)` uses zero-based **half-open**
+attachment rectangles. The entire rectangle must fit within current dimensions;
+the wrapper never silently enlarges the table. Overlapping attachments are
+legal GTK layouts and are not rejected.
+
+`xoptions`/`yoptions` are sets of `attachExpand`, `attachShrink`, and `attachFill`,
+defaulting to expand+fill. They map to native bit flags, not booleans.
+`xpadding`/`ypadding`, default spacing, and per-row/column spacing are restricted
+to 0..65535. `rowSpacing=`/`columnSpacing=` set all current row/column spacings and
+the defaults. `setRowSpacing(row, spacing)` and `setColumnSpacing(column, spacing)`
+set indexed overrides, with matching indexed getters. Indices must already exist.
+
+`cellBounds(child)` returns a copied `(left, right, top, bottom)` tuple for a
+direct child. `resize(rows, columns)` refuses to shrink across existing child
+attachments rather than accepting GTK's implicit size correction. Validation
+finishes before native mutation. Child lists and temporary GValues used for
+inspection are freed; private GtkTable fields are never read by the wrapper.
+
+### Fixed placement and removal
+
+`newFixed()` supports `put(child, x, y)`, `move(child, x, y)`, and copied
+`position(child)`. Coordinates are signed native gint pixels, including negative
+positions. `put` requires an unparented child; moving/querying requires direct
+membership. Absolute placement is useful for small special-purpose surfaces,
+not a replacement for responsive box/table layouts or a scrollable virtual canvas.
+
+`Container.remove(child)` validates direct membership and unparents without
+destroying a child retained by a Nim handle. It can then be attached/packed into
+another container. Use specialized notebook/pane APIs when their semantics are
+needed; this generic method does not target private content-area grandchildren.
+Dropping the last handle to an unparented child can finalize it normally.
+Destroying a container still destroys its remaining descendants, releases their
+callbacks, and invalidates retained aliases. No compatibility or raw-pointer
+adoption helpers are introduced.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1187,8 +1274,9 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2feedback.nim`, `tests/tgtk2dialogs.nim`,
 `tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
-`tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, and `tests/tgtk2ranges.nim`.
-These check range adjustment ownership/replacement, deferred coalesced observers,
+`tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
+`tests/tgtk2containers.nim`. These check validated layout geometry, native child
+properties, table bounds, retained-child removal/reparenting, range adjustment ownership/replacement, deferred coalesced observers,
 keyboard-action destruction, literal scale marks, arrow enums, calendar
 validation, copied chooser values, scale signals/shared adjustments, controls,
 scrolling adapters, pane slots, notebook callbacks, retained-child reparenting,

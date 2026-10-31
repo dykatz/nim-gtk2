@@ -82,6 +82,13 @@ static:
     discard face)
 
 suite "modern raw binding representations":
+  test "GValue flags accessors resolve in GObject without a display":
+    var value: g.TGValue
+    discard g.init(addr value, rawGtk.attach_options_get_type())
+    defer: g.unset(addr value)
+    g.set_flags(addr value, 6)
+    check g.get_flags(addr value) == 6
+
   test "GLib integer/pointer conversions preserve the full address width":
     let bits = high(uint) - 123'u
     check g.GPOINTER_TO_SIZE(g.GSIZE_TO_POINTER(bits)) == bits

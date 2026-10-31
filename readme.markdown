@@ -59,7 +59,10 @@ popup values with shared adjustments; see
 [`examples/selectors.nim`](examples/selectors.nim). HScale/VScale,
 HScrollbar/VScrollbar, shared range models, safe deferred value observers,
 plain-text scale marks, and decorative Arrow widgets are demonstrated in
-[`examples/ranges.nim`](examples/ranges.nim).
+[`examples/ranges.nim`](examples/ranges.nim). Alignment, HButtonBox/VButtonBox,
+Table, Fixed, and EventBox provide padded placement, action groups, checked grid
+spans, signed pixel positioning, and native event-window flags; see
+[`examples/containers.nim`](examples/containers.nim).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

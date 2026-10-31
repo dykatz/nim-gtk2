@@ -32,6 +32,8 @@ proc set_empty*(a: PTableRowCol, `empty`: guint)
 proc table_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_table_get_type".}
 proc table_new*(rows: guint, columns: guint, homogeneous: gboolean): PTable{.
     cdecl, dynlib: lib, importc: "gtk_table_new".}
+proc get_size*(table: PTable, rows, columns: Pguint) {.cdecl, dynlib: lib,
+    importc: "gtk_table_get_size".}
 proc resize*(table: PTable, rows: guint, columns: guint){.cdecl,
     dynlib: lib, importc: "gtk_table_resize".}
 proc attach*(table: PTable, child: PWidget, left_attach: guint,

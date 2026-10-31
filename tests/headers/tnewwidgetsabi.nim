@@ -9,6 +9,13 @@ from headers/gdk2 import TColor
 
 {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc attachOptionsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_attach_options".}
+proc buttonBoxStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_button_box_style".}
+proc buttonBoxCenter(): cint {.cdecl, importc: "nim_gtk2_button_box_center".}
+proc boxSpacingWidth(): csize_t {.cdecl, importc: "nim_gtk2_box_spacing_width".}
+proc tableDimensionWidth(): csize_t {.cdecl, importc: "nim_gtk2_table_dimension_width".}
+proc tableSpacingWidth(): csize_t {.cdecl, importc: "nim_gtk2_table_spacing_width".}
+proc tablePaddingWidth(): csize_t {.cdecl, importc: "nim_gtk2_table_padding_width".}
 proc arrowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_arrow_type".}
 proc shadowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_shadow_type".}
 proc positionTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_position_type".}
@@ -55,6 +62,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
 
 suite "new raw binding native header ABI":
   test "public struct sizes, offsets and enum widths match C":
+    check attachOptionsSize() == csize_t(sizeof(gtk.TAttachOptions))
+    check buttonBoxStyleSize() == csize_t(sizeof(gtk.TButtonBoxStyle))
+    check buttonBoxCenter() == cint(gtk.BUTTONBOX_CENTER)
+    check boxSpacingWidth() == csize_t(sizeof(default(gtk.TBox).spacing))
+    check tableDimensionWidth() == csize_t(sizeof(default(gtk.TTable).ncols))
+    check tableSpacingWidth() == csize_t(sizeof(default(gtk.TTableRowCol).spacing))
+    check tablePaddingWidth() == csize_t(sizeof(default(gtk.TTableChild).xpadding))
     check arrowTypeSize() == csize_t(sizeof(gtk.TArrowType))
     check shadowTypeSize() == csize_t(sizeof(gtk.TShadowType))
     check positionTypeSize() == csize_t(sizeof(gtk.TPositionType))

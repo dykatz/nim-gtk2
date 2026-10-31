@@ -121,6 +121,16 @@ proc checkedInt(n: int): g.gint =
     raise newException(ValueError, "GTK size must fit a nonnegative gint")
   g.gint(n)
 
+proc checkedBoxSpacing(value: int): g.gint =
+  if value < 0 or value > high(int16).int:
+    raise newException(ValueError, "box spacing must be 0..32767")
+  g.gint(value)
+
+proc checkedBoxPadding(value: int): g.guint =
+  if value < 0 or value > 65535:
+    raise newException(ValueError, "box padding must be 0..65535")
+  g.guint(value)
+
 proc init*() =
   ## Initialize GTK without exiting the process if no display is available.
   if not rawGtk.init_check(nil, nil):
@@ -148,10 +158,10 @@ proc newEntry*(text = ""): Entry =
   rawGtk.set_text(result.raw, t)
 
 proc newVBox*(spacing = 0, homogeneous = false): VBox =
-  result.state = adoptWidget(rawGtk.vbox_new(g.gboolean(homogeneous), checkedInt(spacing)))
+  result.state = adoptWidget(rawGtk.vbox_new(g.gboolean(homogeneous), checkedBoxSpacing(spacing)))
 
 proc newHBox*(spacing = 0, homogeneous = false): HBox =
-  result.state = adoptWidget(rawGtk.hbox_new(g.gboolean(homogeneous), checkedInt(spacing)))
+  result.state = adoptWidget(rawGtk.hbox_new(g.gboolean(homogeneous), checkedBoxSpacing(spacing)))
 
 proc show*(w: Widget) = rawGtk.show(w.raw)
 proc showAll*(w: Widget) = rawGtk.show_all(w.raw)
@@ -241,13 +251,13 @@ proc add*(parent: Bin, child: Widget) =
 
 proc packStart*(box: Box, child: Widget, options = packExpandWidget, padding = 0) =
   checkChild(box, child)
-  let pad = g.guint(checkedInt(padding))
+  let pad = checkedBoxPadding(padding)
   rawGtk.pack_start(box.raw, child.raw, g.gboolean(options != packShrink),
     g.gboolean(options == packExpandWidget), pad)
 
 proc packEnd*(box: Box, child: Widget, options = packExpandWidget, padding = 0) =
   checkChild(box, child)
-  let pad = g.guint(checkedInt(padding))
+  let pad = checkedBoxPadding(padding)
   rawGtk.pack_end(box.raw, child.raw, g.gboolean(options != packShrink),
     g.gboolean(options == packExpandWidget), pad)
 
@@ -343,3 +353,4 @@ include gtk2/proxies
 include gtk2/icons
 include gtk2/selectors
 include gtk2/ranges
+include gtk2/containers

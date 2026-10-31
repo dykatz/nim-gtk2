@@ -26,9 +26,9 @@ proc set_enum*(value: PGValue, v_enum: gint){.cdecl, dynlib: gobjectlib,
     importc: "g_value_set_enum".}
 proc get_enum*(value: PGValue): gint{.cdecl, dynlib: gobjectlib,
     importc: "g_value_get_enum".}
-proc set_flags*(value: PGValue, v_flags: guint){.cdecl, dynlib: gliblib,
+proc set_flags*(value: PGValue, v_flags: guint){.cdecl, dynlib: gobjectlib,
     importc: "g_value_set_flags".}
-proc get_flags*(value: PGValue): guint{.cdecl, dynlib: gliblib,
+proc get_flags*(value: PGValue): guint{.cdecl, dynlib: gobjectlib,
     importc: "g_value_get_flags".}
 proc g_enum_register_static*(name: cstring, const_static_values: PGEnumValue): GType{.
     cdecl, dynlib: gliblib, importc: "g_enum_register_static".}

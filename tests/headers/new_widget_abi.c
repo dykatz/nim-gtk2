@@ -3,6 +3,13 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_attach_options(void) { return sizeof(GtkAttachOptions); }
+size_t nim_gtk2_sizeof_button_box_style(void) { return sizeof(GtkButtonBoxStyle); }
+int nim_gtk2_button_box_center(void) { return GTK_BUTTONBOX_CENTER; }
+size_t nim_gtk2_box_spacing_width(void) { return sizeof(((GtkBox *)0)->spacing); }
+size_t nim_gtk2_table_dimension_width(void) { return sizeof(((GtkTable *)0)->ncols); }
+size_t nim_gtk2_table_spacing_width(void) { return sizeof(((GtkTableRowCol *)0)->spacing); }
+size_t nim_gtk2_table_padding_width(void) { return sizeof(((GtkTableChild *)0)->xpadding); }
 size_t nim_gtk2_sizeof_arrow_type(void) { return sizeof(GtkArrowType); }
 size_t nim_gtk2_sizeof_shadow_type(void) { return sizeof(GtkShadowType); }
 size_t nim_gtk2_sizeof_position_type(void) { return sizeof(GtkPositionType); }
