@@ -67,6 +67,10 @@ submenu ownership, standard/check/radio/image/separator/tearoff items, activatio
 closures, and AccelLabel are demonstrated in [`examples/menus.nim`](examples/menus.nim).
 GTK2 tearoff menus include checked detached-window title/state properties and
 state callbacks; the sampler has an explicit Detach/Reattach control.
+The nine modern toolbar/palette widgets provide checked ToolItem insertion,
+custom content, toggle/radio tools, dropdown menus, and collapsible groups; see
+[`examples/toolbars.nim`](examples/toolbars.nim) and the
+[toolbar guide](docs/gtk2.md#toolbars-and-tool-palettes).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

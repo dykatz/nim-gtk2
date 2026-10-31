@@ -9,6 +9,11 @@ from headers/gdk2 import TColor
 
 {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc orientationSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_orientation".}
+proc toolbarStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_toolbar_style".}
+proc reliefStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_relief_style".}
+proc ellipsizeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_ellipsize".}
+proc toolbarBothHoriz(): cint {.cdecl, importc: "nim_gtk2_toolbar_both_horiz".}
 proc attachOptionsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_attach_options".}
 proc buttonBoxStyleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_button_box_style".}
 proc buttonBoxCenter(): cint {.cdecl, importc: "nim_gtk2_button_box_center".}
@@ -62,6 +67,11 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
 
 suite "new raw binding native header ABI":
   test "public struct sizes, offsets and enum widths match C":
+    check orientationSize() == csize_t(sizeof(gtk.TOrientation))
+    check toolbarStyleSize() == csize_t(sizeof(gtk.TToolbarStyle))
+    check reliefStyleSize() == csize_t(sizeof(gtk.TReliefStyle))
+    check ellipsizeSize() == csize_t(sizeof(gtk.EllipsizeMode))
+    check toolbarBothHoriz() == cint(gtk.TOOLBAR_BOTH_HORIZ)
     check attachOptionsSize() == csize_t(sizeof(gtk.TAttachOptions))
     check buttonBoxStyleSize() == csize_t(sizeof(gtk.TButtonBoxStyle))
     check buttonBoxCenter() == cint(gtk.BUTTONBOX_CENTER)

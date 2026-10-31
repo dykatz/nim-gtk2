@@ -666,3 +666,4 @@ include "gtk2/show"
 include gtk2/newwidgets
 
 include "gtk2/show_2"
+include "gtk2/orientable"

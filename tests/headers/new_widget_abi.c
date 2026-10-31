@@ -3,6 +3,11 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_orientation(void) { return sizeof(GtkOrientation); }
+size_t nim_gtk2_sizeof_toolbar_style(void) { return sizeof(GtkToolbarStyle); }
+size_t nim_gtk2_sizeof_relief_style(void) { return sizeof(GtkReliefStyle); }
+size_t nim_gtk2_sizeof_ellipsize(void) { return sizeof(PangoEllipsizeMode); }
+int nim_gtk2_toolbar_both_horiz(void) { return GTK_TOOLBAR_BOTH_HORIZ; }
 size_t nim_gtk2_sizeof_attach_options(void) { return sizeof(GtkAttachOptions); }
 size_t nim_gtk2_sizeof_button_box_style(void) { return sizeof(GtkButtonBoxStyle); }
 int nim_gtk2_button_box_center(void) { return GTK_BUTTONBOX_CENTER; }

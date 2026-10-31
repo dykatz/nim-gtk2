@@ -13,6 +13,12 @@ proc g_idle_add_full*(priority: gint, function,
   data, notify: gpointer): guint {.cdecl, dynlib: gliblib,
   importc: "g_idle_add_full".}
 
+proc g_main_context_find_source_by_user_data*(context: PGMainContext, data: gpointer): PGSource {.
+  cdecl, dynlib: gliblib, importc: "g_main_context_find_source_by_user_data".}
+
+proc g_source_destroy*(source: PGSource) {.
+  cdecl, dynlib: gliblib, importc: "g_source_destroy".}
+
 proc g_source_remove*(tag: guint): gboolean {.
   cdecl, dynlib: gliblib, importc: "g_source_remove".}
 

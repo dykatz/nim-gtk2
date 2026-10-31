@@ -245,8 +245,10 @@ proc checkChild(parent: Container, child: Widget) =
 proc add*(parent: Bin, child: Widget) =
   ## Single-child containers only. Use packStart/packEnd for boxes.
   checkChild(parent, child)
-  if rawGtk.IS_SEPARATOR_MENU_ITEM(parent.raw) or rawGtk.IS_TEAROFF_MENU_ITEM(parent.raw):
-    raise newException(ValueError, "separator and tearoff menu items cannot have child content")
+  if rawGtk.IS_SEPARATOR_MENU_ITEM(parent.raw) or rawGtk.IS_TEAROFF_MENU_ITEM(parent.raw) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.separator_tool_item_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.tool_button_get_type()):
+    raise newException(ValueError, "this widget manages its own content or cannot have children")
   if rawGtk.get_child(cast[rawGtk.PBin](parent.raw)) != nil:
     raise newException(ValueError, "container already has a child")
   # GtkScrolledWindow requires the GTK2 scroll-adjustments protocol. Adapt
@@ -363,3 +365,4 @@ include gtk2/selectors
 include gtk2/ranges
 include gtk2/containers
 include gtk2/menus
+include gtk2/toolbars

@@ -1367,6 +1367,118 @@ This batch is for menu-bar trees. Standalone popup positioning, custom accelerat
 routing, menu grid attachment, and action/UIManager abstractions remain raw APIs.
 Tearoff floating-window internals remain owned and managed by GTK.
 
+## Toolbars and tool palettes
+
+[`examples/toolbars.nim`](../examples/toolbars.nim) demonstrates all nine widgets:
+Toolbar, ToolItem, ToolButton, ToggleToolButton, RadioToolButton, MenuToolButton,
+SeparatorToolItem, ToolPalette, and ToolItemGroup.
+
+```nim
+let toolbar = newToolbar()
+toolbar.toolbarStyle = toolbarBothHorizontal
+toolbar.iconSize = iconLargeToolbar
+let open = newToolButton("_Open", mnemonic = true)
+open.image = newImageFromIcon("document-open", iconLargeToolbar)
+open.important = true
+open.onClicked(proc () = echo "Open")
+toolbar.append(open)
+let pin = newToggleToolButton("Pin")
+pin.important = true # Keep its label in toolbarBothHorizontal style.
+toolbar.append(pin)
+pin.onToggled(proc () = echo pin.active)
+let custom = newToolItem()
+custom.add(newEntry("Search"))
+toolbar.append(custom)
+```
+
+### Toolbar items and presentation
+
+`append`, `prepend`, and `insert(item, index)` accept ToolItems only and require
+unparented children. Insertion indices are 0..itemCount; `itemAt(index)` accepts
+0..<itemCount and returns an owning, cached **generic ToolItem** alias. Keep the
+specialized constructor handle for button state and editing. `itemIndex(item)`
+and inherited `remove(item)` require direct membership. Cycles, including those
+through attached menus, are rejected before calling GTK. Only the modern GTK2
+ToolItem-based toolbar API is used, never the incompatible legacy append APIs.
+
+Toolbar exposes `orientation` (`horizontal`/`vertical`), `toolbarStyle`
+(`toolbarIcons`, `toolbarText`, `toolbarBoth`, `toolbarBothHorizontal`), `iconSize`,
+`showArrow`, and read-only `reliefStyle`. In `toolbarBothHorizontal`, GTK only
+shows labels on important tools (or in vertical orientations); mark text-only
+tools `important = true`, or use `toolbarText`/`toolbarBoth` for all labels.
+`resetToolbarStyle()` and
+`resetIconSize()` restore native settings/theme defaults. ToolItem exposes its
+inherited orientation/style/icon size/relief, plus writable `homogeneous`,
+`expand`, `visibleHorizontal`, `visibleVertical`, `important`, and plain UTF-8
+`tooltipText`. For custom content, use `newToolItem().add(widget)`. ToolButtons
+manage private native children; replacing them via Bin upcasts is rejected.
+SeparatorToolItem rejects child content and exposes `draw`; setting it false and
+`expand` true creates a flexible spacer.
+
+ToolButton has copied UTF-8 `text`, `useUnderline`, `stockId`, `iconName`, and an
+optional owning `image` getter/checked `image=` setter. Only an unparented Image
+can be assigned; assigning the current image again is a no-op. `clearImage()`
+clears it; empty stock/icon names clear those properties. Native GTK determines
+image/stock/name precedence and theme rendering. Mnemonic underscores affect the
+native overflow-menu entry, not an installed toolbar keyboard shortcut.
+
+ToggleToolButton exposes native `active`; `newRadioToolButton(member, text)` and
+`joinGroup(member)` create/join mutually exclusive native radio groups. No
+borrowed GSLists or private GtkRadioButtons are exposed. Changing active state
+can emit both `toggled` and `clicked`, including programmatic changes. `onClicked`
+and `onToggled` use tracked, exception-contained closures after native defaults.
+They permit self-disconnection and destruction. There is deliberately no fake
+`click()` that merely emits the outer ToolButton signal without updating its
+private native toggle/radio button.
+
+### MenuToolButton
+
+The main button's `onClicked` action is separate from its dropdown arrow. Assign
+`menu = menu`, inspect `hasMenu`/the owning cached `menu` getter, or detach with
+`clearMenu()`. Menus may have only one logical owner, shared with MenuItem's
+submenu checks; cycles and multiple attachment are rejected. `arrowTooltipText`
+is plain UTF-8. `onShowMenu` permits lazy population before native popup.
+
+**Call `menu.showAll()` after populating dropdown items**: an attached menu is
+not a normal MenuToolButton child, so the window's showAll does not traverse it.
+This shows the menu's items without popping it up. GTK2 detaches, rather than
+destroys, retained menus when a MenuToolButton is destroyed. Explicitly destroy
+standalone dropdown menus when finished (the example uses `defer: menu.destroy()`).
+Clearing/replacing a menu likewise leaves retained handles live.
+
+### ToolPalette and ToolItemGroup
+
+Add groups in display order with `palette.add(group)`, then insert ToolItems into
+groups using `append`, `prepend`, or `insert`. `groupCount`, `groupAt`, and
+`groupIndex` inspect native order with owning cached group getters. Groups expose
+`itemCount`, `itemAt`, `itemIndex`, `moveItem(item, index)`, copied UTF-8 `text`,
+`collapsed`, `ellipsize`, and `headerRelief`. Member operations require direct
+membership, and movement indices must identify an existing position.
+
+`setItemPacking(item, homogeneous=true, expand=false, fill=true, newRow=false)`
+sets group child packing; `itemPacking(item)` copies all four values. These are
+separate from ToolItem's toolbar packing properties. `setExclusive(group)` makes
+opening that group collapse other groups; `setGroupExpand(group)` requests spare
+space. Their corresponding getters are `exclusive(group)` and `groupExpand(group)`.
+Removal disconnects GTK2's otherwise lingering exclusive-group notification.
+
+Palette exposes orientation, toolbarStyle/iconSize with resets, and owning
+`horizontalAdjustment`/`verticalAdjustment` getters. Adjustments are available
+after adding the palette to a ScrolledWindow; before that they raise ValueError.
+ScrolledWindow uses the palette's native scrolling protocol without a Viewport.
+Palette destruction retains a child snapshot and destroys every group, avoiding
+GTK2's native mutating-array traversal that otherwise skips alternate groups.
+This also works when a containing window is destroyed or temporary Nim handles
+have already been released. Group destruction also cancels native animation
+sources whose user-data pointer is that group: GTK2 otherwise leaves borrowed
+animation timeouts pointing at freed objects. This cleanup uses public GLib APIs,
+not private struct layouts, and survives release of temporary handles.
+
+Native GTK2 group-position reordering is defective and is not exposed here;
+construct groups in order. Drag-and-drop, custom group-header widgets, custom
+labels/overflow proxies, and GtkAction integration remain raw APIs. No hover
+styling workaround is installed.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1421,7 +1533,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2text.nim`, `tests/tgtk2models.nim`, and
 `tests/tgtk2trees.nim`, `tests/tgtk2proxies.nim`, and
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
-`tests/tgtk2containers.nim` and `tests/tgtk2menus.nim`. These check menu logical
+`tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
+`tests/tgtk2toolbars.nim`. Toolbar tests cover checked membership, native radio
+groups, image/menu aliases, palette packing/scrolling, recursive destruction,
+and closure/native finalization without showing windows. These check menu logical
 ownership/cycles, tearoff parenting/title/state without opening detached windows,
 activation cleanup, image slots, cached owning getters, validated
 layout geometry, native child
