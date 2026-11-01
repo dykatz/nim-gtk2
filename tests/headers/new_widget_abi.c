@@ -3,6 +3,19 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_file_chooser_action(void) { return sizeof(GtkFileChooserAction); }
+size_t nim_gtk2_sizeof_file_chooser_error(void) { return sizeof(GtkFileChooserError); }
+size_t nim_gtk2_sizeof_file_filter_flags(void) { return sizeof(GtkFileFilterFlags); }
+size_t nim_gtk2_sizeof_file_filter_info(void) { return sizeof(GtkFileFilterInfo); }
+size_t nim_gtk2_file_filter_mime_offset(void) { return offsetof(GtkFileFilterInfo, mime_type); }
+size_t nim_gtk2_sizeof_file_chooser_button(void) { return sizeof(GtkFileChooserButton); }
+size_t nim_gtk2_sizeof_file_chooser_button_class(void) { return sizeof(GtkFileChooserButtonClass); }
+int nim_gtk2_invoke_file_filter(GtkFileFilterFunc fn, void *data) {
+  GtkFileFilterInfo info = { GTK_FILE_FILTER_FILENAME | GTK_FILE_FILTER_URI |
+    GTK_FILE_FILTER_DISPLAY_NAME | GTK_FILE_FILTER_MIME_TYPE,
+    "/abi.txt", "file:///abi.txt", "abi.txt", "text/plain" };
+  return fn(&info, data);
+}
 size_t nim_gtk2_sizeof_gsize(void) { return sizeof(gsize); }
 size_t nim_gtk2_sizeof_gtype(void) { return sizeof(GType); }
 size_t nim_gtk2_sizeof_gobject_class(void) { return sizeof(GObjectClass); }

@@ -1,4 +1,6 @@
 # Included by headers/gtk2.nim; do not import directly.
+# GTK2's Windows headers redirect filename APIs to their UTF-8 ABI exports.
+const fileChooserFilenameSuffix = when defined(windows): "_utf8" else: ""
 proc file_chooser_get_type*(): GType{.cdecl, dynlib: lib,
                                       importc: "gtk_file_chooser_get_type".}
 proc file_chooser_error_quark*(): TGQuark{.cdecl, dynlib: lib,
@@ -29,23 +31,23 @@ proc get_select_multiple*(chooser: PFileChooser): gboolean{.cdecl,
 proc set_current_name*(chooser: PFileChooser, name: cstring){.
     cdecl, dynlib: lib, importc: "gtk_file_chooser_set_current_name".}
 proc get_filename*(chooser: PFileChooser): cstring{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_get_filename".}
+    dynlib: lib, importc: "gtk_file_chooser_get_filename" & fileChooserFilenameSuffix.}
 proc set_filename*(chooser: PFileChooser, filename: cstring): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_file_chooser_set_filename".}
+    cdecl, dynlib: lib, importc: "gtk_file_chooser_set_filename" & fileChooserFilenameSuffix.}
 proc select_filename*(chooser: PFileChooser, filename: cstring): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_file_chooser_select_filename".}
+    cdecl, dynlib: lib, importc: "gtk_file_chooser_select_filename" & fileChooserFilenameSuffix.}
 proc unselect_filename*(chooser: PFileChooser, filename: cstring){.
-    cdecl, dynlib: lib, importc: "gtk_file_chooser_unselect_filename".}
+    cdecl, dynlib: lib, importc: "gtk_file_chooser_unselect_filename" & fileChooserFilenameSuffix.}
 proc select_all*(chooser: PFileChooser){.cdecl, dynlib: lib,
     importc: "gtk_file_chooser_select_all".}
 proc unselect_all*(chooser: PFileChooser){.cdecl, dynlib: lib,
     importc: "gtk_file_chooser_unselect_all".}
 proc get_filenames*(chooser: PFileChooser): PGSList{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_get_filenames".}
+    dynlib: lib, importc: "gtk_file_chooser_get_filenames" & fileChooserFilenameSuffix.}
 proc set_current_folder*(chooser: PFileChooser, filename: cstring): gboolean{.
-    cdecl, dynlib: lib, importc: "gtk_file_chooser_set_current_folder".}
+    cdecl, dynlib: lib, importc: "gtk_file_chooser_set_current_folder" & fileChooserFilenameSuffix.}
 proc get_current_folder*(chooser: PFileChooser): cstring{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_get_current_folder".}
+    dynlib: lib, importc: "gtk_file_chooser_get_current_folder" & fileChooserFilenameSuffix.}
 proc get_uri*(chooser: PFileChooser): cstring{.cdecl, dynlib: lib,
     importc: "gtk_file_chooser_get_uri".}
 proc set_uri*(chooser: PFileChooser, uri: cstring): gboolean{.
@@ -76,7 +78,7 @@ proc set_use_preview_label*(chooser: PFileChooser,
 proc get_use_preview_label*(chooser: PFileChooser): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_file_chooser_get_use_preview_label".}
 proc get_preview_filename*(chooser: PFileChooser): cstring{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_get_preview_filename".}
+    dynlib: lib, importc: "gtk_file_chooser_get_preview_filename" & fileChooserFilenameSuffix.}
 proc get_preview_uri*(chooser: PFileChooser): cstring{.cdecl,
     dynlib: lib, importc: "gtk_file_chooser_get_preview_uri".}
 proc set_extra_widget*(chooser: PFileChooser, extra_widget: PWidget){.
@@ -94,20 +96,25 @@ proc set_filter*(chooser: PFileChooser, filter: PFileFilter){.
 proc get_filter*(chooser: PFileChooser): PFileFilter{.cdecl,
     dynlib: lib, importc: "gtk_file_chooser_get_filter".}
 proc add_shortcut_folder*(chooser: PFileChooser, folder: cstring,
-                                       error: pointer): gboolean{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_add_shortcut_folder".}
+                                       error: ptr ptr GError): gboolean{.cdecl,
+    dynlib: lib, importc: "gtk_file_chooser_add_shortcut_folder" & fileChooserFilenameSuffix.}
 proc remove_shortcut_folder*(chooser: PFileChooser,
-    folder: cstring, error: pointer): gboolean{.cdecl, dynlib: lib,
-    importc: "gtk_file_chooser_remove_shortcut_folder".}
+    folder: cstring, error: ptr ptr GError): gboolean{.cdecl, dynlib: lib,
+    importc: "gtk_file_chooser_remove_shortcut_folder" & fileChooserFilenameSuffix.}
 proc list_shortcut_folders*(chooser: PFileChooser): PGSList{.cdecl,
-    dynlib: lib, importc: "gtk_file_chooser_list_shortcut_folders".}
+    dynlib: lib, importc: "gtk_file_chooser_list_shortcut_folders" & fileChooserFilenameSuffix.}
 proc add_shortcut_folder_uri*(chooser: PFileChooser, uri: cstring,
-    error: pointer): gboolean{.cdecl, dynlib: lib, importc: "gtk_file_chooser_add_shortcut_folder_uri".}
+    error: ptr ptr GError): gboolean{.cdecl, dynlib: lib, importc: "gtk_file_chooser_add_shortcut_folder_uri".}
 proc remove_shortcut_folder_uri*(chooser: PFileChooser,
-    uri: cstring, error: pointer): gboolean{.cdecl, dynlib: lib,
+    uri: cstring, error: ptr ptr GError): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_file_chooser_remove_shortcut_folder_uri".}
 proc list_shortcut_folder_uris*(chooser: PFileChooser): PGSList{.
     cdecl, dynlib: lib, importc: "gtk_file_chooser_list_shortcut_folder_uris".}
+proc set_show_hidden*(chooser: PFileChooser, value: gboolean) {.cdecl, dynlib: lib, importc: "gtk_file_chooser_set_show_hidden".}
+proc get_show_hidden*(chooser: PFileChooser): gboolean {.cdecl, dynlib: lib, importc: "gtk_file_chooser_get_show_hidden".}
+proc set_create_folders*(chooser: PFileChooser, value: gboolean) {.cdecl, dynlib: lib, importc: "gtk_file_chooser_set_create_folders".}
+proc get_create_folders*(chooser: PFileChooser): gboolean {.cdecl, dynlib: lib, importc: "gtk_file_chooser_get_create_folders".}
+proc get_do_overwrite_confirmation*(chooser: PFileChooser): gboolean {.cdecl, dynlib: lib, importc: "gtk_file_chooser_get_do_overwrite_confirmation".}
 proc set_do_overwrite_confirmation*(chooser: PFileChooser,
     do_overwrite_confirmation: gboolean){.cdecl, dynlib: lib,
     importc: "gtk_file_chooser_set_do_overwrite_confirmation".}

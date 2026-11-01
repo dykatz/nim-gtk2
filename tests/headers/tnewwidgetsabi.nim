@@ -13,6 +13,14 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc fileActionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_action".}
+proc fileErrorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_error".}
+proc fileFlagsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_filter_flags".}
+proc fileInfoSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_filter_info".}
+proc fileMimeOffset(): csize_t {.cdecl, importc: "nim_gtk2_file_filter_mime_offset".}
+proc fileButtonSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_button".}
+proc fileButtonClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_button_class".}
+proc invokeFileFilter(fn: gtk.TFileFilterFunc, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_invoke_file_filter".}
 proc glibSizeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gsize".}
 proc glibTypeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gtype".}
 proc objectClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gobject_class".}
@@ -95,6 +103,13 @@ suite "new raw binding native header ABI":
     check glibSizeWidth() == csize_t(sizeof(g.gsize))
     check glibTypeWidth() == csize_t(sizeof(g.GType))
     check objectClassSize() == csize_t(sizeof(g.TGObjectClass))
+    check fileActionSize() == csize_t(sizeof(gtk.TFileChooserAction))
+    check fileErrorSize() == csize_t(sizeof(gtk.TFileChooserError))
+    check fileFlagsSize() == csize_t(sizeof(gtk.TFileFilterFlags))
+    check fileInfoSize() == csize_t(sizeof(gtk.TFileFilterInfo))
+    check fileMimeOffset() == csize_t(offsetOf(gtk.TFileFilterInfo, mime_type))
+    check fileButtonSize() == csize_t(sizeof(typeof(cast[gtk.PFileChooserButton](nil)[])))
+    check fileButtonClassSize() == csize_t(sizeof(typeof(cast[gtk.PFileChooserButtonClass](nil)[])))
     check assistantPageTypeSize() == csize_t(sizeof(gtk.AssistantPageType))
     check assistantProgress() == cint(gtk.ASSISTANT_PAGE_PROGRESS)
     check colorSelectionSize() == csize_t(sizeof(gtk.TColorSelection))
@@ -183,3 +198,9 @@ suite "new raw binding native header ABI":
         $info.uri == "file:///abi.txt" and info.age == -1)
     check g.toBool(invokeFilter(match, addr calls))
     check calls == 2
+    proc fileMatch(info: gtk.PFileFilterInfo, data: pointer): g.gboolean {.cdecl.} =
+      inc cast[ptr int](data)[]
+      g.gbool(cint(info.contains) == 15 and $info.filename == "/abi.txt" and
+        $info.uri == "file:///abi.txt" and $info.display_name == "abi.txt" and $info.mime_type == "text/plain")
+    check g.toBool(invokeFileFilter(fileMatch, addr calls))
+    check calls == 3

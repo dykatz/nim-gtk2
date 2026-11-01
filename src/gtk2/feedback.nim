@@ -167,7 +167,12 @@ proc responseThunk(instance: pointer, response: g.gint, data: pointer) {.cdecl, 
       fn(ResponseId(response))
     except Exception as error:
       reportSignalError(error)
+proc connectFileResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection
 proc connectResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection =
+  # Native file choosers continue touching their delegate after response emission.
+  # Keep this safe even when the concrete dialog has been upcast to Dialog.
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.file_chooser_get_type()):
+    return connectFileResponse(w, fn)
   let p = w.raw
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
   let callback = ResponseCallback(fn: fn)

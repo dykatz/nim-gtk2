@@ -83,6 +83,12 @@ Assistant adds checked nonblocking wizard pages, validation/completion, optional
 steps, page images, custom actions, and safe deferred lifecycle observers; see
 [`examples/assistant.nim`](examples/assistant.nim) and the
 [Assistant guide](docs/gtk2.md#assistant-wizard-workflows).
+FileChooserButton/Widget/Dialog add native-path and URI selections, multiple
+selection, shared FileFilter rules, and deferred response snapshots; see
+[`examples/filechoosers.nim`](examples/filechoosers.nim) and the
+[file chooser guide](docs/gtk2.md#file-choosers-and-filters). Older GTK2 packages
+with modern GIO may need the documented native
+[completion fix](docs/gtk2.md#native-gtk2gio-completion-compatibility).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

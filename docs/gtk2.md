@@ -1743,6 +1743,152 @@ Hidden tests exercise native page transitions and signal delivery without mappin
 a window or clicking private native navigation controls; the example is compiled
 but not launched by tests.
 
+## File choosers and filters
+
+[`examples/filechoosers.nim`](../examples/filechoosers.nim) demonstrates an
+embedded panel, file/folder chooser buttons, multiple selection, shared filters,
+and nonblocking Open/Save dialogs. No example operation writes a selected file.
+
+- `newFileChooserButton(title="Choose a File", action=fileOpen)` derives from
+  HBox and supports only `fileOpen` and `fileSelectFolder`, single selection.
+  `title`, nonnegative `widthChars`, and `focusOnClick` configure its native UI.
+  Its popup stays GTK-owned and is not exposed as a reparentable dialog.
+- `newFileChooserWidget(action=fileOpen)` derives from VBox for embedding.
+- `newFileChooserDialog(title="Choose a File", action=fileOpen, modal=false)`
+  derives from Dialog; the parent overload defaults `destroyWithParent=true`.
+  Constructors install Cancel and action-appropriate Accept buttons, with signed
+  `responseCancel`/`responseAccept` IDs. Window transient/modal/lifetime methods
+  and Dialog button/response methods remain available. Changing action updates
+  the constructor's Accept stock label. Titles are checked UTF-8.
+
+The button/panel manage private content; Box packing into them is rejected even
+through HBox/VBox upcasts. Pack them into an ordinary application container.
+Shared interface methods are available on all three specialized handles; keep
+those handles rather than generic Widget aliases for chooser operations.
+
+### Configuration and copied selections
+
+`action` accepts `fileOpen`, `fileSave`, `fileSelectFolder`, or `fileCreateFolder`.
+`selectMultiple` is restricted to Open/SelectFolder panels/dialogs, and switching
+a multiple-selection chooser to Save/CreateFolder is rejected before mutation.
+The button rejects multiple selection; assigning false is a safe no-op (GTK2's
+native button setter warns even for false). `localOnly`, `showHidden`,
+`createFolders`, and `overwriteConfirmation` forward native boolean properties.
+
+`filename`, `uri`, `filenames`, `uris`, `currentFolder`, and `currentFolderUri`
+copy GTK-owned results and free all transfer-full strings/list nodes. An empty
+string/list means unavailable/no selection. `selection` copies a FileSelection
+with `filenames`, `uris`, `currentFolder`, and `currentFolderUri` fields.
+These are snapshots, not live views or filesystem-access permissions.
+
+**Unix filenames are native filesystem bytes, not necessarily UTF-8.** Windows
+filenames use GTK's UTF-8 ABI exports (including 64-bit Windows). URI strings
+provide portable, escaped names suitable for display. Nonlocal selections may
+have URIs without local filenames; do not zip the two lists by index. Set
+localOnly=false only when the application can handle nonlocal URIs.
+
+`setFilename`, `setUri`, `setCurrentFolder`, and `setCurrentFolderUri` return
+native booleans. Paths must be absolute/nonempty/NUL-free; Windows paths must
+also be valid UTF-8. URIs need a valid absolute scheme, UTF-8 and escaped
+whitespace/control bytes. No implicit relative-path resolution is performed.
+**GTK loads directories asynchronously:** true is not proof that the target
+exists, loading finished, or the eventual selection matches the request. A
+current-folder update can arrive before its file model/selection is ready.
+Observe subsequent state rather than spinning a nested main loop in applications.
+
+For a new Save/CreateFolder target, request a current folder and call
+`setCurrentName(utf8Basename)`; the name may be empty to clear it, but not a path,
+`.` or `..`. Open/SelectFolder reject this operation. These methods never create
+a directory or write a file. Actual writes, access checks, overwrite races, and
+safe atomic/exclusive creation remain application responsibilities.
+
+`selectAll` requires multiple selection. `unselectAll` also clears native pending
+selection requests. `selectFilename`/`selectUri` require multiple mode and forward
+native individual selection requests; **GTK2 may move its cursor and replace an
+earlier selected row even in multiple mode**. They are not an atomic/additive
+multi-selection builder. Native Ctrl/Shift interaction and selectAll support
+multiple selections normally. `unselectFilename`/`unselectUri` unselect loaded
+rows; an outstanding asynchronous request may still affect later selection.
+
+### Filters and observers
+
+`newFileFilter(name="", patterns=[])` creates a floating GtkObject that the SDK
+sinks correctly; it is not a Widget. `name`, `addPattern`, `addMimeType`, and
+`addPixbufFormats` support named shell-pattern, MIME and supported-image rules.
+Rules are ORed, not ANDed; adding image formats allows images in addition to other
+rules. Text/rules are checked UTF-8, rules must be nonempty. Custom C predicates
+remain raw. Set the name before adding it: GTK2's filter-combo display does not
+track subsequent name changes.
+
+`addFilter`, `removeFilter`, `filters`, `filter`, and `filter=` check membership
+and reject duplicates/foreign filters. filters returns owning cached handles;
+filter returns an empty FileFilter when none exists. Add a filter before selecting
+it; an empty FileFilter is not a filter-clearing sentinel. A filter can be shared
+between choosers, survives removal if retained, and is normally released by
+ordinary handle lifetime. Remove it from choosers before explicit filter.destroy;
+destroy invalidates SDK aliases and prevents resurrection of disposed handles.
+
+`onSelectionChanged(proc(value: FileSelection))` watches selection and current
+folder changes. Delivery is deferred/coalesced to UI idle, with copied final
+values, duplicate suppression, and no initial notification. It is **not an
+acceptance signal**. `onFileSet` on the button reports native user acceptance;
+programmatic requests do not synthesize it. `onFileActivated` observes native
+activation. Both action observers copy a snapshot at signal time and queue each
+event for safe idle delivery; neither automatically closes an owner.
+
+`onResponse(proc(id: ResponseId, value: FileSelection))` on FileChooserDialog
+copies the selection when GTK emits the validated response, before later edits.
+An Accept response can be stopped by native validation or postponed during I/O.
+The inherited single-argument onResponse is also deferred for file chooser
+dialogs, **including through a Dialog upcast**. Native GTK continues using the
+delegate after response emission, making synchronous destructive closures unsafe.
+Prefer the two-argument form when accepting files. Call dialog.destroy explicitly
+when finished; Cancel does not roll back application work or close automatically.
+
+Observers contain exceptions, allow self-disconnection/reentrancy/destruction,
+and cancel pending work on disconnect or owner destruction. Captures and native
+references are released on the UI thread. Preview/extra-widget ownership, shortcut
+folders, custom filter predicates, and confirm-overwrite return callbacks remain
+raw APIs in this batch.
+
+### Native GTK2/GIO completion compatibility
+
+GTK2 2.24.33's filename-completion code requests only name/display-name/type
+metadata, but its filesystem model reads is-hidden/is-backup too. Modern GIO
+can emit `GFileInfo created without standard::is-hidden` or `...is-backup` in Save
+mode or filename-entry completion, even in a plain C GTK application. This was
+reproduced with the installed GTK2 2.24.33/GLib 2.82.5, independent of Nim.
+With G_DEBUG=fatal-warnings it aborts. Some distributions may already patch this.
+
+[`patches/gtk2-filechooser-completion-gio.patch`](../patches/gtk2-filechooser-completion-gio.patch)
+adds the missing requested attributes to native GTK's gtkfilechooserentry.c.
+It was dry-run checked against the upstream 2.24.33 source; it does **not** change
+ABI, inspect private objects at runtime, suppress warnings, or modify the system
+library automatically. Apply it to your GTK2 source/package and rebuild/reinstall
+that library if affected. The SDK does not bundle or rebuild GTK itself.
+
+The standalone diagnostic
+[`tests/headers/filechooser_completion.c`](../tests/headers/filechooser_completion.c)
+reproduces the issue without Nim or mapped windows:
+
+```sh
+cc -o /tmp/gtk2-completion tests/headers/filechooser_completion.c $(pkg-config --cflags --libs gtk+-2.0)
+G_DEBUG=fatal-warnings /tmp/gtk2-completion /path/to/directory-containing-files
+```
+
+Use your C compiler (e.g. gcc) and matching architecture/pkg-config path; 64-bit
+illumos uses `/usr/lib/64/pkgconfig`. The diagnostic intentionally fails on an
+affected native runtime and is separate from testUi. SDK tests keep Save completion
+in an empty temporary directory to avoid this known native defect; Open/multiple
+selection tests use real files, including non-UTF-8 Unix names. No warnings are
+suppressed and normal tests never map a chooser.
+
+The SDK uses present/responses, never gtk_dialog_run. However **GTK2 itself may
+enter nested loops for stock error dialogs and overwrite confirmation**. Enabling
+overwriteConfirmation requests that native behavior; it defaults false. For
+application-controlled asynchronous overwrite decisions, leave it false and
+perform that decision outside the chooser using ordinary nonblocking dialogs.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1799,7 +1945,11 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
-`tests/tgtk2choosers.nim`, and `tests/tgtk2assistant.nim`. Assistant tests cover
+`tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
+`tests/tgtk2filechoosers.nim`. File chooser tests cover native/URI path handling,
+asynchronous snapshots, selection modes, filter ownership/membership, deferred
+responses (including Dialog upcasts), cancellation and native finalization.
+Assistant tests cover
 page metadata, visibility, navigation, image ownership, action membership,
 retained-page lifetimes, deferred events, and callback/native finalization.
 Chooser tests cover copied selections, alpha semantics,
@@ -1828,8 +1978,9 @@ heap-closure cycles, and invalid inputs. `testUi` never opens a visible window o
 enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windows
 only on an isolated virtual display, as described above.
 
-This layer intentionally does not yet wrap specialized file/recent/color/font
-chooser dialogs, assistants, standalone popup positioning, custom model comparison/predicate callbacks,
+This layer does not yet wrap recent choosers, Plug/Socket/Invisible, Unix print
+and page-setup dialogs, CellView, HSV, OffscreenWindow, or StatusIcon (a GObject,
+not a widget). Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

@@ -14,6 +14,7 @@ proc add_mime_type*(filter: PFileFilter, mime_type: cstring){.cdecl,
     dynlib: lib, importc: "gtk_file_filter_add_mime_type".}
 proc add_pattern*(filter: PFileFilter, pattern: cstring){.cdecl,
     dynlib: lib, importc: "gtk_file_filter_add_pattern".}
+proc add_pixbuf_formats*(filter: PFileFilter) {.cdecl, dynlib: lib, importc: "gtk_file_filter_add_pixbuf_formats".}
 proc add_custom*(filter: PFileFilter, needed: TFileFilterFlags,
                              fn: TFileFilterFunc, data: gpointer,
                              notify: TGDestroyNotify){.cdecl, dynlib: lib,

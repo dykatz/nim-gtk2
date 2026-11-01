@@ -80,6 +80,15 @@ GTK's UI-thread rules, must not unwind Nim exceptions through C, and must keep
 any user-data memory alive until GTK releases it. Callback/data lifetime is not
 managed automatically by raw bindings.
 
+The existing file chooser declarations also use the correct title/action button
+constructor signature, focus-on-click symbol, and GtkWidget return from the
+varargs dialog constructor. PFileChooser is an opaque interface pointer, not a
+fake Dialog instance layout. Its action/error enums have C width; FileFilterFlags
+is a combinable distinct cint. FileChooserButton's private data is opaque and its
+class includes all seven native reserved pointer slots. On Windows, filename APIs
+use the same `_utf8` exports selected by GTK2's C headers. Native ABI probes cover
+the button/class and filter-info layout plus the filter callback's flags/strings.
+
 ## Ownership
 
 Native GTK ownership rules apply. Most widget constructors return floating

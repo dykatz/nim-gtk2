@@ -1,0 +1,12 @@
+--- a/gtk/gtkfilechooserentry.c
++++ b/gtk/gtkfilechooserentry.c
+@@ -525,7 +525,8 @@ populate_completion_store (GtkFileChooserEntry *chooser_entry)
+ {
+   chooser_entry->completion_store = GTK_TREE_MODEL (
+       _gtk_file_system_model_new_for_directory (chooser_entry->current_folder_file,
+-                                                "standard::name,standard::display-name,standard::type",
++                                                "standard::name,standard::display-name,standard::type,"
++                                                "standard::is-hidden,standard::is-backup",
+                                                 completion_store_set,
+                                                 chooser_entry,
+                                                 N_COLUMNS,
