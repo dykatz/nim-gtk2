@@ -1,0 +1,11 @@
+--- a/gtk/gtkrecentchooserdefault.c
++++ b/gtk/gtkrecentchooserdefault.c
+@@ -877,6 +877,7 @@ cleanup_after_load (gpointer user_data)
+        * so we can reset the state machine
+        */
+-      g_source_remove (impl->load_id);
++      /* This is the source's destroy notifier: it is already removed.
++       * Removing the same ID again is invalid, including for empty lists. */
+       impl->load_id = 0;
+       impl->load_state = LOAD_EMPTY;
+     }

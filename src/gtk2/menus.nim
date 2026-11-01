@@ -115,6 +115,8 @@ proc insert*(w: MenuShell, item: MenuItem, index: int) =
 proc append*(w: MenuShell, item: MenuItem) = w.insert(item, w.itemCount)
 proc prepend*(w: MenuShell, item: MenuItem) = w.insert(item, 0)
 proc itemAt*(w: MenuShell, index: int): MenuItem =
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.recent_chooser_menu_get_type()):
+    raise newException(ValueError, "recent menus manage their own private item widgets")
   let children = rawGtk.get_children(cast[rawGtk.PContainer](w.raw))
   defer: g.free(children)
   if index < 0: raise newException(ValueError, "menu index out of bounds")

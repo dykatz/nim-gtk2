@@ -231,8 +231,10 @@ proc `borderWidth=`*(w: Container, width: int) =
 
 proc checkChild(parent: Container, child: Widget) =
   if g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.file_chooser_button_get_type()) or
-      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.file_chooser_widget_get_type()):
-    raise newException(ValueError, "file chooser controls manage their own content")
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.file_chooser_widget_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.recent_chooser_widget_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.recent_chooser_menu_get_type()):
+    raise newException(ValueError, "chooser controls manage their own content")
   if rawGtk.IS_WINDOW(child.raw):
     raise newException(ValueError, "a top-level window cannot be a child")
   if child.raw == parent.raw or rawGtk.get_parent(child.raw) != nil:
@@ -373,3 +375,4 @@ include gtk2/positioned
 include gtk2/choosers
 include gtk2/assistant
 include gtk2/filechoosers
+include gtk2/recents

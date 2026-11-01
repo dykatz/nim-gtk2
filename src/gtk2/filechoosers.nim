@@ -72,6 +72,18 @@ proc checkedChooserFilename(value: string): cstring =
   if value.len == 0 or not g.toBool(g.g_path_is_absolute(result)):
     raise newException(ValueError, "chooser filenames must be absolute native paths")
   when defined(windows): discard checkedUtf8Text(value)
+proc filenameToUri*(filename: string): string =
+  ## Convert an absolute native filename to a local file URI, without I/O.
+  let path = checkedChooserFilename(filename)
+  var error: ptr g.GError
+  let text = g.g_filename_to_uri(path, nil, addr error)
+  if error != nil:
+    let message = $error.message
+    g.g_error_free(error)
+    if text != nil: g.g_free(text)
+    raise newException(ValueError, message)
+  if text == nil: raise newException(ValueError, "GLib could not convert the filename to a URI")
+  copiedFileText(text)
 proc checkedChooserUri(value: string): cstring =
   result = checkedUtf8Text(value)
   var colon = -1

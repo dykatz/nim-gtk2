@@ -89,6 +89,12 @@ selection, shared FileFilter rules, and deferred response snapshots; see
 [file chooser guide](docs/gtk2.md#file-choosers-and-filters). Older GTK2 packages
 with modern GIO may need the documented native
 [completion fix](docs/gtk2.md#native-gtk2gio-completion-compatibility).
+RecentChooserWidget/Menu/Dialog add isolated or shared RecentManager history,
+copied metadata, RecentFilter rules and safe activation/response observers; see
+[`examples/recents.nim`](examples/recents.nim) and the
+[recent chooser guide](docs/gtk2.md#recent-item-choosers). The guide also documents
+GTK2's native [idle cleanup fix](docs/gtk2.md#native-recent-chooser-source-cleanup)
+for empty recent panels/dialogs on modern GLib.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

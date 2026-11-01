@@ -1790,7 +1790,10 @@ localOnly=false only when the application can handle nonlocal URIs.
 `setFilename`, `setUri`, `setCurrentFolder`, and `setCurrentFolderUri` return
 native booleans. Paths must be absolute/nonempty/NUL-free; Windows paths must
 also be valid UTF-8. URIs need a valid absolute scheme, UTF-8 and escaped
-whitespace/control bytes. No implicit relative-path resolution is performed.
+whitespace/control bytes. No implicit relative-path resolution is performed. `filenameToUri(absolutePath)`
+converts native filename bytes to an escaped local file URI without filesystem
+I/O, checks the same path rules, copies/frees GLib's result and raises ValueError
+on conversion failure.
 **GTK loads directories asynchronously:** true is not proof that the target
 exists, loading finished, or the eventual selection matches the request. A
 current-folder update can arrive before its file model/selection is ready.
@@ -1889,6 +1892,169 @@ overwriteConfirmation requests that native behavior; it defaults false. For
 application-controlled asynchronous overwrite decisions, leave it false and
 perform that decision outside the chooser using ordinary nonblocking dialogs.
 
+## Recent-item choosers
+
+[`examples/recents.nim`](../examples/recents.nim) demonstrates RecentChooserWidget,
+RecentChooserMenu, and RecentChooserDialog with isolated demo history, copied
+metadata, shared filters, and nonblocking activation/response handling. It neither
+alters desktop history nor executes stored application commands.
+
+### Manager and copied metadata
+
+`newRecentManager(absoluteFilename)` creates a plain GObject backed by a specific
+XBEL recent-items file. Empty/relative/NUL paths and existing directories are
+rejected; Windows filenames must be UTF-8. Create the parent directory and keep
+it available until all manager/chooser references have been released. GTK performs
+native monitoring, delayed persistence and merging; malformed/unreadable storage,
+monitoring or write failures can produce native GTK diagnostics. This is not a
+transactional database or a filesystem-access grant.
+
+`defaultRecentManager()` returns an owning view of GTK's borrowed singleton.
+Mutating it intentionally changes shared desktop history. Chooser constructors
+use that default when no manager is supplied. Prefer an explicit manager for
+application-private history. `filename` copies its storage path. `addItem(uri,
+mimeType, appName, appExec, displayName="", description="", groups=[],
+isPrivate=false)` uses explicit validated metadata rather than asynchronous MIME
+guessing. Required text fields and groups must be nonempty UTF-8; URIs use the
+same checked absolute-scheme rules as file choosers. Use filenameToUri(path) to
+register a native local filename without importing raw GLib. Native addItem's boolean
+reports acceptance, not completion of the delayed XBEL write. Re-registering
+merges groups/application history; empty optional displayName/description use
+native defaults or preserve existing metadata rather than clearing it. isPrivate
+is a chooser display hint, not encryption or filesystem access control.
+
+`hasItem`, `lookupItem`, `items`, `removeItem`, `moveItem(oldUri, newUri)`, and
+`purgeItems(): int` operate on the history. Removal/purge affect records, never the
+underlying documents. lookup/remove/move/purge failures raise RecentError with
+copied message, native `domain` and `code`, freeing GError correctly. No manager
+limit wrapper is provided: GTK2's deprecated manager limit has no effect; configure
+chooser limits instead.
+
+`RecentItem` is **copied data**, not a RecentInfo pointer/GObject. It contains uri,
+displayName, description, mimeType, shortName, uriDisplay, lastApplication,
+applications/groups string sequences, age in days, isPrivate, and isLocal.
+`isEmpty` means no URI/current item. Borrowed strings, transfer-full display
+strings, string vectors, RecentInfo references and list nodes are handled with
+their respective native ownership rules. Copies survive manager edits/removal
+and widget destruction. They do not include guessed-width time_t timestamps,
+live icon objects, or a cached proof that the resource exists. URI display text
+can be unavailable when a native filename cannot be converted to UTF-8.
+
+`onChanged(proc())` is deferred/coalesced until UI idle, after GTK's native change
+handler. It has no initial notification and observes GTK's delayed persistence/
+external updates rather than each addItem call. `disconnectSignals()` breaks
+manager callback captures, including self-cycles. Final manager releases and all
+operations/callbacks stay on the UI thread.
+
+### Widget, menu and dialog
+
+- `newRecentChooserWidget(manager=default)` derives from VBox for embedding.
+- `newRecentChooserMenu(manager=default)` derives from Menu and can be attached
+  using an ordinary MenuItem's submenu or MenuToolButton's menu. GTK owns its
+  generated rows: insertion/packing and itemAt are rejected through upcasts too.
+  Use `items`, not private menu widgets, to inspect history. Native MenuShell
+  itemCount includes its private placeholder and is not an eligible-item count.
+- `newRecentChooserDialog(title="Recent items", manager=default, modal=false)`
+  derives from Dialog. The parent overload defaults destroyWithParent=true.
+  Constructors add Cancel/Open buttons with responseCancel/responseAccept IDs;
+  titles are checked UTF-8 and Window transient/modal/lifetime controls apply.
+
+**GTK2 borrows recent managers.** SDK constructors retain a native manager
+reference on the chooser until native finalization, after delegate disposal has
+disconnected its manager signals. Temporary Nim manager handles are therefore
+safe. `chooser.manager` returns an owning cached handle to that same manager.
+An explicit manager's storage directory must outlive *all* chooser references,
+not just its original Nim handle.
+
+Shared properties include limit (-1=unlimited, otherwise nonnegative gint),
+sortOrder (recentUnsorted/recentMostRecent/recentLeastRecent), showPrivate,
+showNotFound, localOnly, showTips, and showIcons. Menus additionally have
+showNumbers. Menu property setters request native repopulation via the public
+filter property; `menu.refresh()` is also available. Native models load/reload at
+idle, typically on mapping or configuration/manager changes. An item can appear
+in the eligible metadata before its selectable native row has loaded.
+
+**This ergonomic API is single-selection only.** Assigning selectMultiple=true
+is rejected; false keeps/restores single mode and is a safe no-op on menus,
+whose native setter warns for either value. Critically, GTK2 recent chooser get_items/get_uris return **all
+eligible items**, not selected rows. `chooser.items` reflects filtering, sorting
+and limit; it never claims to return a selected set.
+
+`currentUri` copies the native current URI and `currentItem` copies its metadata;
+a menu may report an active/default row before any acceptance. On panels/dialogs,
+`selectUri(uri)` selects without activation, while `activateUri(uri)` explicitly
+selects first and then uses native activation. This order avoids GTK2's
+set_current_uri emitting activation before selecting its target. Selection and
+activation can raise RecentError while an item is absent, filtered out or not yet
+loaded. `unselectUri`/`unselectAll` apply to panels/dialogs. Programmatic menu
+selection/activation remains raw: its native select_uri implementation can select
+the wrong row. Use ordinary user menu activation and onItemActivated instead.
+
+### Filters and safe observers
+
+`newRecentFilter(name="", patterns=[])` owns a sunk floating GtkObject, not a
+widget. name, addPattern, addMimeType, addPixbufFormats, addApplication, addGroup,
+and addAge(nonnegativeDays) add native **OR** rules. Patterns match the supplied
+**display name**, not necessarily the URI basename: a friendly title without an
+extension won't match *.txt. Prefer MIME rules for that case. Custom predicates
+remain raw.
+Text is validated UTF-8 and rules must be nonempty. Name filters before adding
+them; native combo labels don't follow later renames.
+
+`addFilter`, `removeFilter`, `filters`, `filter`, and `filter=` use checked
+membership and owning cached handles. Widget/dialog support a filter list; add a
+filter before selecting it. Menus have **one** filter slot: addFilter rejects an
+occupied slot; assigning filter replaces it, with same-value assignment a no-op.
+Menu removal uses its nullable public filter property so visible rows refresh
+correctly. Empty RecentFilter means no current filter, not a valid assignment.
+Shared/removed retained filters survive. Normally release handles; remove filters
+from choosers before explicitly destroying them to invalidate SDK aliases.
+
+`onSelectionChanged(proc(item: RecentItem))` on panels/dialogs copies native
+selection snapshots, defers/coalesces delivery at idle, suppresses duplicates and
+has no initial notification. `onItemActivated(proc(item: RecentItem))` on all
+three choosers copies each activation snapshot and queues it for safe delivery;
+it is not inferred from browsing or registration.
+
+Dialog `onResponse(proc(id: ResponseId, item: RecentItem))` copies metadata at
+signal time before later selection changes. The inherited single-argument
+onResponse is also deferred, **even through a Dialog upcast**. Native item
+activation can activate the dialog's default/Accept button. Plain Accept responses
+can still have an empty item; check id and item.isEmpty before opening anything.
+Responses do not automatically close the dialog. All observers contain exceptions,
+support reentrancy/self-disconnection/destruction, and cancel pending delivery
+when disconnected or their owner is destroyed. They do not launch stored commands
+or grant permission to trust a resource or its metadata.
+
+### Native recent-chooser source cleanup
+
+Unpatched GTK2 2.24.33 recent panels/dialogs call g_source_remove from their idle
+source's own destroy notifier, including after an empty eligible list. Modern
+GLib diagnoses `Source ID ... was not found when attempting to remove it`, which
+aborts under G_DEBUG=fatal-warnings. Cancellation while loading can hit the same
+path. This is reproducible in standalone C, independent of the SDK.
+
+[`patches/gtk2-recentchooser-source-cleanup.patch`](../patches/gtk2-recentchooser-source-cleanup.patch)
+removes that redundant removal. It was dry-run checked against upstream 2.24.33;
+it is a native GTK package/source fix, not a warning suppression, SDK workaround,
+ABI change or automatic modification of the installed library. Apply/rebuild the
+GTK2 dependency if affected; distributions may already carry fixes.
+
+[`tests/headers/recentchooser_cleanup.c`](../tests/headers/recentchooser_cleanup.c)
+reproduces it without mapping windows:
+
+```sh
+cc -o /tmp/gtk2-recent-cleanup tests/headers/recentchooser_cleanup.c $(pkg-config --cflags --libs gtk+-2.0)
+G_DEBUG=fatal-warnings /tmp/gtk2-recent-cleanup /existing/temporary/directory/empty.xbel
+```
+
+Use a fresh empty history filename, your C compiler and matching pkg-config
+architecture (64-bit illumos uses `/usr/lib/64/pkgconfig`). The diagnostic is
+separate from testUi and intentionally fails on an affected native library.
+SDK tests use populated eligible panel/dialog fixtures and finish native loads
+before destruction, with no warning suppression. Empty-menu behavior is tested
+separately; its empty-list path does not have this panel cleanup defect.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1946,7 +2112,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
-`tests/tgtk2filechoosers.nim`. File chooser tests cover native/URI path handling,
+`tests/tgtk2filechoosers.nim`, and `tests/tgtk2recents.nim`. Recent chooser tests
+cover isolated history, copied metadata/vector ownership, native errors, manager
+retention, filtering, selection/activation, menu attachment/refresh, deferred
+responses and capture/native finalization. File chooser tests cover native/URI path handling,
 asynchronous snapshots, selection modes, filter ownership/membership, deferred
 responses (including Dialog upcasts), cancellation and native finalization.
 Assistant tests cover
@@ -1978,7 +2147,7 @@ heap-closure cycles, and invalid inputs. `testUi` never opens a visible window o
 enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windows
 only on an isolated virtual display, as described above.
 
-This layer does not yet wrap recent choosers, Plug/Socket/Invisible, Unix print
+This layer does not yet wrap Plug/Socket/Invisible, Unix print
 and page-setup dialogs, CellView, HSV, OffscreenWindow, or StatusIcon (a GObject,
 not a widget). Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
