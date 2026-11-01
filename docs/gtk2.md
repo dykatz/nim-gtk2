@@ -2055,6 +2055,100 @@ SDK tests use populated eligible panel/dialog fixtures and finish native loads
 before destruction, with no warning suppression. Empty-menu behavior is tested
 separately; its empty-list path does not have this panel cleanup defect.
 
+## CellView, HSV and offscreen rendering
+
+[`examples/displays.nim`](../examples/displays.nim) combines a normalized HSV
+selector, a fixed-layout CellView, and an OffscreenWindow whose copied images
+update a normal onscreen Image. All require GTK initialization and a display;
+OffscreenWindow is not a display-independent/headless renderer.
+
+### CellView
+
+CellView derives directly from Widget. `newCellView(text="")` displays checked
+UTF-8 **plain text**, never markup. `newCellView(image: Pixbuf)` displays an owning
+pixbuf reference; an empty Pixbuf is valid. Assigning text or pixbuf replaces the
+previous content/layout/model. The corresponding getter returns copied text or
+an owning cached image handle; querying the wrong kind raises ValueError.
+Static renderers are retained in SDK-owned native data rather than exposed as
+widgets. GTK2's cell_layout_get_cells unconditionally calls set_cell_data and
+warns on model-less views, so static SDK getters do not use that native path.
+This neither inspects GTK private structures nor suppresses native diagnostics.
+
+`newCellView(model, textColumn, pixbufColumn=-1)` binds one string renderer and an
+optional pixbuf renderer. `setModel` replaces that fixed layout after validating
+the complete schema, even for the same model. GTK and the SDK's private observer
+retain the model; `model` returns an owning cached alias. Text is not interpreted
+as markup. Arbitrary renderers/cell-data functions remain raw.
+
+`displayedPath` selects a checked TreePath in a list, tree or proxy model; an empty
+path unsets the native row. `displayedRow` is the flat-model convenience with -1
+for no row. Constructors and setModel start without a displayed row. GTK uses a
+TreeRowReference internally, so insertion/reorder tracks the same row and deletion
+invalidates the reference. Getters copy/free GTK's transfer-full path. A copied
+TreePath remains a position, not a persistent identity. Native clearing/deletion
+does not clear cached renderer values; don't treat it as resetting content.
+Use text/pixbuf/setModel to replace content explicitly.
+
+`rowSize(path)` returns a copied width/height requisition for a checked existing
+row, restoring the native displayed-row reference afterwards. GTK's measurement
+can update renderer caches; it is not a pure model-only calculation. Model
+changes/insertion/deletion/reorder request coalesced native resize/redraw at UI
+idle, after row-reference updates. `refresh()` explicitly requests both as well.
+Replacement/destruction disconnects these private watches, releases retained
+models and cancels pending work, including when the original Nim state is gone.
+`backgroundColor=` sets native RGB (alpha is ignored); `clearBackground()` restores
+the theme's default background behavior.
+
+### HSV
+
+HSV derives directly from Widget and is separate from ColorSelection/ColorButton.
+`newHSV(color=hsvColor(0,0,0), diameter=174, ringWidth=15)` creates its hue ring and
+saturation/value triangle. HSVColor contains normalized hue/saturation/value
+float64 fields; hsvColor and every setter reject NaN, infinity and values outside
+0..1. Hue includes both endpoints: 0 and 1 represent red. HSV has no alpha.
+`toHSV(Color)` ignores alpha; `HSVColor.toColor(alpha=65535)` uses GTK's native
+RGB conversion and rounds to the existing RGBA16 Color representation.
+
+`color` copies the three doubles. `metrics` copies an HSVMetrics object with
+diameter/ringWidth; assignment checks gint bounds and ringWidth > 0,
+2*ringWidth+1 <= diameter using wide arithmetic before changing GTK.
+`isAdjusting` queries native drag state. `onChanged(proc(value: HSVState))` observes
+copied color **and** adjusting fields at UI idle, coalescing changes, suppressing
+duplicates and emitting no initial value. This is final-state observation, not a
+synchronous drag event stream. A final adjusting=false transition can notify even
+when color is unchanged. Callbacks may reenter, disconnect or destroy their owner;
+exceptions are contained and pending work is canceled on destruction/disconnection.
+
+### OffscreenWindow
+
+OffscreenWindow derives from Window/Bin, accepts one checked child, and owns a GDK
+offscreen drawable rather than an onscreen toplevel. `newOffscreenWindow(width=320,
+height=200)` requires positive gint dimensions and configures GTK's default size.
+`showAll()` on the offscreen tree performs normal GTK layout/mapping/rendering
+**offscreen**, while a normal application window runs the event loop. present/run,
+modal input grabs and transient relationships are rejected, including through
+Window upcasts. Native titles/window-manager behavior are not an onscreen UI.
+
+`pixbuf` returns an empty Pixbuf before realization or when no image is available;
+it neither realizes, shows, maps, drains events nor forces a synchronous repaint.
+After rendering it adopts GTK's **transfer-full, non-floating** image without an
+extra ref/sink. Each successful call produces an independent pixel copy that
+survives future paints, resizes, unrealization and destruction. The borrowed,
+resize-sensitive native pixmap remains raw.
+
+`onSnapshot(proc(image: Pixbuf))` observes damage without consuming native events.
+It coalesces damage and copies the latest pixels at UI idle, after native painting,
+with no initial callback or pixel-equality suppression. The image may be empty if
+the drawable was unrealized before delivery. Retain the handle to keep a frame.
+Callbacks contain exceptions, support owner destruction/self-disconnection and
+cancel pending delivery; the observer does not retain old images itself. Snapshot
+images are not interactive widgets or a forwarding mechanism for input events.
+Native GTK menus/popups/toplevel children are not necessarily part of the drawable.
+
+The hidden tests realize an offscreen drawable without mapping it, exercise
+transfer-full copies and C-allocated synthetic damage events, and assert that no
+window is mapped. They do not claim to test an actual onscreen rendering session.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2112,7 +2206,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
-`tests/tgtk2filechoosers.nim`, and `tests/tgtk2recents.nim`. Recent chooser tests
+`tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
+`tests/tgtk2displays.nim`. Display tests cover fixed cell models/paths, observer and
+renderer/model ownership, normalized HSV, safe callbacks, and hidden offscreen
+snapshot/damage ownership. Recent chooser tests
 cover isolated history, copied metadata/vector ownership, native errors, manager
 retention, filtering, selection/activation, menu attachment/refresh, deferred
 responses and capture/native finalization. File chooser tests cover native/URI path handling,
@@ -2148,7 +2245,7 @@ enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windo
 only on an isolated virtual display, as described above.
 
 This layer does not yet wrap Plug/Socket/Invisible, Unix print
-and page-setup dialogs, CellView, HSV, OffscreenWindow, or StatusIcon (a GObject,
+and page-setup dialogs, or StatusIcon (a GObject,
 not a widget). Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.

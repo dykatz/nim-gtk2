@@ -11,11 +11,17 @@ proc raw*(w: MessageDialog): rawGtk.PMessageDialog = cast[rawGtk.PMessageDialog]
 proc raw*(w: AboutDialog): ptr rawGtk.AboutDialog = cast[ptr rawGtk.AboutDialog](raw(Widget(w)))
 
 proc modal*(w: Window): bool = g.toBool(rawGtk.get_modal(w.raw))
-proc `modal=`*(w: Window, value: bool) = rawGtk.set_modal(w.raw, g.gbool(value))
+proc `modal=`*(w: Window, value: bool) =
+  if value and g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.offscreen_window_get_type()):
+    raise newException(ValueError, "an offscreen window cannot grab application input")
+  rawGtk.set_modal(w.raw, g.gbool(value))
 proc destroyWithParent*(w: Window): bool = g.toBool(rawGtk.get_destroy_with_parent(w.raw))
 proc `destroyWithParent=`*(w: Window, value: bool) = rawGtk.set_destroy_with_parent(w.raw, g.gbool(value))
 proc `transientFor=`*(w: Window, parent: Window) =
   let p = w.raw
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.offscreen_window_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.offscreen_window_get_type()):
+    raise newException(ValueError, "transient relationships require onscreen windows")
   var ancestor = parent.raw
   var seen: seq[rawGtk.PWindow]
   while ancestor != nil:
@@ -27,6 +33,8 @@ proc `transientFor=`*(w: Window, parent: Window) =
 proc clearTransientFor*(w: Window) = rawGtk.set_transient_for(w.raw, nil)
 proc present*(w: Window) =
   ## Shows the tree and raises the window, without entering a GTK main loop.
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.offscreen_window_get_type()):
+    raise newException(ValueError, "use showAll to render an offscreen window, not present")
   w.showAll()
   rawGtk.present(w.raw)
 

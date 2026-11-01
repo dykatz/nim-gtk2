@@ -30,7 +30,7 @@ CORE = [
     'toolbar', 'toolitem', 'toolbutton', 'toggletoolbutton', 'radiotoolbutton',
     'menutoolbutton', 'separatortoolitem', 'toolpalette', 'toolitemgroup',
     'spinner', 'scalebutton', 'volumebutton', 'printsettings', 'pagesetup',
-    'papersize',
+    'papersize', 'cellview', 'hsv', 'offscreenwindow',
 ]
 UNIX = ['printer', 'printunixdialog', 'pagesetupunixdialog']
 # time_t differs between GTK2 Windows builds; do not guess its ABI. These are
@@ -52,6 +52,7 @@ BASE = {
     'GtkWidget': 'TWidget', 'GtkWindow': 'TWindow', 'GtkDialog': 'TDialog',
     'GtkAdjustment': 'TAdjustment', 'GtkTreeModel': 'TTreeModel',
     'GtkTreePath': 'TTreePath', 'GtkTreeIter': 'TTreeIter',
+    'GtkRequisition': 'TRequisition', 'GtkDirectionType': 'TDirectionType',
     'GtkCellRenderer': 'TCellRenderer', 'GtkTooltip': 'TTooltip',
     'GtkTargetEntry': 'TTargetEntry', 'GtkSelectionData': 'TSelectionData',
     'GtkToolbar': 'TToolbar', 'GtkSizeGroup': 'TSizeGroup',

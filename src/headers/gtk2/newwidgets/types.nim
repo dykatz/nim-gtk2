@@ -24,12 +24,15 @@ type
   GKeyFile* {.pure, final, incompleteStruct.} = object
   AboutDialog* {.pure, final, incompleteStruct.} = object
   Assistant* {.pure, final, incompleteStruct.} = object
+  CellView* {.pure, final, incompleteStruct.} = object
   ColorButton* {.pure, final, incompleteStruct.} = object
   Expander* {.pure, final, incompleteStruct.} = object
   FileChooserWidget* {.pure, final, incompleteStruct.} = object
   FontButton* {.pure, final, incompleteStruct.} = object
+  HSV* {.pure, final, incompleteStruct.} = object
   IconView* {.pure, final, incompleteStruct.} = object
   MenuToolButton* {.pure, final, incompleteStruct.} = object
+  OffscreenWindow* {.pure, final, incompleteStruct.} = object
   PageRange* {.pure, final.} = object
     `start`*: gint
     `end`*: gint

@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_requisition(void) { return sizeof(GtkRequisition); }
+size_t nim_gtk2_requisition_height_offset(void) { return offsetof(GtkRequisition, height); }
+size_t nim_gtk2_sizeof_event_expose(void) { return sizeof(GdkEventExpose); }
+size_t nim_gtk2_event_expose_area_offset(void) { return offsetof(GdkEventExpose, area); }
+int nim_gtk2_damage_value(void) { return GDK_DAMAGE; }
+typedef void (*NimHsvConvert)(gdouble, gdouble, gdouble, gdouble *, gdouble *, gdouble *);
+int nim_gtk2_invoke_hsv_convert(NimHsvConvert fn) {
+  gdouble r = -1, g = -1, b = -1;
+  fn(0.5, 1.0, 1.0, &r, &g, &b);
+  return r == 0.0 && g == 1.0 && b == 1.0;
+}
+
 size_t nim_gtk2_sizeof_file_chooser_action(void) { return sizeof(GtkFileChooserAction); }
 size_t nim_gtk2_sizeof_file_chooser_error(void) { return sizeof(GtkFileChooserError); }
 size_t nim_gtk2_sizeof_file_filter_flags(void) { return sizeof(GtkFileFilterFlags); }

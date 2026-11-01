@@ -95,6 +95,10 @@ copied metadata, RecentFilter rules and safe activation/response observers; see
 [recent chooser guide](docs/gtk2.md#recent-item-choosers). The guide also documents
 GTK2's native [idle cleanup fix](docs/gtk2.md#native-recent-chooser-source-cleanup)
 for empty recent panels/dialogs on modern GLib.
+CellView, HSV and OffscreenWindow add fixed plain-text/pixbuf/model cells,
+normalized color selection and owned offscreen snapshots; see
+[`examples/displays.nim`](examples/displays.nim) and the
+[display widget guide](docs/gtk2.md#cellview-hsv-and-offscreen-rendering).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

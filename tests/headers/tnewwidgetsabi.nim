@@ -5,7 +5,7 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
-from headers/gdk2 import TColor
+from headers/gdk2 import TColor, TEventExpose, DAMAGE
 
 when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
   # The default pkg-config directory selects 32-bit glibconfig.h on these OSes.
@@ -13,6 +13,13 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc requisitionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_requisition".}
+proc requisitionHeight(): csize_t {.cdecl, importc: "nim_gtk2_requisition_height_offset".}
+proc exposeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_expose".}
+proc exposeArea(): csize_t {.cdecl, importc: "nim_gtk2_event_expose_area_offset".}
+proc damageValue(): cint {.cdecl, importc: "nim_gtk2_damage_value".}
+type HsvConvert = proc (h, s, v: g.gdouble, r, green, b: ptr g.gdouble) {.cdecl.}
+proc invokeHSV(fn: HsvConvert): cint {.cdecl, importc: "nim_gtk2_invoke_hsv_convert".}
 proc fileActionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_action".}
 proc fileErrorSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_chooser_error".}
 proc fileFlagsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_file_filter_flags".}
@@ -99,6 +106,14 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "display requisitions, damage events and HSV double/out-parameter ABI":
+    check requisitionSize().int == sizeof(gtk.TRequisition)
+    check requisitionHeight().int == offsetOf(gtk.TRequisition, height)
+    check exposeSize().int == sizeof(TEventExpose)
+    check exposeArea().int == offsetOf(TEventExpose, area)
+    check damageValue() == DAMAGE
+    check invokeHSV(gtk.hsv_to_rgb) == 1
+
   test "public struct sizes, offsets and enum widths match C":
     check glibSizeWidth() == csize_t(sizeof(g.gsize))
     check glibTypeWidth() == csize_t(sizeof(g.GType))

@@ -6,7 +6,7 @@ families were restored.
 
 The generated umbrella `src/headers/gtk2/newwidgets.nim` includes shared types
 and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
-included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 564 added functions, covering the following widgets
+included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
 ## Newly covered widgets
@@ -34,6 +34,9 @@ and their supporting interfaces, data, enums/flags, and callbacks.
 | `Spinner` | `spinner_new`, `spinner_start`, `spinner_stop` |
 | `ScaleButton` | `scale_button_new`, `scale_button_*` |
 | `VolumeButton` | `volume_button_new`; cast to `ptr ScaleButton` for value methods |
+| `CellView` | `cell_view_new`, `cell_view_*` (deprecated renderer getter omitted) |
+| `HSV` | `hsv_new`, `hsv_*`, `rgb_to_hsv` |
+| `OffscreenWindow` | `offscreen_window_new`, `offscreen_window_*` |
 | `PrintUnixDialog` | `print_unix_dialog_new`, `print_unix_dialog_*` (Unix only) |
 | `PageSetupUnixDialog` | `page_setup_unix_dialog_new`, `page_setup_unix_dialog_*` (Unix only) |
 

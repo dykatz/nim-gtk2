@@ -11,6 +11,15 @@ static:
   doAssert not compiles(block:
     const size = sizeof(gtk.IconView)
     discard size)
+  doAssert not compiles(block:
+    const size = sizeof(gtk.CellView)
+    discard size)
+  doAssert not compiles(block:
+    const size = sizeof(gtk.HSV)
+    discard size)
+  doAssert not compiles(block:
+    const size = sizeof(gtk.OffscreenWindow)
+    discard size)
   doAssert sizeof(gtk.AssistantPageType) == sizeof(cint)
   doAssert sizeof(gtk.RecentFilterFlags) == sizeof(cint)
   doAssert sizeof(gtk.PrintSettingsFunc) == sizeof(pointer)

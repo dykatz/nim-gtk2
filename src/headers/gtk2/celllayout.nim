@@ -1,4 +1,6 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc cell_layout_clear*(layout: PCellLayout) {.cdecl, dynlib: lib,
+    importc: "gtk_cell_layout_clear".}
 proc cell_layout_get_cells*(layout: PCellLayout): PGList {.cdecl, dynlib: lib,
     importc: "gtk_cell_layout_get_cells".}
 proc cell_layout_pack_start*(layout: PCellLayout, cell: PCellRenderer,

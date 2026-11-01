@@ -348,6 +348,8 @@ proc quit*() =
 
 proc run*(w: Window) =
   ## Show the window and run until it is destroyed. Call init() first.
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.offscreen_window_get_type()):
+    raise newException(ValueError, "run an onscreen application window instead")
   let connection = w.onDestroy(proc () = quit())
   try:
     w.showAll()
@@ -376,3 +378,4 @@ include gtk2/choosers
 include gtk2/assistant
 include gtk2/filechoosers
 include gtk2/recents
+include gtk2/displays

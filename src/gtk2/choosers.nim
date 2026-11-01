@@ -121,6 +121,8 @@ type ChooserBinding[T] = ref object
   selector: pointer # Borrowed for standalone panels; retained for private panels.
   watches: seq[ChooserWatch]
   last: T
+  readValue: proc (p: pointer): T {.nimcall.}
+  deduplicate: bool
   active, pending: bool
   idle: g.guint
 proc stopChooser[T](binding: ChooserBinding[T]) =
@@ -153,9 +155,9 @@ proc dispatchChooser[T](data: pointer): g.gboolean {.cdecl, gcsafe.} =
     if binding.active and binding.pending:
       binding.pending = false
       try:
-        let value = chooserValue[T](binding.selector)
-        if value != binding.last:
-          binding.last = value
+        let value = binding.readValue(binding.selector)
+        if not binding.deduplicate or value != binding.last:
+          if binding.deduplicate: binding.last = value
           let fn = binding.fn
           fn(value)
       except Exception as error: reportSignalError(error)
@@ -179,10 +181,19 @@ proc watchChooser[T](binding: ChooserBinding[T], p: pointer, signal: cstring,
   if retained: discard g.g_object_ref(p)
   let id = g.g_signal_connect_data(p, signal, callback, cast[pointer](binding), nil, g.G_CONNECT_AFTER)
   binding.watches.add((p, id, retained))
+proc anchorChooser[T](owner: Widget, binding: ChooserBinding[T]): Connection =
+  let p = owner.raw
+  GC_ref(binding)
+  # Also cleans up when the owner's temporary Nim state has gone away.
+  let id = g.g_signal_connect_data(p, "destroy", cast[g.TGCallback](destroyChooserOwner[T]),
+    cast[pointer](binding), releaseChooser[T], g.G_CONNECT_AFTER)
+  owner.state.handlers.add(id)
+  Connection(state: owner.state, id: id)
 proc connectChooser[T](owner: Widget, selector: pointer, fn: proc (value: T) {.closure.}): Connection =
   let p = owner.raw
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
-  let binding = ChooserBinding[T](fn: fn, selector: selector, active: true, last: chooserValue[T](selector))
+  let binding = ChooserBinding[T](fn: fn, selector: selector, active: true,
+    last: chooserValue[T](selector), readValue: chooserValue[T], deduplicate: true)
   when T is Color:
     watchChooser(binding, selector, "color-changed", cast[g.TGCallback](chooserSignal[T]), selector != p)
     watchChooser(binding, selector, "notify::has-opacity-control", cast[g.TGCallback](chooserNotify[T]))
@@ -195,13 +206,8 @@ proc connectChooser[T](owner: Widget, selector: pointer, fn: proc (value: T) {.c
       let selection = rawGtk.get_selection(cast[rawGtk.PTreeView](list))
       watchChooser(binding, selection, "changed", cast[g.TGCallback](chooserSignal[T]), retained = true)
     watchChooser(binding, rawGtk.get_preview_entry(font), "style-set", cast[g.TGCallback](chooserNotify[T]), retained = true)
-  GC_ref(binding)
-  # An owner-local anchor gives Connection its normal cancellation semantics.
-  # The destroy thunk also cleans up if the owner's temporary Nim state is gone.
-  let id = g.g_signal_connect_data(p, "destroy", cast[g.TGCallback](destroyChooserOwner[T]),
-    cast[pointer](binding), releaseChooser[T], g.G_CONNECT_AFTER)
-  owner.state.handlers.add(id)
-  Connection(state: owner.state, id: id)
+  anchorChooser(owner, binding)
+
 proc onColorChanged*(w: ColorSelection, fn: proc (value: Color) {.closure.}): Connection {.discardable.} =
   connectChooser(w, colorSelection(w), fn)
 proc onColorChanged*(w: ColorSelectionDialog, fn: proc (value: Color) {.closure.}): Connection {.discardable.} =

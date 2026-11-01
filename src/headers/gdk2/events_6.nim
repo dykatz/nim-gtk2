@@ -55,6 +55,8 @@ const
 proc event_get_type*(): GType{.cdecl, dynlib: lib, importc: "gdk_event_get_type".}
 proc events_pending*(): gboolean{.cdecl, dynlib: lib,
                                   importc: "gdk_events_pending".}
+proc event_new*(event_type: TEventType): PEvent {.cdecl, dynlib: lib,
+    importc: "gdk_event_new".}
 proc event_get*(): PEvent{.cdecl, dynlib: lib, importc: "gdk_event_get".}
 proc event_peek*(): PEvent{.cdecl, dynlib: lib, importc: "gdk_event_peek".}
 proc event_get_graphics_expose*(window: PWindow): PEvent{.cdecl, dynlib: lib,
