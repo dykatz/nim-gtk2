@@ -111,6 +111,11 @@ Important return-value distinctions:
 | `icon_view_get_selected_items` | Owned list and paths; free each path with `gtk2.free`, then `glib2.free` the list |
 | `print_settings_get_page_ranges` | Owned array; `glib2.g_free` |
 | `print_unix_dialog_get_settings` | New settings object; `g_object_unref` |
+| `print_unix_dialog_get_page_setup` | Borrowed PageSetup; ref or copy if retaining |
+| `page_setup_unix_dialog_get_page_setup` | **Full object ref in GTK2.24 implementation, despite transfer-none annotation**; `g_object_unref` |
+| `page_setup_unix_dialog_get_print_settings` | Borrowed, nullable settings |
+| `page_setup_get_paper_size` | Borrowed boxed paper; copy if retaining |
+| `print_settings_get_paper_size` | Newly allocated boxed paper; `paper_size_free` |
 | `page_setup_unix_dialog_get_page_setup` | Borrowed object |
 | `paper_size_new` / `paper_size_copy` | Boxed values; `paper_size_free`, not `g_object_unref` |
 | `recent_manager_lookup_item` | Owned info reference; `recent_info_unref` |

@@ -3,6 +3,17 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_print_unit(void) { return sizeof(GtkUnit); }
+size_t nim_gtk2_sizeof_page_orientation(void) { return sizeof(GtkPageOrientation); }
+size_t nim_gtk2_sizeof_print_pages(void) { return sizeof(GtkPrintPages); }
+size_t nim_gtk2_sizeof_page_set(void) { return sizeof(GtkPageSet); }
+size_t nim_gtk2_sizeof_print_duplex(void) { return sizeof(GtkPrintDuplex); }
+size_t nim_gtk2_sizeof_print_quality(void) { return sizeof(GtkPrintQuality); }
+int nim_gtk2_unit_mm(void) { return GTK_UNIT_MM; }
+int nim_gtk2_print_selection(void) { return GTK_PRINT_PAGES_SELECTION; }
+void nim_gtk2_invoke_print_settings(GtkPrintSettingsFunc fn, gpointer data) {
+  fn("cups-abi-option", "copied value", data);
+}
 size_t nim_gtk2_sizeof_requisition(void) { return sizeof(GtkRequisition); }
 size_t nim_gtk2_requisition_height_offset(void) { return offsetof(GtkRequisition, height); }
 size_t nim_gtk2_sizeof_event_expose(void) { return sizeof(GdkEventExpose); }

@@ -2149,6 +2149,183 @@ The hidden tests realize an offscreen drawable without mapping it, exercise
 transfer-full copies and C-allocated synthetic damage events, and assert that no
 window is mapped. They do not claim to test an actual onscreen rendering session.
 
+## Print and page-setup dialogs
+
+[`examples/printing.nim`](../examples/printing.nim) demonstrates nonblocking
+PrintUnixDialog and PageSetupUnixDialog with retained configuration. **This is
+configuration, not job submission.** Accepting a dialog or creating/changing/saving
+settings does not render a document, generate PDF/PS, write a print output file or
+submit a printer job. PrintOperation/PrintJob/rendering remain outside this wrapper
+batch; use an actual printing pipeline to implement accepted choices.
+
+### Cross-platform configuration
+
+PrintSettings and PageSetup are non-floating GObjects with owning typed raw
+handles, independent copy(), and no widget destroy signal. PaperSize is instead
+a boxed GTK value: its private ARC/ORC state frees it with paper_size_free, not
+GObject unref. Ordinary PaperSize assignment shares its immutable SDK value;
+copy() creates an independent native box. All final releases remain on the UI
+thread under the SDK's normal ownership contract.
+
+- `newPrintSettings()` creates settings. copies (positive gint), scale (positive
+  finite percent), numberUp (1/2/4/6/9/16), resolution/setResolution(x,y), useColor,
+  collate, reverse, duplex, quality, printPages, pageSet, printerName, orientation
+  and paperSize cover common native configuration. Setting paperSize copies it.
+- `pageRanges` is a copied sequence of PageRange(first,last), **zero-based and
+  inclusive**. Complete input is validated before mutation; negative/reversed/
+  overflowing ranges are rejected. An empty sequence clears ranges. The range list
+  does not select printPages=printPageRanges for you. Native dialog text presents
+  page numbers in its usual one-based form.
+- `hasKey/get/set/unset` expose checked UTF-8/NUL-free backend keys and values.
+  Keys must be nonempty key-file names without control characters, brackets,
+  equals signs or surrounding ASCII whitespace. get returns empty for either absent or empty values;
+  use hasKey to distinguish them. pairs() copies key/value strings during native
+  foreach without invoking user code or allowing mutation inside hash iteration.
+  Generic keys are an expert escape hatch: strings are checked, but backend
+  semantics and malformed persisted/native values are not fully schema-validated.
+- `newPaperSize()` uses GTK's locale default. `newPaperSize("iso_a4")` accepts
+  canonical names from standardPaperSizes(); unknown names raise ValueError
+  instead of GTK's warning-and-A4 substitution. Use newCustomPaperSize(name,
+  displayName,width,height,unit=unitMillimeters) for other dimensions. Names are
+  nonempty checked UTF-8 and dimensions positive/finite. name/displayName,
+  isCustom, width(unit)/height(unit), and a typed borrowed raw pointer are available.
+  Standard sizes exclude desktop custom-paper files. Boxed paper getters are
+  owned copies, never pointers into a PageSetup.
+- `newPageSetup()` provides orientation, paperSize, setPaperWithDefaultMargins,
+  margins(unit)/setMargins(PageMargins(...),unit), paperWidth/Height and pageWidth/
+  Height. PrintUnit is unitPoints, unitInches or unitMillimeters, never GTK's
+  unsupported pixel unit. PageOrientation is pagePortrait/pageLandscape/
+  pageReversePortrait/pageReverseLandscape. Paper dimensions account for native
+  orientation; printable page dimensions also subtract margins. Margins are
+  validated atomically as nonnegative finite lengths, but not clamped to the paper:
+  excessively large margins can produce a nonpositive printable area. Changing
+  paperSize preserves existing margins unless setPaperWithDefaultMargins is used.
+
+`loadPrintSettings/loadPageSetup(absoluteFilename)` and save(filename) explicitly
+read/write **configuration files**, using native Unix filename bytes / Windows
+UTF-8 and the shared absolute/NUL path checks. They copy and free GError and raise
+PrintError with native domain/code/message. Saving is a real file write, not a
+print job. Loaded files use GTK's native parser; use trusted configuration, and
+validate application/backend-specific values before printing. No user or desktop
+configuration files are loaded/saved automatically by these helpers.
+
+### Unix-only widgets and printer information
+
+The dialog/Printer API exists only under `defined(posix) and not defined(macosx)`;
+Windows/Quartz have no fake substitute. The common configuration types above
+remain available on all supported targets.
+
+`newPrintUnixDialog(title="Print",modal=false)` and
+`newPageSetupUnixDialog(title="Page setup",modal=false)` derive from Dialog. Parent
+overloads use destroyWithParent=true by default. Titles are checked UTF-8;
+Window lifetime/transient/modal controls and nonblocking present/responses apply.
+For both native print dialogs, SDK showAll/present show the toplevel **without
+recursively showing private children**, including through Widget/Window upcasts.
+GTK owns conditional visibility of the conflict banner, Preview button and
+backend-specific pages. A recursive raw gtk_widget_show_all would reveal them
+regardless of actual conflicts/capabilities. SDK addCustomTab shows the
+application-owned content subtree separately. Genuine backend-reported conflicts
+still display normally; this does not suppress diagnostics or force-hide warnings.
+GTK supplies its native buttons; acceptance is **responseOk**, not responseAccept.
+Responses do not automatically close dialogs, undo changes or persist settings.
+
+Both expose settings and pageSetup. **Assignments detach inputs; getters detach
+outputs.** Mutating the original or a returned object doesn't silently modify the
+dialog. PrintUnixDialog's native settings getter already returns a fresh full
+reference, adopted without an extra sink/ref. Its page setup is borrowed and
+copied. PageSetupUnixDialog's settings are borrowed/nullable and copied; its page
+setup getter actually returns a full reference in GTK2.24 despite an erroneous
+transfer-none annotation. The SDK copies that setup and releases the original.
+
+PrintUnixDialog additionally exposes currentPage (-1=unknown, otherwise zero-based
+gint), manualCapabilities (a set of PrintCapability flags), supportSelection,
+hasSelection, embedPageSetup, and pageSetupSet. Manual flags declare work the
+**application** implements: setting capGeneratePdf doesn't create a PDF renderer,
+nor does capCopies implement copying. Native printer capabilities and sensitivity
+control which settings the getter reports; unsupported/disabled options can
+normalize to defaults rather than round-trip their supplied values. These are not
+permission checks or a promise that a print job will succeed.
+
+`addCustomTab(child,label)` checks distinct, unparented, non-toplevel widgets and
+native ancestry before inserting/showing them in the private notebook. GTK owns
+their parenting and destroys them with the dialog. Ordinary Dialog packStart/
+packEnd are rejected through upcasts on both print dialog types; private controls
+remain unexposed. There is no SDK custom-tab removal API.
+
+`selectedPrinter` on PrintUnixDialog returns an empty handle if none is selected,
+or an owning cached alias of GTK's borrowed Printer GObject. name/info copy native
+metadata; PrinterInfo contains name/description/location/stateMessage/iconName,
+jobCount and active/paused/acceptingJobs/isVirtual/isDefault/acceptsPdf/acceptsPs
+flags. These are observations, not printer availability guarantees. The handle
+retains its native backend reference; live enumeration, backend operations,
+asynchronous detail requests and job submission remain raw. PageSetupUnixDialog
+has no public native selected-printer getter, so its snapshots have empty printer
+information rather than inspecting private controls.
+
+### Responses, native behavior and testing
+
+`selection()` copies current PrintSelection(settings,pageSetup,printer).
+`onResponse(proc(id: ResponseId,value: PrintSelection))` queues each signal-time
+snapshot for UI-idle delivery. Accepted values survive later edits/destruction;
+Cancel/Close also carry snapshots and must not be mistaken for acceptance.
+Inherited single-argument onResponse uses the same deferred route, **including a
+Dialog upcast**. Observers contain exceptions, support self-disconnection/owner
+destruction and cancel pending values on destruction/disconnection. They retain no
+previous snapshot after delivery unless the application keeps it.
+
+GTK may discover printers/load backends as part of native dialog construction;
+this is not printer enumeration implemented by the SDK. Native print-to-file
+acceptance may show GTK's overwrite confirmation/nested prompt, and page setup
+can open GTK's custom-paper editor. Such native UI behavior is not suppressed or
+made nonblocking internally by this wrapper. A normal application should not
+manually emit responseOk to bypass GTK's UI validation or capability handling.
+
+`tests/tgtk2printing.nim` uses hidden dialogs, disables backend discovery for its
+process, restores that setting, and sandboxes configuration-file I/O. It never
+maps windows, submits jobs or touches printer output. The separate, explicitly
+opted-in `nimble testMappedPrinting` checks actual presentation, hidden conflict/
+Preview controls, application tab descendants and base-class upcasts on an
+isolated virtual display with GTK2_TEST_VIRTUAL_DISPLAY=1. It is not part of
+testUi and never submits jobs. Native ABI tests cover print
+enum widths/values, PageRange layout and foreach's cdecl string/data callback.
+
+**Native NULL-printer warning with real backends:** changing manualCapabilities
+refilters GTK's printer list. With an initially selected printer (reproduced with
+the lpr backend), GTK2.24.33 can temporarily have no selection and unconditionally
+call gtk_printer_is_accepting_jobs(NULL) in selected_printer_changed. This emits
+`GTK_IS_PRINTER (printer)` and aborts under G_DEBUG=fatal-warnings. It occurs in
+standalone C before showing the dialog: it is not a Nim Printer lifetime failure.
+The no-backend hidden fixtures above don't exercise that transition.
+
+[`tests/headers/printdialog_null_printer.c`](../tests/headers/printdialog_null_printer.c)
+is a separate no-window/no-job diagnostic requiring an installed lpr backend
+(or another explicitly supplied backend with an initial selection). It exits 2
+if that prerequisite is absent, rather than treating an unexercised path as a pass.
+Build using pkg-config --cflags --libs gtk+-unix-print-2.0 and run with
+G_DEBUG=fatal-warnings. The optional
+[`patches/gtk2-print-dialog-null-printer.patch`](../patches/gtk2-print-dialog-null-printer.patch)
+checks for NULL and disables the Print response while no printer is selected.
+It was dry-run checked against upstream GTK2.24.33, not runtime-tested against a
+rebuilt library. This is independent of the resource-leak patch below. The SDK
+neither suppresses the warning, manipulates private GTK state, nor silently
+disables printer backends to hide it.
+
+Stock GTK2.24.33 leaks its final private PageSetupUnixDialog last_setup reference,
+and repeated PrintUnixDialog set_settings can overwrite a format_for_printer
+string without freeing it. Neither is an SDK reference-counting fix or a reason
+to inspect GTK's private memory. The standalone no-window/no-backend diagnostic
+[`tests/headers/printdialog_resources.c`](../tests/headers/printdialog_resources.c)
+reproduces the retained setup independently of Nim (exit 1 on affected GTK).
+The optional [`patches/gtk2-print-dialog-resources.patch`](../patches/gtk2-print-dialog-resources.patch)
+frees those native resources; it was dry-run checked against upstream 2.24.33,
+not rebuilt/installed or runtime-tested as a patched library. Apply/rebuild your
+GTK dependency if needed; no warning suppression or installed-library change is
+performed by the SDK. The diagnostic builds with your compiler and
+pkg-config --cflags --libs gtk+-unix-print-2.0 (use matching architecture; 64-bit
+illumos uses /usr/lib/64/pkgconfig). Regular SDK tests separately verify that
+repeated getters add no references and replacement/cancellation release SDK-owned
+configuration correctly.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2207,7 +2384,9 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
-`tests/tgtk2displays.nim`. Display tests cover fixed cell models/paths, observer and
+`tests/tgtk2displays.nim`, and `tests/tgtk2printing.nim`. Print tests cover isolated
+configuration, boxed/GObject copies, native ownership, range/geometry validation,
+checked custom tabs and deferred response/capture lifetime. Display tests cover fixed cell models/paths, observer and
 renderer/model ownership, normalized HSV, safe callbacks, and hidden offscreen
 snapshot/damage ownership. Recent chooser tests
 cover isolated history, copied metadata/vector ownership, native errors, manager
@@ -2244,8 +2423,7 @@ heap-closure cycles, and invalid inputs. `testUi` never opens a visible window o
 enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windows
 only on an isolated virtual display, as described above.
 
-This layer does not yet wrap Plug/Socket/Invisible, Unix print
-and page-setup dialogs, or StatusIcon (a GObject,
+This layer does not yet wrap Plug/Socket/Invisible or StatusIcon (a GObject,
 not a widget). Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.

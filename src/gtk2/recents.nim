@@ -305,7 +305,7 @@ proc dispatchRecent[T](data: pointer): g.gboolean {.cdecl, gcsafe.} =
       let value = binding.values[0]
       binding.values.delete(0)
       if not binding.dedup or value != binding.last:
-        binding.last = value
+        if binding.dedup: binding.last = value
         let fn = binding.fn
         try: fn(value)
         except Exception as error: reportSignalError(error)

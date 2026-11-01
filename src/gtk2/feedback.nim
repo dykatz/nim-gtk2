@@ -169,7 +169,13 @@ proc responseThunk(instance: pointer, response: g.gint, data: pointer) {.cdecl, 
       reportSignalError(error)
 proc connectFileResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection
 proc connectRecentResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection
+when defined(posix) and not defined(macosx):
+  proc connectPrintResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection
 proc connectResponse(w: Widget, fn: proc (id: ResponseId) {.closure.}): Connection =
+  when defined(posix) and not defined(macosx):
+    if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.print_unix_dialog_get_type()) or
+        g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.page_setup_unix_dialog_get_type()):
+      return connectPrintResponse(w, fn)
   if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.recent_chooser_get_type()):
     return connectRecentResponse(w, fn)
   # Native file choosers continue touching their delegate after response emission.

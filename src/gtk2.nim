@@ -170,7 +170,16 @@ proc newHBox*(spacing = 0, homogeneous = false): HBox =
   result.state = adoptWidget(rawGtk.hbox_new(g.gboolean(homogeneous), checkedBoxSpacing(spacing)))
 
 proc show*(w: Widget) = rawGtk.show(w.raw)
-proc showAll*(w: Widget) = rawGtk.show_all(w.raw)
+proc showAll*(w: Widget) =
+  let p = w.raw
+  when defined(posix) and not defined(macosx):
+    if g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.print_unix_dialog_get_type()) or
+        g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.page_setup_unix_dialog_get_type()):
+      # Native constructors/backends own visibility (conflicts, preview, tabs).
+      # Recursive show_all would expose deliberately hidden private controls.
+      rawGtk.show(p)
+      return
+  rawGtk.show_all(p)
 proc hide*(w: Widget) = rawGtk.hide(w.raw)
 proc focus*(w: Widget) = rawGtk.grab_focus(w.raw)
 proc destroy*(w: Widget) =
@@ -379,3 +388,4 @@ include gtk2/assistant
 include gtk2/filechoosers
 include gtk2/recents
 include gtk2/displays
+include gtk2/printing

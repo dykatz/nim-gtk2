@@ -50,9 +50,13 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2filechoosers.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2recents.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2displays.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2printing.nim"
 
 task testMappedMenus, "Test actual tearoff windows (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmenus.nim"
+
+task testMappedPrinting, "Test print dialog visibility (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedprinting.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

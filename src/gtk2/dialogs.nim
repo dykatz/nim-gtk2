@@ -57,13 +57,20 @@ proc newDialog*(parent: Window, title = "", modal = false,
   result = newDialog(title, modal)
   attachDialogParent(result, parent, destroyWithParent)
 
+proc checkPrintDialogContent(w: Dialog) =
+  when defined(posix) and not defined(macosx):
+    if g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.print_unix_dialog_get_type()) or
+        g.G_TYPE_CHECK_INSTANCE_TYPE(w.raw, rawGtk.page_setup_unix_dialog_get_type()):
+      raise newException(ValueError, "print dialogs manage their content; use addCustomTab on PrintUnixDialog")
 proc packStart*(w: Dialog, child: Widget, options = packExpandWidget, padding = 0) =
+  checkPrintDialogContent(w)
   checkChild(w, child)
   let pad = g.guint(checkedInt(padding))
   let area = cast[rawGtk.PBox](rawGtk.get_content_area(w.raw))
   rawGtk.pack_start(area, child.raw, g.gbool(options != packShrink),
     g.gbool(options == packExpandWidget), pad)
 proc packEnd*(w: Dialog, child: Widget, options = packExpandWidget, padding = 0) =
+  checkPrintDialogContent(w)
   checkChild(w, child)
   let pad = g.guint(checkedInt(padding))
   let area = cast[rawGtk.PBox](rawGtk.get_content_area(w.raw))

@@ -300,7 +300,10 @@ def main():
                 'include "newwidgets/types"']
     groups = {}
     for unix, header, name, declaration in functions:
-        groups.setdefault((unix, header), []).append(declaration)
+        group = groups.setdefault((unix, header), [])
+        if name == 'gtk_page_setup_unix_dialog_get_page_setup':
+            group.append('# GTK 2.24 implementation returns a FULL object reference despite its transfer-none annotation.')
+        group.append(declaration)
     for (unix, header), declarations in groups.items():
         stem = Path(header).stem.removeprefix('gtk')
         umbrella.append('include "newwidgets/' + stem + '"')

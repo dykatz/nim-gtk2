@@ -13,6 +13,15 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc printUnitSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_unit".}
+proc pageOrientationSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_page_orientation".}
+proc printPagesSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_pages".}
+proc pageSetSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_page_set".}
+proc printDuplexSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_duplex".}
+proc printQualitySize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_quality".}
+proc unitMillimeters(): cint {.cdecl, importc: "nim_gtk2_unit_mm".}
+proc printSelectionValue(): cint {.cdecl, importc: "nim_gtk2_print_selection".}
+proc invokePrintSettings(fn: gtk.PrintSettingsFunc, data: pointer) {.cdecl, importc: "nim_gtk2_invoke_print_settings".}
 proc requisitionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_requisition".}
 proc requisitionHeight(): csize_t {.cdecl, importc: "nim_gtk2_requisition_height_offset".}
 proc exposeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_expose".}
@@ -106,6 +115,21 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "print configuration enum widths, values and foreach callback ABI":
+    check printUnitSize().int == sizeof(gtk.Unit)
+    check pageOrientationSize().int == sizeof(gtk.PageOrientation)
+    check printPagesSize().int == sizeof(gtk.PrintPages)
+    check pageSetSize().int == sizeof(gtk.PageSet)
+    check printDuplexSize().int == sizeof(gtk.PrintDuplex)
+    check printQualitySize().int == sizeof(gtk.PrintQuality)
+    check unitMillimeters() == gtk.UNIT_MM.cint
+    check printSelectionValue() == gtk.PRINT_PAGES_SELECTION.cint
+    var called = false
+    proc callback(key, value: cstring, data: pointer) {.cdecl, gcsafe.} =
+      cast[ptr bool](data)[] = $key == "cups-abi-option" and $value == "copied value"
+    invokePrintSettings(callback, addr called)
+    check called
+
   test "display requisitions, damage events and HSV double/out-parameter ABI":
     check requisitionSize().int == sizeof(gtk.TRequisition)
     check requisitionHeight().int == offsetOf(gtk.TRequisition, height)

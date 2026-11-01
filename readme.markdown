@@ -99,6 +99,11 @@ CellView, HSV and OffscreenWindow add fixed plain-text/pixbuf/model cells,
 normalized color selection and owned offscreen snapshots; see
 [`examples/displays.nim`](examples/displays.nim) and the
 [display widget guide](docs/gtk2.md#cellview-hsv-and-offscreen-rendering).
+Unix PrintUnixDialog/PageSetupUnixDialog provide nonblocking print configuration,
+with cross-platform PrintSettings/PageSetup/PaperSize and copied response values.
+See [`examples/printing.nim`](examples/printing.nim) and the
+[printing guide](docs/gtk2.md#print-and-page-setup-dialogs); these configure choices,
+not render or submit print jobs.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

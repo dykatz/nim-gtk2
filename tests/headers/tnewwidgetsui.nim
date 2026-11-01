@@ -207,7 +207,8 @@ proc runTests() =
         objects.add(setup)
         gtk.page_setup_set_orientation(setup, gtk.PAGE_ORIENTATION_LANDSCAPE)
         gtk.page_setup_unix_dialog_set_page_setup(pageDialog, setup)
-        check gtk.page_setup_get_orientation(
-          gtk.page_setup_unix_dialog_get_page_setup(pageDialog)) == gtk.PAGE_ORIENTATION_LANDSCAPE
+        let selectedSetup = gtk.page_setup_unix_dialog_get_page_setup(pageDialog)
+        objects.add(selectedSetup) # Native implementation returns a full reference.
+        check gtk.page_setup_get_orientation(selectedSetup) == gtk.PAGE_ORIENTATION_LANDSCAPE
 
 runTests()
