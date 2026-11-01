@@ -79,6 +79,10 @@ Standalone ColorSelection/FontSelection panels and directly managed chooser
 dialogs complement the existing selector buttons with embedding, copied values,
 and safe deferred live observers; see [`examples/choosers.nim`](examples/choosers.nim)
 and the [chooser guide](docs/gtk2.md#standalone-colorfont-choosers).
+Assistant adds checked nonblocking wizard pages, validation/completion, optional
+steps, page images, custom actions, and safe deferred lifecycle observers; see
+[`examples/assistant.nim`](examples/assistant.nim) and the
+[Assistant guide](docs/gtk2.md#assistant-wizard-workflows).
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

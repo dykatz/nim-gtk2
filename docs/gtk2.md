@@ -1645,6 +1645,104 @@ deferred out of GTK's native change handlers so those handlers can finish safely
 explicit `destroy()` remains immediate. All GTK
 operations and final releases remain on the UI thread.
 
+## Assistant wizard workflows
+
+[`examples/assistant.nim`](../examples/assistant.nim) demonstrates a nonblocking
+Assistant with validation, an optional settings page, confirmation, application,
+and a final summary. Assistant derives from Window, not Dialog; it reuses Window
+`modal`, checked transient ownership, `destroyWithParent`, `present`, and `run`.
+It does not introduce a nested dialog loop.
+
+```nim
+let wizard = newAssistant("Setup")
+let intro = newLabel("Welcome")
+let settings = newVBox()
+let final = newLabel("Finished")
+wizard.appendPage(intro, "Welcome", assistantIntro, complete = true)
+wizard.appendPage(settings, "Settings", assistantContent)
+wizard.appendPage(final, "Finished", assistantSummary, complete = true)
+wizard.setPageComplete(settings) # Typically driven by input validation.
+wizard.onCancel(proc () = wizard.destroy())
+wizard.onClose(proc () = wizard.destroy())
+```
+
+### Pages and navigation
+
+`newAssistant(title="Assistant", width=640, height=480, modal=false)` creates a
+hidden window. The parent overload adds checked transient ownership and defaults
+`destroyWithParent=true`. Sizes must fit nonnegative gint; titles are checked
+UTF-8. Assistant manages its own content: Bin.add, even via an upcast, rejects
+replacement; use page methods instead.
+
+`appendPage`, `prependPage`, and `insertPage(index, child, title="",
+kind=assistantContent, complete=false)` require unparented non-window pages.
+Insertion indices are 0..pageCount. Page kinds are `assistantContent`,
+`assistantIntro`, `assistantConfirm`, `assistantSummary`, and `assistantProgress`.
+Completion defaults false for every kind in this API, including summaries; set
+it true explicitly when the page is ready. Insertions show only the page root,
+not its descendants or the assistant/toplevel.
+
+`pageCount`, `pageAt(index)`, and `pageIndex(child)` inspect pages. pageAt accepts
+0..<pageCount and returns an owning cached **generic Widget** alias; retain the
+specialized constructor handle for editing. pageIndex returns -1 for a live
+non-page. `pageType`/`setPageType`, `pageTitle`/`setPageTitle`, and
+`pageComplete`/`setPageComplete` require page membership and copy native values.
+`pageHeaderImage`/`pageSideImage` return owning nullable Pixbuf handles; matching
+setters retain native references, and an empty Pixbuf clears the image.
+
+`currentPage` is -1 before GTK selects a page or when none is selected. Assigning
+an existing visible index selects it; negative native sentinel indices and hidden
+pages are rejected. This programmatic operation bypasses completion gating; it is
+not a simulated Next/Back click. GTK's buttons maintain native visited-page history
+and use the default flow to advance to the next visible page. End a visible flow
+with a Confirm or Summary page, not an ordinary Content page with nowhere to go.
+
+`pageVisible`/`setPageVisible` configure optional pages, preserving hidden state
+under showAll. Hiding the current page is rejected: navigate away first. Original
+indices remain positional across hidden pages. `removePage(index)` (or inherited
+remove on a page handle) unparents the retained content and shifts later indices;
+GTK chooses another current page if necessary. Custom forward-function routing,
+synchronous prepare hooks, and direct access to private navigation buttons remain
+raw APIs.
+
+### Actions, lifecycle, and safe notifications
+
+`addActionWidget(button)` adds an unparented Button to the private action area;
+`removeActionWidget(button)` verifies SDK-recorded assistant ownership before
+removal. Removed retained buttons remain live; private action controls are not
+exposed. `updateButtons()` recomputes native state. `commit()` clears Back history
+and removes cancellation after a point of no return; it does not apply application
+settings or close the assistant itself.
+
+**onPrepare, onApply, onCancel, and onClose deliver at UI idle.** GTK2 continues
+accessing pages/private data after prepare/apply signals, so invoking destructive
+user closures synchronously there would be unsafe. onPrepare receives an owning
+Widget snapshot, coalesces to the latest page per idle, and skips destroyed pages.
+It is an observation after native preparation, **not a pre-display hook**. Initialize
+content or update validation before navigation; a retained snapshot may no longer
+be the current page.
+
+Apply/Cancel/Close observers take no arguments and queue each native event per
+connection. Native Apply may already have advanced to a subsequent page when the
+observer runs; it cannot veto that transition. Use completion state to gate actions
+and a Progress page for asynchronous application work. Signal delivery does not
+close the window automatically: install Cancel/Close handlers explicitly. GTK
+normally disallows cancellation during an incomplete Progress page.
+
+Observers contain exceptions, support self-disconnection, and may remove pages or
+destroy the assistant safely. Disconnection or destruction cancels pending work.
+All operations and final releases remain on the UI thread.
+
+**GTK2 unparents retained page roots when an Assistant is destroyed instead of
+destroying those roots.** Retained pages and their children remain live, as do
+removed pages; destroy them explicitly when finished to release their callback
+captures. The example defers destruction of every page in addition to the wizard.
+Action-area buttons, by contrast, are destroyed with the assistant's private action
+area. Page image references held by GTK are released on removal/destruction.
+Hidden tests exercise native page transitions and signal delivery without mapping
+a window or clicking private native navigation controls; the example is compiled
+but not launched by tests.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -1701,7 +1799,10 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2icons.nim`, `tests/tgtk2selectors.nim`, `tests/tgtk2ranges.nim`, and
 `tests/tgtk2containers.nim`, `tests/tgtk2menus.nim`, and
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
-`tests/tgtk2choosers.nim`. Chooser tests cover copied selections, alpha semantics,
+`tests/tgtk2choosers.nim`, and `tests/tgtk2assistant.nim`. Assistant tests cover
+page metadata, visibility, navigation, image ownership, action membership,
+retained-page lifetimes, deferred events, and callback/native finalization.
+Chooser tests cover copied selections, alpha semantics,
 screen anchoring, native font-list changes, nonblocking responses, hidden response
 buttons, observer cancellation, and native/heap finalization. Positioned-container
 tests check geometry, native scrolling, automatic snap-edge values, deferred

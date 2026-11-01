@@ -247,7 +247,8 @@ proc add*(parent: Bin, child: Widget) =
   checkChild(parent, child)
   if rawGtk.IS_SEPARATOR_MENU_ITEM(parent.raw) or rawGtk.IS_TEAROFF_MENU_ITEM(parent.raw) or
       g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.separator_tool_item_get_type()) or
-      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.tool_button_get_type()):
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.tool_button_get_type()) or
+      g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.assistant_get_type()):
     raise newException(ValueError, "this widget manages its own content or cannot have children")
   if rawGtk.get_child(cast[rawGtk.PBin](parent.raw)) != nil:
     raise newException(ValueError, "container already has a child")
@@ -368,3 +369,4 @@ include gtk2/menus
 include gtk2/toolbars
 include gtk2/positioned
 include gtk2/choosers
+include gtk2/assistant

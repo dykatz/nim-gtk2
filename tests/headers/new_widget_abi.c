@@ -6,6 +6,8 @@
 size_t nim_gtk2_sizeof_gsize(void) { return sizeof(gsize); }
 size_t nim_gtk2_sizeof_gtype(void) { return sizeof(GType); }
 size_t nim_gtk2_sizeof_gobject_class(void) { return sizeof(GObjectClass); }
+size_t nim_gtk2_sizeof_assistant_page_type(void) { return sizeof(GtkAssistantPageType); }
+int nim_gtk2_assistant_progress(void) { return GTK_ASSISTANT_PAGE_PROGRESS; }
 size_t nim_gtk2_sizeof_color_selection(void) { return sizeof(GtkColorSelection); }
 size_t nim_gtk2_sizeof_color_selection_class(void) { return sizeof(GtkColorSelectionClass); }
 size_t nim_gtk2_sizeof_color_selection_dialog(void) { return sizeof(GtkColorSelectionDialog); }

@@ -16,6 +16,8 @@ else:
 proc glibSizeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gsize".}
 proc glibTypeWidth(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gtype".}
 proc objectClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_gobject_class".}
+proc assistantPageTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_assistant_page_type".}
+proc assistantProgress(): cint {.cdecl, importc: "nim_gtk2_assistant_progress".}
 proc colorSelectionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection".}
 proc colorSelectionClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection_class".}
 proc colorSelectionDialogSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_color_selection_dialog".}
@@ -93,6 +95,8 @@ suite "new raw binding native header ABI":
     check glibSizeWidth() == csize_t(sizeof(g.gsize))
     check glibTypeWidth() == csize_t(sizeof(g.GType))
     check objectClassSize() == csize_t(sizeof(g.TGObjectClass))
+    check assistantPageTypeSize() == csize_t(sizeof(gtk.AssistantPageType))
+    check assistantProgress() == cint(gtk.ASSISTANT_PAGE_PROGRESS)
     check colorSelectionSize() == csize_t(sizeof(gtk.TColorSelection))
     check colorSelectionClassSize() == csize_t(sizeof(gtk.TColorSelectionClass))
     check colorSelectionDialogSize() == csize_t(sizeof(gtk.TColorSelectionDialog))
