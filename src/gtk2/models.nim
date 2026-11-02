@@ -14,6 +14,7 @@ type
   TreeView* = object of Container
   TextColumn* = object of ObjectHandle
     boundColumn: int
+    renderer: ObjectHandle
   ModelComboBox* = object of ComboBox
   ModelRowCallback = ref object
     fn: proc (row: int) {.closure.}
@@ -188,8 +189,8 @@ proc newTextColumn*(title: string, modelColumn: int): TextColumn =
   result.boundColumn = modelColumn
   # Both are GtkObject/InitiallyUnowned: sink our reference, then let the column
   # retain the renderer. No raw renderer pointer escapes the constructor.
-  let renderer = ObjectHandle(state: adoptObject(rawGtk.cell_renderer_text_new()))
-  let p = cast[rawGtk.PCellRenderer](nativePointer(renderer))
+  result.renderer = ObjectHandle(state: adoptObject(rawGtk.cell_renderer_text_new()))
+  let p = cast[rawGtk.PCellRenderer](nativePointer(result.renderer))
   rawGtk.column_pack_start(result.raw, p, g.gbool(true))
   rawGtk.column_add_attribute(result.raw, p, "text", index)
   rawGtk.column_set_title(result.raw, caption)
@@ -202,7 +203,10 @@ proc appendColumn*(w: TreeView, column: TextColumn) =
 proc appendTextColumn*(w: TreeView, title: string, modelColumn: int): TextColumn =
   result = newTextColumn(title, modelColumn)
   w.appendColumn(result)
-proc disconnectSignals*(c: TextColumn) = disconnectObjectSignals(c)
+proc disconnectSignals*(c: TextColumn) =
+  discard nativePointer(c)
+  disconnectObjectSignals(c.renderer)
+  disconnectObjectSignals(c)
 proc title*(c: TextColumn): string = $rawGtk.column_get_title(c.raw)
 proc `title=`*(c: TextColumn, title: string) = rawGtk.column_set_title(c.raw, checkedUtf8Text(title))
 proc resizable*(c: TextColumn): bool = g.toBool(rawGtk.column_get_resizable(c.raw))
@@ -232,13 +236,9 @@ proc `selectedIndex=`*(w: TreeView, row: int) =
   else:
     var iter = rowIter(w.model, row)
     rawGtk.select_iter(selection, addr iter)
+proc connectViewSelection(w: TreeView, fn: proc () {.closure.}): Connection
 proc onSelectionChanged*(w: TreeView, fn: proc () {.closure.}): Connection {.discardable.} =
-  if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
-  let selection = ObjectHandle(state: adoptObject(singleSelection(w), borrowed = true,
-    cache = true, hasDestroySignal = false))
-  result = connect(selection, "changed", fn, after = true)
-  # Selection IDs belong to a DIFFERENT GObject; never put them in view.handlers.
-  w.onDestroy(proc () = disconnectObjectSignals(selection))
+  connectViewSelection(w, fn)
 proc onRowActivated*(w: TreeView, fn: proc (row: int) {.closure.}): Connection {.discardable.} =
   checkFlatModel(w.model.raw)
   connectModelRow(w, "row-activated", fn)

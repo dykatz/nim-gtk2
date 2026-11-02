@@ -3,6 +3,17 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_event_key(void) { return sizeof(GdkEventKey); }
+size_t nim_gtk2_event_key_code_offset(void) { return offsetof(GdkEventKey, hardware_keycode); }
+size_t nim_gtk2_sizeof_event_button(void) { return sizeof(GdkEventButton); }
+size_t nim_gtk2_event_button_state_offset(void) { return offsetof(GdkEventButton, state); }
+size_t nim_gtk2_sizeof_event_motion(void) { return sizeof(GdkEventMotion); }
+size_t nim_gtk2_event_motion_hint_offset(void) { return offsetof(GdkEventMotion, is_hint); }
+size_t nim_gtk2_sizeof_event_scroll(void) { return sizeof(GdkEventScroll); }
+size_t nim_gtk2_event_scroll_direction_offset(void) { return offsetof(GdkEventScroll, direction); }
+size_t nim_gtk2_sizeof_scroll_direction(void) { return sizeof(GdkScrollDirection); }
+int nim_gtk2_search_visible_flag(void) { return GTK_TEXT_SEARCH_VISIBLE_ONLY; }
+int nim_gtk2_search_text_flag(void) { return GTK_TEXT_SEARCH_TEXT_ONLY; }
 size_t nim_gtk2_sizeof_atom(void) { return sizeof(GdkAtom); }
 size_t nim_gtk2_sizeof_misc(void) { return sizeof(GtkMisc); }
 size_t nim_gtk2_misc_padding_width(void) { return sizeof(((GtkMisc *)0)->xpad); }

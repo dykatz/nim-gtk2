@@ -111,7 +111,7 @@ as the core API; import only `gtk2`.
 | `newAspectFrame(text, ratio, xalign, yalign, obeyChild)` | Frame operations; `setAspect(ratio, xalign, yalign, obeyChild)` |
 | `newExpander(text, mnemonic)` | Single-child `add`, `text`, `expanded`, `spacing`, `onActivate` |
 | `newHSeparator()`, `newVSeparator()` | Ordinary widget packing/lifecycle |
-| `newDrawingArea(width, height)` | Size request and redraw scheduling; rendering callbacks are not wrapped yet |
+| `newDrawingArea(width, height)` | Size requests, scoped Cairo drawing and copied input callbacks; see the drawing/input extensions below |
 
 All widgets now support `setSizeRequest(width, height)`, the read-only
 `sizeRequest` tuple, and `queueDraw()`. A size request accepts `-1` for GTK's
@@ -499,8 +499,8 @@ out-of-range encodings raise `ValueError` before GTK. Iterators are created
 internally for each operation and never escape as persistent handles. Native
 allocated strings are copied and freed. Text getters include invisible tagged
 characters by default; embedded images/anchors are not returned by GTK's plain
-text getter. Rich text, tags, marks, search, clipboard, images, and anchors remain
-outside this initial surface.
+text getter. Tags, marks, bounded Unicode search and embedded pixbufs are covered in the
+rich-text extensions below. Clipboard and embedded child anchors remain raw.
 
 ### View behavior
 
@@ -624,8 +624,11 @@ inherited `onDestroy` handlers, retain/disconnect the Connection or call
 
 TreeView exposes `headersVisible`, `rulesHint`, read-only owning `model`, and
 single-selection `selectedIndex` for flat models (`-1` clears or means no selection).
-`onSelectionChanged(proc () = ...)` returns a normal connection. Selection
-signals originate on a separate GtkTreeSelection GObject: the wrapper tracks IDs
+`onSelectionChanged(proc () = ...)` returns a normal connection and coalesces
+native changes into a final-state observation at UI idle, without an initial
+notification. This applies to single and multiple selection alike; callbacks must
+not assume they run before a selection setter returns. Selection signals originate
+on a separate GtkTreeSelection GObject: the wrapper tracks IDs
 against that object and automatically disconnects them on view destruction.
 They are not incorrectly tracked as TreeView signal IDs. `onRowActivated(proc
 (row: int) = ...)` reports a copied flat row index; `activateRow(index)` emits
@@ -671,8 +674,10 @@ Closing views does not invalidate retained models.
 
 See [`examples/models.nim`](../examples/models.nim) for shared TreeView/ComboBox
 data. It is compiled, not launched, during validation. Proxies and stable row
-references are covered below. Multiple selection, editable/custom cell renderers,
-and model replacement remain future work. Pixbuf-backed IconView is covered below.
+references are covered below. Multiple TreeView selection and editable text/toggle
+columns are covered in the extensions below. Arbitrary custom cell renderers,
+editable renderer types beyond these fixed layouts, and model replacement remain
+future work. Pixbuf-backed IconView is covered below.
 
 ## Hierarchical TreeStore and TreePath
 
@@ -2470,6 +2475,188 @@ hosting or user input on every desktop. Never run mapped tests on a user's
 ordinary desktop. No native library is modified and no compatibility warnings are
 suppressed.
 
+## Drawing/input, rich text and editable views
+
+These extensions build on the existing DrawingArea, Widget, TextBuffer/TextView
+and TreeView/TextColumn APIs. The expanded [controls](../examples/controls.nim),
+[text editor](../examples/text.nim) and [models](../examples/models.nim) examples
+show the features together rather than introducing another widget layer.
+
+### Scoped Cairo rendering
+
+DrawingArea.onDraw(proc(context: DrawContext, info: DrawInfo)) returns a Connection.
+It runs **synchronously**, after the native expose handler, on the UI thread. A
+new Cairo context is created for each callback and clipped to the expose region
+**and** GTK's native drawable visibility clip. DrawInfo copies the allocated
+width/height and damaged rectangle (x,y,width,height); coordinates are local to
+the DrawingArea's own GdkWindow. It is not a general Widget expose wrapper, whose
+coordinates/child-window semantics differ. GTK may combine damage notifications.
+
+DrawContext provides setSource(Color), setLineWidth, moveTo/lineTo, rectangle,
+circle, paint, fill, stroke and save/restore. Colors use rgba16; floating geometry
+must be finite, dimensions/radii nonnegative and line widths positive. Cairo
+errors and user exceptions are contained at the C boundary and reported.
+
+DrawContext.raw is a **borrowed ptr Cairo.Context valid only during that callback**,
+for advanced paths/patterns/Pango integration via the raw libraries. Never destroy
+or retain it, or expand the expose clip with raw reset_clip. The SDK invalidates
+all copied DrawContexts on callback exit, even after errors. Methods also reject
+use after the DrawingArea is destroyed inside its callback. A saved DrawContext
+cannot be used for later drawing, and does not keep a native context/widget alive
+once the callback ends. Store application drawing data and call queueDraw instead.
+
+Widget.allocation returns copied x/y/width/height. queueDrawArea(x,y,width,height)
+checks signed coordinates, nonnegative sizes and endpoint overflow before native
+invalidation; zero-sized areas are no-ops. GTK redraws later, not synchronously.
+Normal queueDraw redraws the whole widget. Draw handlers return FALSE to GTK unless
+the callback destroyed its owner, in which case propagation is stopped. Multiple
+handlers can draw in native signal order, with independent contexts.
+
+### Copied input events and propagation
+
+All widgets support these synchronous, before-default-handler connections:
+
+- onButtonPress/onButtonRelease: proc(ButtonEvent): bool, including native
+  double/triple presses in ButtonEvent.kind.
+- onMotion: proc(MotionEvent): bool, with copied coordinates and hint status.
+- onScroll: proc(ScrollEvent): bool, using GTK2's four discrete directions.
+- onKeyPress/onKeyRelease: proc(KeyEvent): bool.
+
+Return true to consume the event/stop later handlers, false to let GTK handle it.
+Exceptions are contained and normally propagate the event; destroying the widget
+inside a callback forces true so GTK's default handler cannot use a destroyed
+owner. Self-disconnection is supported. Each registration adds its native event
+mask; disconnecting does not remove shared mask bits. Regular motion, not motion
+hint subscription, is requested. Raw hint subscriptions require raw motion
+requests. Native device/axes/window pointers are deliberately not exposed.
+
+Button/motion/scroll copy local and root coordinates, unsigned 32-bit timestamps
+and ModifierMask (all native bits, including unknown ones). has(mask,flags) tests
+all requested bits; modifierShift/Control/Alt/Super and button masks are available.
+Keyboard payloads copy keyval, modifiers, time, hardware keycode and group.
+KeyEvent.unicode returns a Unicode code point or zero for a non-character key;
+keyLeft/Up/Right/Down/Escape/Return/Space provide common keyvals. Native locale
+key strings are not mislabeled as UTF-8. These are **not** text-input/IME APIs:
+keep native Entry/TextView editing for composition, dead keys and input methods.
+Widget.canFocus enables keyboard focus; pointer callbacks can call focus().
+
+Input/render bindings do not implicitly pin a shared SDK owner state in their
+native callback data. The current widget is retained for dispatch, and closure
+captures are released on disconnect/native destruction. Capturing a widget in
+its own closure still needs explicit destroy/disconnect as with other widgets.
+
+### Text tags, marks, search and images
+
+TextBuffer.createTag(name="") creates an owning **non-floating GObject** TextTag,
+adds it to the buffer's tag table, and rejects duplicate nonempty names. An empty
+name creates an anonymous tag. tag(name) gets an owning alias or raises if absent.
+A tag retains its table, not its originating buffer. applyTag/removeTag(tag,first,last),
+removeAllTags(first,last) and hasTag(tag,offset) validate ranges and table membership
+before GTK; ranges are half-open Unicode code-point offsets. deleteTag removes
+its definition and all native applications, but retained tag handles remain live.
+They cannot be applied again through that buffer unless registered externally.
+Raw removals are detected via the public table-foreach API, not private structs.
+
+TextTag supports bold, italic, underline, editable and invisible properties,
+setForeground/setBackground(Color), and clearForeground/clearBackground. Color
+alpha must be 65535: GTK2 text colors are RGB, not RGBA. Explicit false style
+values override lower-priority native tags; clearing a color unsets its override.
+Native tag priorities/overlap policy still apply; arbitrary properties, font
+layouts and tag event callbacks remain raw. Formatting/user actions do not add
+an undo stack, and follow GTK's native modified-flag behavior.
+
+findText(needle,first=0,last=-1,backwards=false,visibleOnly=false,textOnly=true)
+returns TextMatch(found,first,last). -1 means the buffer end for last only. It
+validates the complete range and nonempty UTF-8/NUL-free needle before searching.
+Results are copied half-open offsets; a miss has found=false and endpoints -1.
+It does not move selection, wrap, mutate or retain iterators. The text example
+explicitly wraps its next-match search and selects the result. Search is GTK2's
+case-sensitive native search, not regex/case-folding. visibleOnly skips invisible
+tagged text; textOnly skips embedded objects when matching. Match spans may
+therefore include skipped characters/objects. Raw TEXT_SEARCH_VISIBLE_ONLY and
+TEXT_SEARCH_TEXT_ONLY were corrected to native bit values 1 and 2.
+
+createMark(offset,name="",leftGravity=true) and mark(name) return owning TextMark
+handles. Duplicate named marks are rejected; empty names are anonymous. Marks
+track insertion/deletion, unlike integer offsets. Left gravity keeps a mark before
+text inserted exactly at it; right gravity moves it after. name, visible,
+leftGravity, deleted and offset expose native state. moveMark/deleteMark on a
+buffer check ownership before GTK; GTK's built-in insert/selection_bound marks
+cannot be deleted. Deleted marks remain valid objects, but offset/move/delete
+raise. Mark handles do not retain the buffer: they become deleted on its final
+release. TextView.scrollToMark validates the mark against its current buffer.
+
+insertImage(offset,Pixbuf) inserts an owning native pixbuf segment occupying one
+character. Ordinary text/textRange omit objects; slice(first,last,includeHidden)
+returns U+FFFC object replacement characters, preserving offset correspondence.
+All operations still resolve fresh native iterators and copy/free returned strings.
+Embedded child widgets/anchors, clipboard protocols, serialization and undo remain
+outside this batch.
+
+### Editable columns and multiple selection
+
+TextColumn.editable enables GTK's native entry editor. Register onEdited only
+**after attaching the column**. Its proc(TextEdit) is an idle observation, never
+an immediate model mutation. startEditing(view,column,path) validates attachment,
+row, editable state and mapped view, expands ancestors, and asks GTK to start the
+editor; it is not valid on a hidden/unmapped view. User-driven clicks work normally.
+
+TextEdit copies text, bound column index and path at emission, and owns a stable
+TreeRowReference named row. Insertion/reordering before delivery updates row.path;
+deletion makes row.valid false. **path is only the old positional snapshot**.
+Check row.valid and row.model before writing through your own ListStore/TreeStore.
+Proxy edits reference the displayed proxy model; explicitly convert to its child
+coordinates before mutation. The SDK never writes through a read-only proxy,
+parses a user's edit into a guessed type, or chooses an application's validation
+policy. Returning from the callback does not imply that an edit was committed.
+
+TreeView.appendToggleColumn(title,index) / newToggleColumn plus appendColumn
+provide the corresponding fixed boolean layout, checking the model column kind.
+ToggleColumn has title, resizable, visible and activatable properties;
+onToggled(proc(ToggleEdit)) uses the same copied/stable-row scheme. active is the
+model value **at emission**, not an automatic new value. To honor every toggle
+intent, the example inverts the current model value when processing each event.
+Text/toggle callbacks queue every event, contain exceptions and support self-
+disconnection/destruction. Disconnecting, destroying the column or destroying its
+original view cancels pending events/captures. Retained columns survive view
+closure but those connections do not; reconnect after raw column moves. Column
+.disconnectSignals also clears its renderer callbacks. Renderers remain managed
+implementation details, accessible only through the raw API if required.
+
+TreeView.selectionMode supports selectionNone/Single/Browse/Multiple. **Changing
+mode clears selection** (assigning the current mode is a no-op). A public native
+NONE transition discards GTK2's stale multiple-selection anchor, which can otherwise
+prevent later single selection. No private tree structures are inspected or altered.
+selectedPaths copies all selected paths in native order; selectedIndices is the
+flat-model convenience. In multiple mode, assigning selectedPaths validates all
+rows before clearing/mutating selection, retains stable references through the
+operation, and skips rows invalidated by native reentrant changes. selectAll
+requires multiple mode; unselectAll clears native selection. Native browse policy
+still applies. Existing selectedIndex/selectedPath remain strictly single-mode
+helpers to avoid ambiguous behavior; model replacement remains raw.
+
+TreeView.onSelectionChanged is now **coalesced at UI idle**, for all modes, with
+no initial event. Read final selection/model state there. It does not synchronously
+run inside set_mode/select_all/model-driven selection changes, where GTK continues
+using internal state after emission. Disconnect/view destruction cancels pending
+delivery; callbacks can disconnect/destroy their view safely. Row activation and
+model row notifications retain their separately documented timing.
+
+### Extension tests
+
+Hidden tests/tgtk2extensions.nim is part of testUi and never maps widgets: it uses
+explicitly realized, **unmapped** offscreen resources for context lifetime and
+synthetic event dispatch. An unmapped drawable can have an empty visibility clip;
+those tests do not claim to validate rendered pixels. Native probes check copied
+event layouts, C-width scroll enums and search flag bits against C headers.
+
+The separate nimble testMappedExtensions requires an isolated virtual DISPLAY and
+GTK2_TEST_VIRTUAL_DISPLAY=1, rejecting runs without that opt-in. It checks actual
+Cairo pixels, nonempty partial redraw clipping/snapshot independence, and a real
+GtkEntry cell-editing lifecycle that emits a deferred edit and explicitly commits
+Unicode text. Never run mapped tests on an ordinary desktop. No installed native
+library is changed and no GTK warnings are suppressed.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2528,7 +2715,8 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
-`tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, and `tests/tgtk2desktop.nim`.
+`tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
+`tests/tgtk2extensions.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -2567,13 +2755,15 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
 an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
-multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
+multiple IconView selection, arbitrary cell renderers, broader event argument/return-value APIs,
+clipboard/drag-and-drop, rich-text child anchors/serialization, actual print jobs,
+arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

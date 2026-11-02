@@ -30,6 +30,20 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Rendering/input and rich-text ABI corrections
+
+Copied input events are checked against C GdkEventKey/Button/Motion/Scroll sizes
+and relevant offsets. GdkScrollDirection now explicitly has C-enum width rather
+than Nim's small-enum storage. Public widget allocation/focus/mapped queries were
+added with C-width gboolean and typed output pointers. Missing double/triple-click
+and scroll event constants are available. Text-search flag constants now match
+GTK2 (VISIBLE_ONLY = 1, TEXT_ONLY = 2), with native probes guarding both bits.
+
+Scoped DrawContext.raw exposes the existing borrowed Cairo pointer ABI, not a
+managed object substituted into native function signatures. Public GParamSpec
+metadata initializes precise GValue property types for styles/renderers; GTK
+private tag/renderer/tree structures are never inspected to implement these APIs.
+
 ### Desktop ABI corrections
 
 GdkNativeWindow is uint32 on GTK2 X11, not a generic pointer or Xlib's unsigned

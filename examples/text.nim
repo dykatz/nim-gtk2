@@ -20,6 +20,22 @@ proc main() =
   layout.packStart(newLabel("Edit on the left; the right view shares the same buffer."), packShrink)
 
   let buffer = newTextBuffer("Hello, Nim!\nUnicode: λ, 界, 🙂\nSelect some text or start typing.\n")
+  let emphasis = buffer.createTag("emphasis")
+  emphasis.bold = true
+  emphasis.underline = true
+  emphasis.setForeground(rgba16(5000, 12000, 50000))
+  let bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
+  let tools = newHBox(spacing = 6)
+  let query = newEntry("λ")
+  let find = newButton("Find next")
+  let style = newButton("Emphasize selection")
+  let saveMark = newButton("Bookmark")
+  let goMark = newButton("Go to mark")
+  let insertImage = newButton("Insert image")
+  tools.packStart(query)
+  for button in [find, style, saveMark, goMark, insertImage]:
+    tools.packStart(button, packShrink)
+  layout.packStart(tools, packShrink)
   let editor = newTextView(buffer)
   let mirror = newTextView(buffer)
   editor.wrapMode = wrapWordChar
@@ -57,6 +73,30 @@ proc main() =
       buffer.appendText("More text: λ🙂\n")
     buffer.cursorOffset = buffer.characterCount
     editor.scrollToCursor()
+  style.onClicked(proc () =
+    let selection = buffer.selectionBounds
+    if selection.hasSelection:
+      buffer.applyTag(emphasis, selection.first, selection.last))
+  find.onClicked(proc () =
+    if query.text.len == 0: return
+    var match = buffer.findText(query.text, first = buffer.cursorOffset, visibleOnly = true)
+    if not match.found: match = buffer.findText(query.text, visibleOnly = true)
+    if match.found:
+      buffer.selectRange(match.first, match.last)
+      editor.scrollToCursor()
+    else: status.text = "Not found: " & query.text)
+  saveMark.onClicked(proc () = buffer.moveMark(bookmark, buffer.cursorOffset))
+  goMark.onClicked(proc () =
+    buffer.cursorOffset = bookmark.offset
+    editor.scrollToMark(bookmark))
+  let sampleImage = newPixbuf(16, 16, 0x2090ffff'u32)
+  insertImage.onClicked(proc () = buffer.insertImage(buffer.cursorOffset, sampleImage))
+  editor.onKeyPress(proc (event: KeyEvent): bool =
+    if event.modifiers.has(modifierControl) and event.unicode in [uint32(ord('f')), uint32(ord('F'))]:
+      query.focus()
+      query.selectAll()
+      return true
+    false)
   clearSelection.onClicked(proc () = discard buffer.deleteSelection())
   markSaved.onClicked(proc () = buffer.modified = false)
   refresh()

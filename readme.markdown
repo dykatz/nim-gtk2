@@ -109,6 +109,13 @@ StatusIcon and the shared Misc API. See [`examples/desktop.nim`](examples/deskto
 and the [desktop guide](docs/gtk2.md#desktop-infrastructure-invisible-plugsocket-and-statusicon).
 Tray constructors can briefly map native windows even with visible=false;
 tray/foreign-embedding tests therefore require explicit isolated-display opt-in.
+Existing [controls](examples/controls.nim), [text](examples/text.nim), and
+[models](examples/models.nim) examples now include scoped Cairo drawing and input,
+text tags/marks/search/images, editable text/toggle columns and multiple TreeView
+selection. See the [extension guide](docs/gtk2.md#drawinginput-rich-text-and-editable-views).
+TreeView selection observers are deferred/coalesced; edits are copied observations,
+not automatic commits. Pixel/native-editor tests use the separate opt-in
+`nimble testMappedExtensions` task on an isolated virtual display.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

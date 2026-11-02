@@ -15,6 +15,12 @@ static:
 proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
+proc drain() =
+  for i in 0..<256:
+    if rawGtk.events_pending() == 0: return
+    discard rawGtk.main_iteration_do(g.gbool(false))
+  raise newException(ValueError, "model observers did not settle")
+
 proc runTests() =
   gtk2.init()
   suite "gtk2 flat models and text-cell views":
@@ -146,9 +152,12 @@ proc runTests() =
       let selection = view.onSelectionChanged(proc () = inc changes)
       view.selectedIndex = 1
       check view.selectedIndex == 1
+      check changes == 0
+      drain()
       check changes == 1
       view.selectedIndex = -1
       check view.selectedIndex == -1
+      drain()
       check changes == 2
       expect ValueError: view.selectedIndex = 2
       expect ValueError: view.selectedIndex = -2
@@ -198,9 +207,11 @@ proc runTests() =
         inc calls)
       view.selectedIndex = 0
       view.selectedIndex = -1
+      drain()
       check calls == 1
       let destroyer = view.onSelectionChanged(proc () = view.destroy())
       view.selectedIndex = 0
+      drain()
       check view.isDestroyed
       check not destroyer.connected
 

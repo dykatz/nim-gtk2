@@ -10,7 +10,7 @@ type
   TVisibilityState* = enum
     VISIBILITY_UNOBSCURED, VISIBILITY_PARTIAL, VISIBILITY_FULLY_OBSCURED
   PVisibilityState* = ptr TVisibilityState
-  TScrollDirection* = enum
+  TScrollDirection* {.size: sizeof(cint).} = enum
     SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT
   PScrollDirection* = ptr TScrollDirection
   TNotifyType* = int

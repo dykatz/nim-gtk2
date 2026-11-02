@@ -5,7 +5,7 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
-from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, DAMAGE
+from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, TEventKey, TEventButton, TEventMotion, TEventScroll, TScrollDirection, DAMAGE
 
 when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
   # The default pkg-config directory selects 32-bit glibconfig.h on these OSes.
@@ -13,6 +13,17 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc eventKeySize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_key".}
+proc eventKeyCodeOffset(): csize_t {.cdecl, importc: "nim_gtk2_event_key_code_offset".}
+proc eventButtonSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_button".}
+proc eventButtonStateOffset(): csize_t {.cdecl, importc: "nim_gtk2_event_button_state_offset".}
+proc eventMotionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_motion".}
+proc eventMotionHintOffset(): csize_t {.cdecl, importc: "nim_gtk2_event_motion_hint_offset".}
+proc eventScrollSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_scroll".}
+proc eventScrollDirectionOffset(): csize_t {.cdecl, importc: "nim_gtk2_event_scroll_direction_offset".}
+proc scrollDirectionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_scroll_direction".}
+proc searchVisibleFlag(): cint {.cdecl, importc: "nim_gtk2_search_visible_flag".}
+proc searchTextFlag(): cint {.cdecl, importc: "nim_gtk2_search_text_flag".}
 proc atomSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_atom".}
 proc miscSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_misc".}
 proc miscPaddingWidth(): csize_t {.cdecl, importc: "nim_gtk2_misc_padding_width".}
@@ -132,6 +143,19 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "copied input event layout, C-width scroll enum and text-search flag bits":
+    check eventKeySize().int == sizeof(TEventKey)
+    check eventKeyCodeOffset().int == offsetOf(TEventKey, hardware_keycode)
+    check eventButtonSize().int == sizeof(TEventButton)
+    check eventButtonStateOffset().int == offsetOf(TEventButton, state)
+    check eventMotionSize().int == sizeof(TEventMotion)
+    check eventMotionHintOffset().int == offsetOf(TEventMotion, is_hint)
+    check eventScrollSize().int == sizeof(TEventScroll)
+    check eventScrollDirectionOffset().int == offsetOf(TEventScroll, direction)
+    check scrollDirectionSize().int == sizeof(TScrollDirection)
+    check searchVisibleFlag() == gtk.TEXT_SEARCH_VISIBLE_ONLY
+    check searchTextFlag() == gtk.TEXT_SEARCH_TEXT_ONLY
+
   test "desktop native IDs, public instance/class layout and unsigned popup payloads":
     check atomSize().int == sizeof(TAtom)
     check miscSize().int == sizeof(gtk.TMisc)

@@ -11,6 +11,12 @@ static:
 proc finalizedCallback(data: pointer, obj: g.PGObject) {.cdecl.} =
   cast[ptr bool](data)[] = true
 
+proc drain() =
+  for i in 0..<256:
+    if rawGtk.events_pending() == 0: return
+    discard rawGtk.main_iteration_do(g.gbool(false))
+  raise newException(ValueError, "tree observers did not settle")
+
 proc runTests() =
   gtk2.init()
   suite "gtk2 hierarchical trees":
@@ -115,6 +121,7 @@ proc runTests() =
       check view.pathExpanded(root)
       check view.pathExpanded(branch)
       check not view.expandPath(leaf)
+      drain()
       check changes == 1
       var activated: seq[gtk2.TreePath]
       view.onPathActivated(proc (path: gtk2.TreePath) = activated.add(path))
@@ -123,6 +130,7 @@ proc runTests() =
       check view.model.value(view.selectedPath, 0).stringValue == "Leaf"
       view.selectedPath = treePath()
       check view.selectedPath.isRoot
+      drain()
       check changes == 2
       view.collapseAll()
       check not view.pathExpanded(root)

@@ -4,6 +4,8 @@ import headers/gtk2 as rawGtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as rawPixbuf
 from headers/gdk2 import TColor
+import headers/gdk2 as rawGdk except string
+import headers/cairo as rawCairo
 
 when not (defined(gcArc) or defined(gcOrc)):
   {.error: "gtk2 requires --mm:arc or --mm:orc".}
@@ -391,3 +393,6 @@ include gtk2/recents
 include gtk2/displays
 include gtk2/printing
 include gtk2/desktop
+include gtk2/drawing
+include gtk2/richtext
+include gtk2/editableviews

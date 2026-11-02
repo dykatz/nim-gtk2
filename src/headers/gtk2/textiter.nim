@@ -1,8 +1,8 @@
 # Included by headers/gtk2.nim; do not import directly.
 const
-  TEXT_SEARCH_VISIBLE_ONLY* = 0
+  TEXT_SEARCH_VISIBLE_ONLY* = 1 shl 0
 const
-  TEXT_SEARCH_TEXT_ONLY* = 1
+  TEXT_SEARCH_TEXT_ONLY* = 1 shl 1
 
 proc TYPE_TEXT_ITER*(): GType
 proc get_buffer*(iter: PTextIter): PTextBuffer{.cdecl, dynlib: lib,

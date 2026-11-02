@@ -4,7 +4,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 shared list model", 640, 400)
+  let window = newWindow("gtk2 editable shared list model", 800, 460)
   defer: window.destroy()
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)
@@ -20,7 +20,19 @@ proc main() =
   let view = newTreeView(store)
   let nameColumn = view.appendTextColumn("Language", 0)
   nameColumn.resizable = true
+  nameColumn.editable = true
   discard view.appendTextColumn("Category", 1)
+  let enabledColumn = view.appendToggleColumn("Active", 3)
+  nameColumn.onEdited(proc (edit: TextEdit) =
+    if edit.row.valid and edit.row.model.raw == store.raw:
+      store.setValue(edit.row.path.indices[0], edit.column, cell(edit.text)))
+  enabledColumn.onToggled(proc (edit: ToggleEdit) =
+    if edit.row.valid and edit.row.model.raw == store.raw:
+      let row = edit.row.path.indices[0]
+      store.setValue(row, edit.column, cell(not store.value(row, edit.column).boolValue)))
+  let multiple = newCheckButton("Multiple selection (mode changes clear selection)")
+  layout.packStart(multiple, packShrink)
+  layout.packStart(newLabel("Edit names inline; toggle Active; Ctrl/Shift-click for multiple selection."), packShrink)
   view.rulesHint = true
   let scroll = newScrolledWindow()
   scroll.add(view)
@@ -28,10 +40,12 @@ proc main() =
   let actions = newHBox(spacing = 6)
   let name = newEntry("New language")
   let add = newButton("Add")
+  let inlineEdit = newButton("Edit name inline")
   let rename = newButton("Rename selected")
   let remove = newButton("Remove selected")
   actions.packStart(name)
   actions.packStart(add, packShrink)
+  actions.packStart(inlineEdit, packShrink)
   actions.packStart(rename, packShrink)
   actions.packStart(remove, packShrink)
   layout.packStart(actions, packShrink)
@@ -39,11 +53,12 @@ proc main() =
   layout.packStart(status, packShrink)
 
   proc refresh() =
-    let row = view.selectedIndex
+    let selected = view.selectedIndices
+    let row = if selected.len == 0: -1 else: selected[0]
     if row < 0:
       status.text = $store.rowCount & " rows; no selection"
     else:
-      status.text = store.value(row, 0).stringValue & ": year " &
+      status.text = $selected.len & " selected; " & store.value(row, 0).stringValue & ": year " &
         $store.value(row, 2).intValue & ", score " & $store.value(row, 4).floatValue
 
   proc refreshCombo() =
@@ -53,6 +68,9 @@ proc main() =
 
   # Share data, not selection. Avoid cross-widget selection changes while GTK
   # is still notifying its native model consumers of structural edits.
+  multiple.onToggled(proc () =
+    view.selectionMode = if multiple.active: selectionMultiple else: selectionSingle
+    refresh())
   combo.onChanged(proc () = refreshCombo())
   view.onSelectionChanged(proc () = refresh())
   view.onRowActivated(proc (row: int) = status.text = "Activated: " & store.value(row, 0).stringValue)
@@ -65,12 +83,18 @@ proc main() =
   add.onClicked do ():
     let row = store.appendRow([cell(name.text), cell("Custom"), cell(2026), cell(true), cell(0.0)])
     combo.activeIndex = row
-    view.selectedIndex = row
+    if view.selectionMode == selectionMultiple: view.selectedPaths = [treePath(row)]
+    else: view.selectedIndex = row
     refresh()
+  inlineEdit.onClicked(proc () =
+    let paths = view.selectedPaths
+    if paths.len > 0: view.startEditing(nameColumn, paths[0]))
   rename.onClicked do ():
-    if view.selectedIndex >= 0: store.setValue(view.selectedIndex, 0, cell(name.text))
+    for row in view.selectedIndices: store.setValue(row, 0, cell(name.text))
   remove.onClicked do ():
-    if view.selectedIndex >= 0: store.removeRow(view.selectedIndex)
+    let rows = view.selectedIndices
+    # Delete from the end so earlier positional indices remain valid.
+    for i in countdown(rows.high, 0): store.removeRow(rows[i])
     refresh()
   combo.activeIndex = 0
   view.selectedIndex = 0
