@@ -5,11 +5,11 @@ proc status_icon_new*():PStatusIcon {.cdecl,
     importc: "gtk_status_icon_new", dynlib: lib.}
 proc status_icon_new_from_pixbuf*(pixbuf: PPixbuf):PStatusIcon {.cdecl,
     importc: "gtk_status_icon_new_from_pixbuf", dynlib: lib.}
-proc status_icon_new_from_file*(filename: PPgchar):PStatusIcon {.cdecl,
+proc status_icon_new_from_file*(filename: cstring):PStatusIcon {.cdecl,
     importc: "gtk_status_icon_new_from_file", dynlib: lib.}
-proc status_icon_new_from_stock*(stock_id: PPgchar):PStatusIcon {.cdecl,
+proc status_icon_new_from_stock*(stock_id: cstring):PStatusIcon {.cdecl,
     importc: "gtk_status_icon_new_from_stock", dynlib: lib.}
-proc status_icon_new_from_icon_name*(icon_name: PPgchar):PStatusIcon {.cdecl,
+proc status_icon_new_from_icon_name*(icon_name: cstring):PStatusIcon {.cdecl,
     importc: "gtk_status_icon_new_from_icon_name", dynlib: lib.}
 proc status_icon_set_from_pixbuf*(status_icon: PStatusIcon,pixbuf: PPixbuf) {.cdecl,
     importc: "gtk_status_icon_set_from_pixbuf", dynlib: lib.}
@@ -19,7 +19,7 @@ proc status_icon_set_from_stock*(status_icon: PStatusIcon,stock_id: cstring) {.c
     importc: "gtk_status_icon_set_from_stock", dynlib: lib.}
 proc status_icon_set_from_icon_name*(status_icon: PStatusIcon,icon_name: cstring) {.cdecl,
     importc: "gtk_status_icon_set_from_icon_name", dynlib: lib.}
-proc status_icon_get_storage_type*(status_icon: PStatusIcon): gtk2.PImageType {.cdecl,
+proc status_icon_get_storage_type*(status_icon: PStatusIcon): TImageType {.cdecl,
     importc: "gtk_status_icon_get_storage_type", dynlib: lib.}
 proc status_icon_get_pixbuf*(status_icon: PStatusIcon):PPixbuf {.cdecl,
     importc: "gtk_status_icon_get_pixbuf", dynlib: lib.}
@@ -53,7 +53,7 @@ proc status_icon_is_embedded*(status_icon: PStatusIcon):gboolean {.cdecl,
     importc: "gtk_status_icon_is_embedded", dynlib: lib.}
 proc status_icon_position_menu*(menu: PMenu,x: Pgint,y: Pgint,push_in: Pgboolean,user_data: gpointer) {.cdecl,
     importc: "gtk_status_icon_position_menu", dynlib: lib.}
-proc status_icon_get_geometry*(status_icon: PStatusIcon,screen: PScreen,area: gdk2.PRectangle,orientation: POrientation):gboolean {.cdecl,
+proc status_icon_get_geometry*(status_icon: PStatusIcon,screen: ptr PScreen,area: gdk2.PRectangle,orientation: POrientation):gboolean {.cdecl,
     importc: "gtk_status_icon_get_geometry", dynlib: lib.}
 proc status_icon_get_has_tooltip*(status_icon: PStatusIcon):gboolean {.cdecl,
     importc: "gtk_status_icon_get_has_tooltip", dynlib: lib.}

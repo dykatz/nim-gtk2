@@ -7,6 +7,12 @@ proc IS_PLUG_CLASS*(klass: pointer): bool
 proc PLUG_GET_CLASS*(obj: pointer): PPlugClass
 proc same_app*(a: PPlug): guint
 proc set_same_app*(a: PPlug, `same_app`: guint)
+proc plug_new*(socket_id: gdk2.TNativeWindow): PPlug {.cdecl, dynlib: lib,
+    importc: "gtk_plug_new".}
+proc get_embedded*(plug: PPlug): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_plug_get_embedded".}
+proc get_socket_window*(plug: PPlug): gdk2.PWindow {.cdecl, dynlib: lib,
+    importc: "gtk_plug_get_socket_window".}
 proc plug_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_plug_get_type".}
 proc construct_for_display*(plug: PPlug, display: gdk2.PDisplay,
                                  socket_id: gdk2.TNativeWindow){.cdecl,

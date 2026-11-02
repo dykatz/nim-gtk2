@@ -15,6 +15,8 @@ proc need_map*(a: PSocket): guint
 proc set_need_map*(a: PSocket, `need_map`: guint)
 proc is_mapped*(a: PSocket): guint
 proc set_is_mapped*(a: PSocket, `is_mapped`: guint)
+proc get_plug_window*(socket: PSocket): gdk2.PWindow {.cdecl, dynlib: lib,
+    importc: "gtk_socket_get_plug_window".}
 proc socket_new*(): PSocket{.cdecl, dynlib: lib, importc: "gtk_socket_new".}
 proc socket_get_type*(): TType{.cdecl, dynlib: lib,
                                 importc: "gtk_socket_get_type".}

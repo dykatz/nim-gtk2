@@ -1,6 +1,6 @@
 # Included by gtk2.nim: display widgets, status stacks and response signals.
 type
-  Image* = object of Widget
+  Image* = object of Misc
   Statusbar* = object of Box
   InfoBar* = object of Container # Pack content, not GTK's private outer HBox.
   IconSize* = enum

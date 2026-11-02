@@ -2326,6 +2326,150 @@ illumos uses /usr/lib/64/pkgconfig). Regular SDK tests separately verify that
 repeated getters add no references and replacement/cancellation release SDK-owned
 configuration correctly.
 
+## Desktop infrastructure: Invisible, Plug/Socket and StatusIcon
+
+[`examples/desktop.nim`](../examples/desktop.nim) demonstrates local X11 embedding,
+shared Misc layout and an Invisible resource. Pass --tray to explicitly enable a
+real desktop StatusIcon. Tray availability is not guaranteed, and the normal
+example does not create a tray icon unless requested.
+
+### Screen, Invisible and Misc
+
+`defaultScreen()` returns an owning cached view of GTK's borrowed GdkScreen;
+Screen.raw is a typed borrowed PScreen. Initialize GTK first. Screen references
+and all final releases follow the UI-thread-only contract.
+
+`newInvisible()` / `newInvisible(screen)` create an Invisible directly deriving
+from Widget, **not Window or Container**. GTK realizes its input-only native
+window during construction, but does not map it. screen gets an owning handle;
+screen= validates a nonempty handle and uses GTK's public screen-change API.
+Invisible is intended for native selection/drag/event infrastructure, not visible
+content. Those protocols remain raw. Explicit destroy() releases GTK's own user
+reference as well as breaking SDK captures; final Nim release then unrefs the
+wrapper's reference. Invisible cannot be packed as a child, including through a
+Widget upcast: it is a native toplevel even though it is not a GtkWindow.
+
+The abstract Misc API is shared by Label, Image and Arrow, which now derive from
+Misc. alignment returns copied x/y fractions; setAlignment(x,y) validates finite
+0..1 coordinates before mutation. padding returns copied x/y integers;
+setPadding(x,y) checks 0..65535, matching GTK2's **16-bit internal storage** rather
+than merely accepting all gint values. Generic Widget size/sensitivity/lifetime
+APIs still apply. No abstract Misc constructor or fabricated Misc widget exists.
+
+### X11 Plug and Socket
+
+This SDK API exists on Unix X11 targets (`defined(posix) and not defined(macosx)`),
+not Windows/Quartz. It uses GTK2's public XEmbed API and does not simulate embedding
+with ordinary parenting. Native Win32 variants, custom displays and low-level
+protocol operations remain raw.
+
+EmbedId is a distinct **uint32 GdkNativeWindow**, not Xlib's unsigned-long Window.
+embedId(integer) validates unsigned 32-bit bounds; zero is the empty/unattached
+sentinel. $ formats a decimal ID for IPC. IDs identify native windows on a display,
+not durable identities or owned resources; do not unref/destroy an ID. Foreign
+IDs must come from a trusted peer on the same display. Invalid, stale, reused or
+non-Plug foreign windows can produce native GTK/X errors; existence checks would
+race peer teardown and the SDK cannot guarantee IPC success.
+
+`newSocket()` derives from Container, and must be added to a normal Window tree
+before requesting id or calling addId. An unparented socket or one inside
+OffscreenWindow is rejected before GTK. id realizes the anchored socket if needed
+but does not show/map it. addId(id) rejects empty/self IDs and occupied sockets;
+hasPlug checks public native plug-window/child APIs, including local plugs not yet
+realized. Normal Container.remove is rejected for a socket's embedded child: its
+parenting is protocol-managed, not generic SDK packing.
+
+`newPlug()` creates an unattached Plug deriving from Window. newPlug(socketId)
+connects to an existing socket; newPlug(socket) is the checked local convenience,
+rejecting an occupied socket. Plug.id realizes it without showing it. isEmbedded
+queries native state. Add its ordinary content with Bin.add and showAll when
+ready. For local embedding, run the host Window's event loop, not a nested Plug
+run; a separate peer process can run its own Plug. Native same-process embedding
+can change a Plug's toplevel status while its GtkWindow runtime type remains.
+Do not try to manually pack a Plug into another container.
+
+**SDK sockets remain reusable after plug removal.** GTK's default would destroy
+its Socket. The constructor installs an internal plug-removed handler returning
+TRUE; it runs after SDK observation handlers, which return FALSE without invoking
+user code synchronously. This is an explicit lifetime policy, not a hover/input
+workaround. Destroy the socket explicitly when no longer needed.
+
+onPlugAdded(proc()), onPlugRemoved(proc()) and Plug.onEmbedded(proc()) queue each
+native notification at UI idle. They are observations, not pre-attachment/veto
+callbacks or current-state guarantees. Plug construction may already have emitted
+embedded before a listener is registered; query isEmbedded for initial state.
+Callbacks may disconnect/destroy their owner, and exceptions are contained.
+Destroying a local Plug detaches it; foreign peer exit is handled through native
+XEmbed. Do not rely on a remote process honoring shutdown requests or treating
+an embedding ID as a security boundary. Disconnection/destruction cancels pending
+observer delivery, rather than delivering events to a destroyed owner.
+
+### StatusIcon (a GObject, not a widget)
+
+newStatusIcon(visible=false), newStatusIcon(image: Pixbuf,visible=false),
+newStatusIconFromIcon(name,visible=false) and newStatusIconFromStock(id,visible=false)
+create owned **non-floating** GtkStatusIcon objects without an extra ref/sink.
+The native constructor can briefly map its private tray widget **before** GTK's
+non-construct visible property can be changed. Therefore even a hidden StatusIcon
+is not safe to construct in no-mapping tests, and no no-map factory is promised.
+Windows/Quartz/X11 behavior and tray availability depend on native GTK/the desktop.
+
+visible controls native visibility; isEmbedded is an observation, not proof a
+user can see the icon. title, setName and tooltipText use checked UTF-8/NUL-free
+text (icon/stock/name identifiers must be nonempty). Tooltip text is plain text,
+not markup, and the getter copies/frees GTK's transfer-full string. hasTooltip,
+screen and size expose corresponding native controls/observations. size may be
+zero before tray allocation; no scaling size is invented.
+
+pixbuf= accepts an empty value to clear; pixbuf returns an owning cached alias
+or raises for another storage kind. setFromIcon/setFromStock, iconName/stockId and
+storageKind use native storage, with checked kind-specific getters. setFromFile
+uses loadPixbuf and raises PixbufError for unreadable/invalid images rather than
+silently claiming successful loading. geometry copies native screen/rectangle/
+orientation outputs into StatusGeometry; check available first, and don't cache
+coordinates as a guarantee against later tray movement/reparenting.
+
+onActivate(proc()), onPopupMenu(proc(StatusPopup)) and onSizeChanged(proc(int))
+copy/queue each event at idle. StatusPopup preserves unsigned 32-bit button/time
+values, including timestamp wraparound; a keyboard request can have button=0.
+Size observation returns FALSE synchronously to GTK so native scaling remains
+active: it is not a rendering/veto hook. onEmbeddedChanged(proc(bool)) observes
+coalesced final state with duplicate suppression and no initial notification.
+All contain exceptions and allow self-disconnection/reentrancy/close. Advanced
+button/scroll/query-tooltip return callbacks and menu positioning remain raw.
+A raw status_icon_position_menu callback needs the native icon kept alive for the
+menu's positioning lifetime; merely scheduling a popup is not an ownership grant.
+
+A plain StatusIcon has no widget destroy signal. disconnectSignals() releases
+callback captures/cancels pending delivery. close() hides it, disconnects its
+signals and invalidates **all SDK aliases**, idempotently; final native unref
+occurs when the last shared handle/Connection state leaves scope. It does not
+call gtk_widget_destroy on a GObject. Use defer icon.close() to break self-capture
+cycles deterministically. Drop closed handles normally; further raw/property
+access raises ValueError. Retained pixbufs remain valid independently.
+
+### Desktop ABI and tests
+
+The raw audit corrected StatusIcon string constructors (cstring, not char**),
+storage-type return (C enum, not enum pointer), screen geometry output (GdkScreen**)
+and scroll-event callback type, and made platform-dependent private storage
+opaque. Missing public Plug/Socket queries were added without using GTK private
+embedding helpers. GdkNativeWindow is guint32 on X11 and pointer-sized on
+Win32/Quartz; GdkAtom uses pointer-sized storage, including Win64 LLP64. Misc's
+output parameters are single pointers, not pointer-to-pointer var parameters.
+Native probes check instance/class layouts, IDs/selection-event offsets, Misc
+padding and unsigned popup callback payloads against C headers.
+
+testUi includes tests/tgtk2desktop.nim: only unmapped Invisible/local Plug/Socket
+resources and Misc layout. It **never constructs a StatusIcon**. The separate
+nimble testMappedDesktop requires an isolated virtual DISPLAY and explicit
+GTK2_TEST_VIRTUAL_DISPLAY=1. It tests real foreign-process XEmbed exit/reuse and
+tray object ownership, geometry and synthetic signal delivery. No tray manager
+is required for those object tests, so they do not claim to verify actual tray
+hosting or user input on every desktop. Never run mapped tests on a user's
+ordinary desktop. No native library is modified and no compatibility warnings are
+suppressed.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2384,7 +2528,9 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2toolbars.nim`, `tests/tgtk2positioned.nim`, and
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
-`tests/tgtk2displays.nim`, and `tests/tgtk2printing.nim`. Print tests cover isolated
+`tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, and `tests/tgtk2desktop.nim`.
+Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
+embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
 checked custom tabs and deferred response/capture lifetime. Display tests cover fixed cell models/paths, observer and
 renderer/model ownership, normalized HSV, safe callbacks, and hidden offscreen
@@ -2420,11 +2566,14 @@ shared model ownership, hierarchical paths, expansion and subtree deletion,
 proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership,
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
-enters the GTK main loop. The separate, opt-in `testMappedMenus` task maps windows
-only on an isolated virtual display, as described above.
+enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
+testMappedDesktop tasks map windows only on an isolated virtual display, as
+described above.
 
-This layer does not yet wrap Plug/Socket/Invisible or StatusIcon (a GObject,
-not a widget). Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
+All non-deprecated concrete core GTK2 widgets in the audited inventory now have
+an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
+Misc API are also covered; optional HtmlView remains outside the core layer.
+Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple icon selection, drawing/expose callbacks, most event argument/return-value APIs, arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

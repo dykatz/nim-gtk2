@@ -1,8 +1,12 @@
 # Included by headers/gdk2.nim; do not import directly.
+when defined(windows) or defined(macosx):
+  type TNativeWindow* = pointer # Win32 / Quartz (GDK_NATIVE_WINDOW_POINTER)
+else:
+  type TNativeWindow* = guint32 # GTK2 X11 GdkNativeWindow, NOT Xlib Window.
 type
   TWChar* = guint32
   PWChar* = ptr TWChar
-  TAtom* = gulong
+  TAtom* = uint # GdkAtom is pointer-sized, including Win64's LLP64 ABI.
   PAtom* = ptr TAtom
   TRegionBox* = TSegment
   PRegionBox* = ptr TRegionBox
@@ -13,7 +17,6 @@ type
 
   TXEvent* = proc () {.cdecl.}
   PXEvent* = ptr TXEvent
-  TNativeWindow* = pointer
   TmatDUMMY*{.final, pure.} = object
     b*: array[0..19, char]
 

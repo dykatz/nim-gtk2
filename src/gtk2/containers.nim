@@ -32,6 +32,9 @@ proc remove*(parent: Container, child: Widget) =
   ## Unparent a retained child without destroying it. Container-managed internal
   ## children are not public handles; raw bypasses remain the caller's responsibility.
   checkMember(parent, child)
+  when defined(posix) and not defined(macosx):
+    if g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.socket_get_type()):
+      raise newException(ValueError, "socket embedding is protocol-managed; destroy the local Plug to detach it")
   if g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.tool_palette_get_type()):
     # GTK2 remove does not disconnect its exclusive-group collapsed listener.
     rawGtk.tool_palette_set_exclusive(cast[ptr rawGtk.ToolPalette](parent.raw),

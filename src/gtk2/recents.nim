@@ -335,12 +335,13 @@ proc recentResponseThunk(instance: pointer, id: g.gint, data: pointer) {.cdecl, 
 proc recentManagerThunk(instance, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}: queueRecent(data, true)
 proc connectRecent[T](w: ObjectHandle, signal: cstring, fn: proc (value: T) {.closure.},
-                       thunk: g.TGCallback, coalesce = false, dedup = false, last = default(T)): Connection =
+                       thunk: g.TGCallback, coalesce = false, dedup = false, last = default(T), after = true): Connection =
   let p = nativePointer(w)
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
   let binding = RecentBinding[T](fn: fn, active: true, coalesce: coalesce, dedup: dedup, last: last)
   GC_ref(binding)
-  let id = g.g_signal_connect_data(p, signal, thunk, cast[pointer](binding), releaseRecentBinding[T], g.G_CONNECT_AFTER)
+  let flags = g.TGConnectFlags(if after: g.G_CONNECT_AFTER else: 0)
+  let id = g.g_signal_connect_data(p, signal, thunk, cast[pointer](binding), releaseRecentBinding[T], flags)
   w.state.handlers.add(id)
   Connection(state: w.state, id: id)
 proc onChanged*(m: RecentManager, fn: proc () {.closure.}): Connection {.discardable.} =

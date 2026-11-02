@@ -30,6 +30,23 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Desktop ABI corrections
+
+GdkNativeWindow is uint32 on GTK2 X11, not a generic pointer or Xlib's unsigned
+long Window; Win32 and Quartz define GDK_NATIVE_WINDOW_POINTER and retain pointer
+representation. GdkAtom uses pointer-sized uint storage for its legacy numeric
+macros (including Win64, where gulong would truncate it). Native event-selection
+layout and window-ID width are checked against GTK/GDK headers.
+
+StatusIcon string constructors take cstring, storage-type returns TImageType by
+value, and get_geometry takes ptr PScreen for its GdkScreen** output. Its private
+platform-specific storage is opaque rather than a guessed struct; scroll-event
+uses PEventScroll. Tooltip getters are transfer-full strings. Misc get_alignment
+and get_padding take single output pointers, not var pointer parameters. The raw
+public Plug/Socket embedded/window queries are available without invoking their
+private add/remove helpers. These ABI corrections intentionally do not preserve
+incorrect old signatures.
+
 The original GTK-family modules no longer use dead-code pragmas. The calculator,
 core raw bindings, and the Cairo/FreeType/Xlib smoke test pass with deprecations
 treated as errors. Cairo has no legacy pointer/type alias tail. GTK2-deprecated

@@ -104,6 +104,11 @@ with cross-platform PrintSettings/PageSetup/PaperSize and copied response values
 See [`examples/printing.nim`](examples/printing.nim) and the
 [printing guide](docs/gtk2.md#print-and-page-setup-dialogs); these configure choices,
 not render or submit print jobs.
+The remaining desktop widgets are covered too: Invisible, X11 Plug/Socket,
+StatusIcon and the shared Misc API. See [`examples/desktop.nim`](examples/desktop.nim)
+and the [desktop guide](docs/gtk2.md#desktop-infrastructure-invisible-plugsocket-and-statusicon).
+Tray constructors can briefly map native windows even with visible=false;
+tray/foreign-embedding tests therefore require explicit isolated-display opt-in.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

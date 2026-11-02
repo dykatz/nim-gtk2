@@ -1,0 +1,70 @@
+## Build: nim c -r --path:src examples/desktop.nim
+## Optional real tray integration: /path/to/desktop --tray
+## X11 embedding is available on Unix, not Windows or Quartz.
+import std/os
+import gtk2
+
+proc main() =
+  gtk2.init()
+  let window = newWindow("GTK2 desktop infrastructure", 600, 300)
+  defer: window.destroy()
+  let invisible = newInvisible()
+  defer: invisible.destroy() # Realized input-only resource; not a visual child.
+  let layout = newVBox(spacing = 12)
+  layout.borderWidth = 16
+  window.add(layout)
+  let message = newLabel("Invisible resource created without showing it.")
+  message.setAlignment(0, 0.5)
+  message.setPadding(4, 4)
+  layout.packStart(message, packShrink)
+  let status = newLabel("Desktop events appear here.")
+  status.setAlignment(0, 0.5)
+  layout.packEnd(status, packShrink)
+  when defined(posix) and not defined(macosx):
+    let socket = newSocket()
+    socket.setSizeRequest(320, 100)
+    let frame = newFrame("Protocol-managed embedded Plug")
+    frame.add(socket)
+    layout.packStart(frame)
+    let row = newHBox(spacing = 8)
+    layout.packStart(row, packShrink)
+    let attach = newButton("Create embedded Plug")
+    let detach = newButton("Destroy embedded Plug")
+    row.packStart(attach, packShrink)
+    row.packStart(detach, packShrink)
+    var plug: Plug
+    defer: plug.destroy()
+    socket.onPlugAdded(proc () = status.text = "Plug added; socket ID " & $socket.id)
+    socket.onPlugRemoved(proc () = status.text = "Plug removed; the socket remains reusable")
+    attach.onClicked(proc () =
+      if plug.isDestroyed:
+        plug = newPlug(socket)
+        let box = newVBox(spacing = 8)
+        box.borderWidth = 8
+        plug.add(box)
+        box.packStart(newLabel("This widget tree belongs to a GtkPlug."), packShrink)
+        let button = newButton("Embedded button")
+        button.onClicked(proc () = status.text = "Embedded button activated")
+        box.packStart(button, packShrink)
+        plug.showAll())
+    detach.onClicked(proc () = plug.destroy())
+  else:
+    layout.packStart(newLabel("Plug/Socket require the GTK2 X11 backend."), packShrink)
+  var tray: StatusIcon
+  defer: tray.close()
+  if "--tray" in commandLineParams():
+    # GTK's constructor can briefly map a private tray window even with
+    # visible=false. No actual tray manager/embedding is guaranteed.
+    tray = newStatusIconFromIcon("dialog-information")
+    tray.title = "Nim GTK2 desktop example"
+    tray.tooltipText = "Activate to raise the demo window"
+    tray.onActivate(proc () = window.present())
+    tray.onPopupMenu(proc (event: StatusPopup) =
+      status.text = "Tray popup request: button " & $event.button
+      window.present())
+    tray.onEmbeddedChanged(proc (embedded: bool) =
+      status.text = "Tray embedded: " & $embedded)
+    tray.visible = true
+  window.run()
+
+when isMainModule: main()

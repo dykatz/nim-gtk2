@@ -3,6 +3,26 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_atom(void) { return sizeof(GdkAtom); }
+size_t nim_gtk2_sizeof_misc(void) { return sizeof(GtkMisc); }
+size_t nim_gtk2_misc_padding_width(void) { return sizeof(((GtkMisc *)0)->xpad); }
+size_t nim_gtk2_sizeof_native_window(void) { return sizeof(GdkNativeWindow); }
+size_t nim_gtk2_sizeof_event_selection(void) { return sizeof(GdkEventSelection); }
+size_t nim_gtk2_requestor_offset(void) { return offsetof(GdkEventSelection, requestor); }
+size_t nim_gtk2_sizeof_status_icon(void) { return sizeof(GtkStatusIcon); }
+size_t nim_gtk2_sizeof_status_icon_class(void) { return sizeof(GtkStatusIconClass); }
+size_t nim_gtk2_sizeof_invisible(void) { return sizeof(GtkInvisible); }
+size_t nim_gtk2_sizeof_invisible_class(void) { return sizeof(GtkInvisibleClass); }
+#ifdef GDK_WINDOWING_X11
+size_t nim_gtk2_sizeof_plug(void) { return sizeof(GtkPlug); }
+size_t nim_gtk2_sizeof_plug_class(void) { return sizeof(GtkPlugClass); }
+size_t nim_gtk2_sizeof_socket(void) { return sizeof(GtkSocket); }
+size_t nim_gtk2_sizeof_socket_class(void) { return sizeof(GtkSocketClass); }
+#endif
+typedef void (*NimStatusPopup)(GtkStatusIcon *, guint, guint32, gpointer);
+void nim_gtk2_invoke_status_popup(NimStatusPopup fn, gpointer data) {
+  fn((GtkStatusIcon *)(guintptr)0x123, 7, 0xfedcba98U, data);
+}
 size_t nim_gtk2_sizeof_print_unit(void) { return sizeof(GtkUnit); }
 size_t nim_gtk2_sizeof_page_orientation(void) { return sizeof(GtkPageOrientation); }
 size_t nim_gtk2_sizeof_print_pages(void) { return sizeof(GtkPrintPages); }

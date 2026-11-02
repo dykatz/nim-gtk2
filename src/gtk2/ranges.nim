@@ -7,7 +7,7 @@ type
   Scrollbar* = object of Range
   HScrollbar* = object of Scrollbar
   VScrollbar* = object of Scrollbar
-  Arrow* = object of Widget
+  Arrow* = object of Misc
   ValuePosition* = enum
     valueLeft, valueRight, valueTop, valueBottom
   ArrowDirection* = enum

@@ -5,7 +5,7 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
-from headers/gdk2 import TColor, TEventExpose, DAMAGE
+from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, DAMAGE
 
 when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
   # The default pkg-config directory selects 32-bit glibconfig.h on these OSes.
@@ -13,6 +13,23 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc atomSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_atom".}
+proc miscSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_misc".}
+proc miscPaddingWidth(): csize_t {.cdecl, importc: "nim_gtk2_misc_padding_width".}
+proc nativeWindowSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_native_window".}
+proc selectionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_selection".}
+proc requestorOffset(): csize_t {.cdecl, importc: "nim_gtk2_requestor_offset".}
+proc statusIconSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_status_icon".}
+proc statusIconClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_status_icon_class".}
+proc invisibleSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_invisible".}
+proc invisibleClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_invisible_class".}
+when defined(posix) and not defined(macosx):
+  proc plugSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_plug".}
+  proc plugClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_plug_class".}
+  proc socketSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_socket".}
+  proc socketClassSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_socket_class".}
+type StatusPopupFunc = proc (icon: gtk.PStatusIcon, button: g.guint, time: g.guint32, data: pointer) {.cdecl.}
+proc invokeStatusPopup(fn: StatusPopupFunc, data: pointer) {.cdecl, importc: "nim_gtk2_invoke_status_popup".}
 proc printUnitSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_unit".}
 proc pageOrientationSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_page_orientation".}
 proc printPagesSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_print_pages".}
@@ -115,6 +132,28 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "desktop native IDs, public instance/class layout and unsigned popup payloads":
+    check atomSize().int == sizeof(TAtom)
+    check miscSize().int == sizeof(gtk.TMisc)
+    check miscPaddingWidth() == 2
+    check nativeWindowSize().int == sizeof(TNativeWindow)
+    check selectionSize().int == sizeof(TEventSelection)
+    check requestorOffset().int == offsetOf(TEventSelection, requestor)
+    check statusIconSize().int == sizeof(gtk.TStatusIcon)
+    check statusIconClassSize().int == sizeof(gtk.TStatusIconClass)
+    check invisibleSize().int == sizeof(gtk.TInvisible)
+    check invisibleClassSize().int == sizeof(gtk.TInvisibleClass)
+    when defined(posix) and not defined(macosx):
+      check plugSize().int == sizeof(gtk.TPlug)
+      check plugClassSize().int == sizeof(gtk.TPlugClass)
+      check socketSize().int == sizeof(gtk.TSocket)
+      check socketClassSize().int == sizeof(gtk.TSocketClass)
+    var called = false
+    proc callback(icon: gtk.PStatusIcon, button: g.guint, time: g.guint32, data: pointer) {.cdecl.} =
+      cast[ptr bool](data)[] = cast[uint](icon) == 0x123 and button == 7 and time == 0xfedcba98'u32
+    invokeStatusPopup(callback, addr called)
+    check called
+
   test "print configuration enum widths, values and foreach callback ABI":
     check printUnitSize().int == sizeof(gtk.Unit)
     check pageOrientationSize().int == sizeof(gtk.PageOrientation)

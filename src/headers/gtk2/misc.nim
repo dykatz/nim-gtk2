@@ -8,9 +8,9 @@ proc MISC_GET_CLASS*(obj: pointer): PMiscClass
 proc misc_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_misc_get_type".}
 proc set_alignment*(misc: PMisc, xalign: gfloat, yalign: gfloat){.cdecl,
     dynlib: lib, importc: "gtk_misc_set_alignment".}
-proc get_alignment*(misc: PMisc, xalign, yalign: var Pgfloat){.cdecl,
+proc get_alignment*(misc: PMisc, xalign, yalign: Pgfloat){.cdecl,
     dynlib: lib, importc: "gtk_misc_get_alignment".}
 proc set_padding*(misc: PMisc, xpad: gint, ypad: gint){.cdecl, dynlib: lib,
     importc: "gtk_misc_set_padding".}
-proc get_padding*(misc: PMisc, xpad, ypad: var Pgint){.cdecl, dynlib: lib,
+proc get_padding*(misc: PMisc, xpad, ypad: Pgint){.cdecl, dynlib: lib,
     importc: "gtk_misc_get_padding".}

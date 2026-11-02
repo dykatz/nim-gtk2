@@ -27,7 +27,8 @@ type
   Box* = object of Container
   VBox* = object of Box
   HBox* = object of Box
-  Label* = object of Widget
+  Misc* = object of Widget
+  Label* = object of Misc
   Entry* = object of Widget
   PackOptions* = enum
     packShrink, packExpandPadding, packExpandWidget
@@ -244,8 +245,8 @@ proc checkChild(parent: Container, child: Widget) =
       g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.recent_chooser_widget_get_type()) or
       g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.recent_chooser_menu_get_type()):
     raise newException(ValueError, "chooser controls manage their own content")
-  if rawGtk.IS_WINDOW(child.raw):
-    raise newException(ValueError, "a top-level window cannot be a child")
+  if rawGtk.IS_WINDOW(child.raw) or g.toBool(rawGtk.WIDGET_TOPLEVEL(child.raw)):
+    raise newException(ValueError, "a top-level widget cannot be a child")
   if child.raw == parent.raw or rawGtk.get_parent(child.raw) != nil:
     raise newException(ValueError, "child must be unparented and distinct from parent")
   # Reject adding an ancestor under one of its descendants.
@@ -389,3 +390,4 @@ include gtk2/filechoosers
 include gtk2/recents
 include gtk2/displays
 include gtk2/printing
+include gtk2/desktop
