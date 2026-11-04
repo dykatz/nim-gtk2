@@ -116,6 +116,12 @@ selection. See the [extension guide](docs/gtk2.md#drawinginput-rich-text-and-edi
 TreeView selection observers are deferred/coalesced; edits are copied observations,
 not automatic commits. Pixel/native-editor tests use the separate opt-in
 `nimble testMappedExtensions` task on an isolated virtual display.
+Plain-text clipboard requests are cancellable and always deliver at UI idle;
+Entry/TextView add protected Copy/Cut/Paste helpers. DrawingArea/EventBox can be
+copy-only text drag/drop pads, without replacing native editor/model DnD. See the
+[transfer guide](docs/gtk2.md#clipboard-and-copy-only-text-dragdrop) and the expanded
+text/controls examples. `nimble testMappedTransfers` changes clipboard ownership
+and drives XTEST input: run it only on an explicitly opted-in isolated display.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

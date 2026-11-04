@@ -5,7 +5,7 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
-from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, TEventKey, TEventButton, TEventMotion, TEventScroll, TScrollDirection, DAMAGE
+from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, TEventKey, TEventButton, TEventMotion, TEventScroll, TScrollDirection, TDragAction, PDragContext, DAMAGE
 
 when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
   # The default pkg-config directory selects 32-bit glibconfig.h on these OSes.
@@ -13,6 +13,16 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc targetEntrySize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_target_entry".}
+proc targetInfoOffset(): csize_t {.cdecl, importc: "nim_gtk2_target_entry_info_offset".}
+proc selectionDataSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_selection_data".}
+proc selectionLengthOffset(): csize_t {.cdecl, importc: "nim_gtk2_selection_data_length_offset".}
+proc destDefaultsSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_dest_defaults".}
+proc dragActionSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_drag_action".}
+proc invokeClipboardText(fn: gtk.TClipboardTextReceivedFunc, data: pointer) {.cdecl, importc: "nim_gtk2_invoke_clipboard_text".}
+proc invokeClipboardContents(fn: gtk.TClipboardReceivedFunc, data: pointer) {.cdecl, importc: "nim_gtk2_invoke_clipboard_contents".}
+type DropFunc = proc (widget: gtk.PWidget, context: PDragContext, x, y: g.gint, time: g.guint32, data: pointer): g.gboolean {.cdecl.}
+proc invokeDrop(fn: DropFunc, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_invoke_drop".}
 proc eventKeySize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_key".}
 proc eventKeyCodeOffset(): csize_t {.cdecl, importc: "nim_gtk2_event_key_code_offset".}
 proc eventButtonSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_event_button".}
@@ -143,6 +153,29 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "clipboard and drag/drop pointer, struct, flag and callback ABI":
+    check targetEntrySize().int == sizeof(gtk.TTargetEntry)
+    check targetInfoOffset().int == offsetOf(gtk.TTargetEntry, info)
+    check selectionDataSize().int == sizeof(gtk.TSelectionData)
+    check selectionLengthOffset().int == offsetOf(gtk.TSelectionData, length)
+    check destDefaultsSize().int == sizeof(gtk.TDestDefaults)
+    check dragActionSize().int == sizeof(TDragAction)
+    var called = false
+    proc textCallback(c: gtk.PClipboard, text: cstring, data: pointer) {.cdecl.} =
+      cast[ptr bool](data)[] = cast[uint](c) == 0x123 and $text == "copied text"
+    invokeClipboardText(textCallback, addr called)
+    check called
+    proc contentsCallback(c: gtk.PClipboard, data: gtk.PSelectionData, user: pointer) {.cdecl.} =
+      cast[ptr bool](user)[] = cast[uint](c) == 0x123 and cast[uint](data) == 0x234
+    called = false
+    invokeClipboardContents(contentsCallback, addr called)
+    check called
+    proc dropCallback(w: gtk.PWidget, context: PDragContext, x, y: g.gint, time: g.guint32, data: pointer): g.gboolean {.cdecl.} =
+      cast[ptr bool](data)[] = x == -12 and y == 34 and time == 0xfedcba98'u32
+      g.gbool(true)
+    called = false
+    check g.toBool(invokeDrop(dropCallback, addr called)) and called
+
   test "copied input event layout, C-width scroll enum and text-search flag bits":
     check eventKeySize().int == sizeof(TEventKey)
     check eventKeyCodeOffset().int == offsetOf(TEventKey, hardware_keycode)

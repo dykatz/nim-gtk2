@@ -1,4 +1,10 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc drag_source_get_target_list*(widget: PWidget): PTargetList {.cdecl, dynlib: lib,
+    importc: "gtk_drag_source_get_target_list".}
+proc drag_source_add_text_targets*(widget: PWidget) {.cdecl, dynlib: lib,
+    importc: "gtk_drag_source_add_text_targets".}
+proc drag_dest_add_text_targets*(widget: PWidget) {.cdecl, dynlib: lib,
+    importc: "gtk_drag_dest_add_text_targets".}
 const
   DEST_DEFAULT_MOTION* = 1 shl 0
 const

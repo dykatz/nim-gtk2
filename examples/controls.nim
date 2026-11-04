@@ -4,7 +4,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 controls and Cairo input", 560, 600)
+  let window = newWindow("gtk2 controls, drawing and text transfers", 600, 760)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -108,6 +108,24 @@ proc main() =
     if square.active: aspect.setAspect(1.0)
   wide.onToggled do ():
     if wide.active: aspect.setAspect(16.0 / 9.0)
+  let dragText = newEntry("Drag this Unicode text: λ🙂")
+  layout.packStart(dragText, packShrink)
+  let pads = newHBox(spacing = 12)
+  let sourcePad = newEventBox()
+  let dropPad = newEventBox()
+  sourcePad.setSizeRequest(160, 60)
+  dropPad.setSizeRequest(160, 60)
+  sourcePad.add(newLabel("Drag from here (Copy)"))
+  let dropLabel = newLabel("Drop plain text here")
+  dropPad.add(dropLabel)
+  pads.packStart(sourcePad)
+  pads.packStart(dropPad)
+  layout.packStart(pads, packShrink)
+  let drag = sourcePad.enableTextDrag(dragText.text)
+  dragText.onChanged(proc () = drag.text = dragText.text)
+  dropPad.onTextDrop(proc (value: TextDrop) =
+    # Copied observation after native completion, not a synchronous veto.
+    dropLabel.text = value.text)
   layout.packEnd(newLinkButton("https://github.com/dykatz/nim-gtk2", "SDK source"), packShrink)
   window.run()
 

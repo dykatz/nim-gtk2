@@ -13,9 +13,13 @@ proc main() =
   let append = newButton("Append Unicode")
   let clearSelection = newButton("Delete selection")
   let markSaved = newButton("Mark saved")
+  let copy = newButton("Copy")
+  let cut = newButton("Cut")
+  let paste = newButton("Paste")
   actions.packStart(append, packShrink)
   actions.packStart(clearSelection, packShrink)
   actions.packStart(markSaved, packShrink)
+  for button in [copy, cut, paste]: actions.packStart(button, packShrink)
   layout.packStart(actions, packShrink)
   layout.packStart(newLabel("Edit on the left; the right view shares the same buffer."), packShrink)
 
@@ -98,6 +102,15 @@ proc main() =
       return true
     false)
   clearSelection.onClicked(proc () = discard buffer.deleteSelection())
+  let clipboard = getClipboard() # Merely obtaining it does not overwrite its contents.
+  copy.onClicked(proc () =
+    if not editor.copySelection(clipboard): status.text = "No text selected")
+  cut.onClicked(proc () = discard editor.cutSelection(clipboard))
+  paste.onClicked(proc () =
+    # Cancellable, plain-text request. Automatically canceled if editor closes;
+    # ignores the result if its buffer was replaced while waiting for the owner.
+    editor.focus()
+    discard editor.pasteClipboard(clipboard))
   markSaved.onClicked(proc () = buffer.modified = false)
   refresh()
   window.run()

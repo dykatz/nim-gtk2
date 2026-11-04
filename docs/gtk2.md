@@ -500,7 +500,8 @@ internally for each operation and never escape as persistent handles. Native
 allocated strings are copied and freed. Text getters include invisible tagged
 characters by default; embedded images/anchors are not returned by GTK's plain
 text getter. Tags, marks, bounded Unicode search and embedded pixbufs are covered in the
-rich-text extensions below. Clipboard and embedded child anchors remain raw.
+rich-text extensions below. Plain-text clipboard integration is covered in the transfer guide below;
+embedded child anchors and rich clipboard formats remain raw.
 
 ### View behavior
 
@@ -2590,8 +2591,8 @@ insertImage(offset,Pixbuf) inserts an owning native pixbuf segment occupying one
 character. Ordinary text/textRange omit objects; slice(first,last,includeHidden)
 returns U+FFFC object replacement characters, preserving offset correspondence.
 All operations still resolve fresh native iterators and copy/free returned strings.
-Embedded child widgets/anchors, clipboard protocols, serialization and undo remain
-outside this batch.
+Embedded child widgets/anchors, rich clipboard protocols, serialization and undo
+remain outside this batch. Plain-text clipboard integration is covered below.
 
 ### Editable columns and multiple selection
 
@@ -2657,6 +2658,146 @@ GtkEntry cell-editing lifecycle that emits a deferred edit and explicitly commit
 Unicode text. Never run mapped tests on an ordinary desktop. No installed native
 library is changed and no GTK warnings are suppressed.
 
+## Clipboard and copy-only text drag/drop
+
+The [text editor](../examples/text.nim) now has Copy/Cut/Paste buttons, and the
+[controls example](../examples/controls.nim) has native drag/drop text pads.
+Clipboard contents are shared desktop state; obtaining a handle is not permission
+to overwrite a user's clipboard during tests or startup.
+
+### Nonblocking clipboard requests
+
+getClipboard(kind=clipboardStandard) returns an owning cached view of GTK's
+borrowed **non-floating GObject** clipboard. clipboardPrimary selects PRIMARY;
+its availability/behavior depends on the native backend. Clipboard.raw is a typed
+borrowed PClipboard, not an untyped pointer. There is no widget destroy API for
+Clipboard. All operations, callbacks, cancellation and final releases stay on the
+UI thread and require GTK initialization/a display.
+
+setText(text) copies validated UTF-8/NUL-free text into native GTK ownership.
+clear() releases this application's ownership; it is not a guaranteed eraser for
+another process's clipboard. Clipboard-manager persistence, images, arbitrary
+formats, custom lazy owners, custom displays/selections and blocking wait_for_*
+operations remain raw. No persistence guarantee is made when the application exits.
+
+requestText(proc(ClipboardText)) returns a TextRequest; requestText(owner:Widget,fn)
+also binds cancellation to owner destruction. **User callbacks always run at UI
+idle**, even if the native clipboard owner replies synchronously. ClipboardText
+copies available/text: available=false means no supported/valid text, while
+available=true,text="" represents an actual empty text payload. No selection data
+or callback C strings escape. Contents can change while a request is pending;
+this is a received snapshot, not an ownership lock. Callback exceptions are contained; reentrant new
+requests and cancellation are supported. No nested main loop is introduced.
+
+The SDK uses public selection length/type/format/data getters and requests
+UTF8_STRING, then COMPOUND_TEXT, then STRING as needed. GTK2's text getter can
+return nil for an empty UTF8_STRING; explicit length/type preserve that distinction.
+Nonempty recognized text uses GTK's native conversion, with UTF-8/NUL checks.
+UTF-8 packets are validated **before** calling the native conversion, avoiding
+malformed external text reaching a warning-producing UTF-8 conversion path.
+Legacy encodings retain GTK's native conversion behavior; this is not a binary
+transfer API. Unsupported/invalid results become unavailable rather than guessed
+text. These checks do not sandbox native clipboard owners or impose a maximum
+incoming selection size; GTK may already have allocated the transfer buffer.
+
+TextRequest.pending is true until delivery or cancel(). cancel is idempotent,
+releases application callback captures immediately, cancels queued idle delivery,
+and disconnects its owner hook. Dropping a request handle **does not cancel** it.
+GTK has no public cancellation mechanism for the outstanding selection request:
+a small opaque bridge and clipboard reference remain until the real native reply
+or timeout arrives, so callback data is never freed early. Canceling prevents
+further fallback requests and application delivery, not the original wire request.
+Owner-bound completion removes its destroy hook, rather than accumulating captures
+for the lifetime of a long-lived window. Do not keep uncanceled ownerless requests
+whose callbacks capture windows you have otherwise abandoned.
+
+### Entry and TextView clipboard editing
+
+Entry and TextView provide copySelection(clipboard), cutSelection(clipboard) and
+pasteClipboard(clipboard), defaulting to the standard clipboard. The first two
+return bool; paste returns the cancellable TextRequest and automatically binds
+it to widget destruction. Plain-text transfer does not serialize tags or images.
+TextView copy skips invisible tagged text and embedded objects. No selection
+returns false without changing the clipboard; a selected empty/plain-text-free
+range may copy an empty string.
+
+Entry adds editable and textVisible properties. Copy/cut are refused for hidden
+password entries, matching native protection; cut also requires editable=true.
+Readonly entries can still copy visible selections, but paste does not write them.
+Paste replaces the current selection/inserts at the current cursor **when the
+reply is delivered**, not at a stale byte offset captured at request time.
+
+TextView cut/paste honors native editable-tag policy and the view's default
+editable setting. Cut copies visible text before interactive deletion; its bool
+reports whether deletion happened, so protected text can have been copied even
+when no text was removed. Partial editable selections can be partially deleted.
+Paste checks native insertion policy, groups editing as a user action and rechecks
+widget/buffer lifetime between edits. It is not transactional rollback or undo.
+An outstanding paste is ignored if the view has switched to a different buffer;
+it never silently writes a newly opened document. Copy/cut/paste can trigger the
+usual native buffer/entry change observers. Rich-text paste, PRIMARY middle-click
+behavior and IME/default keyboard shortcuts remain native GTK behavior, not
+reimplemented by these button helpers.
+
+### Ordinary text transfer pads
+
+Widget.enableTextDrag(text) returns a TextDragSource; Widget.onTextDrop(proc(TextDrop))
+returns a TextDropSite. Both persist when their handle is dropped and disconnect
+idempotently via disconnect(); connected queries their state. Widget destruction
+cleans them up and releases captures/pending deliveries. Re-register after
+disconnection to configure a fresh site.
+
+These methods **runtime-check exact ordinary DrawingArea/EventBox types**, including
+Widget upcasts. They deliberately reject Entry/TextView, TreeView/IconView,
+ToolPalette and other widgets with native/private drag/drop behavior, rather than
+override internal editing, model reordering or source handlers. A duplicate SDK
+site or an existing advertised native target list is rejected. Arbitrary raw
+handlers/empty raw sites cannot all be detected; do not mix raw and SDK configuration
+for the same source/destination role. One pad may independently be both source
+and destination. GTK's public text-target helpers negotiate standard text formats.
+
+Sources use button 1 and **COPY only**. Source.text gets/sets validated UTF-8;
+changing it updates the next drag, while each active drag retains its drag-begin
+snapshot through native data requests/end. No user data-provider closure executes
+inside native selection-get. Source disconnection stops serving future requests
+and releases snapshots; an active native drag may consequently fail. It does not
+promise to cancel a platform drag/grab immediately. Source state has no permanent
+owning widget back-reference; live context references are released at end/disconnect.
+
+Destinations use native motion/highlight defaults, but **not DEFAULT_DROP**.
+The SDK tracks each requested context, validates COPY and decoded text, and calls
+gtk_drag_finish exactly once for each tracked result, always delete=false. Invalid
+text/unsupported targets/actions fail without application delivery. Disconnection
+fails tracked pending drops and releases their context references. Incoming text
+uses the same format/UTF-8 checks as clipboard requests, including valid empty text.
+
+TextDrop copies text, local destination x/y and unsigned 32-bit time. It queues
+**each successful transfer** at UI idle, after native protocol completion; it is an
+observation, **not an acceptance/veto/commit callback**. User exceptions do not turn
+an already completed copy into a protocol failure. Observers may disconnect their
+site or destroy widgets safely. MOVE/deletion, URI lists, arbitrary binary targets,
+custom drag icons, model DnD and asynchronous application acceptance remain raw.
+No raw context/selection pointers escape this API.
+
+### Transfer validation
+
+Hidden tests/tgtk2transfers.nim is included in testUi: it configures/destroys
+unmapped pads, verifies captures/finalization and password/readonly properties,
+but never claims/clears clipboard ownership or requests user clipboard data.
+Native ABI probes check target/selection layouts, C-width flags and clipboard/drop
+callback parameters. PClipboard now names an opaque native handle; public selection
+accessors/text-target/context-action helpers were added with exact C signatures.
+
+nimble testMappedTransfers requires an isolated virtual DISPLAY and explicit
+GTK2_TEST_VIRTUAL_DISPLAY=1. It claims that display's CLIPBOARD/PRIMARY, tests local
+and foreign-process replies, cancellation, empty/unavailable distinction, STRING
+fallback, malformed/NUL UTF-8 and protected editing. On Unix X11 it additionally
+requires libXtst and the XTEST server extension, using real pointer/button events
+to verify native text drag/drop, drag-begin snapshots, completion and safe observer
+disconnection/destruction. **Never run this suite on an ordinary desktop.** The
+SDK does not suppress warnings, inspect GTK private structures or alter native
+libraries to implement these transfers.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2716,7 +2857,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
-`tests/tgtk2extensions.nim`.
+`tests/tgtk2extensions.nim`, and `tests/tgtk2transfers.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -2755,7 +2896,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -2763,7 +2904,8 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
 multiple IconView selection, arbitrary cell renderers, broader event argument/return-value APIs,
-clipboard/drag-and-drop, rich-text child anchors/serialization, actual print jobs,
+rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
+rich-text child anchors/serialization, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

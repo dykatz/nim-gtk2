@@ -214,9 +214,10 @@ proc insertText*(w: Entry, text: string) =
   let size = checkedInt(text.len)
   let editable = cast[rawGtk.PEditable](w.raw)
   rawGtk.delete_selection(editable)
+  if w.isDestroyed: return
   var position = rawGtk.get_position(editable)
   rawGtk.insert_text(editable, value, size, addr position)
-  rawGtk.set_position(editable, position)
+  if not w.isDestroyed: rawGtk.set_position(editable, position)
 
 proc backspace*(w: Entry) =
   let editable = cast[rawGtk.PEditable](w.raw)
@@ -396,3 +397,5 @@ include gtk2/desktop
 include gtk2/drawing
 include gtk2/richtext
 include gtk2/editableviews
+include gtk2/clipboard
+include gtk2/textdrag

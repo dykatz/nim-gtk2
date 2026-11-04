@@ -1,4 +1,12 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc selection_data_get_length*(data: PSelectionData): gint {.cdecl, dynlib: lib,
+    importc: "gtk_selection_data_get_length".}
+proc selection_data_get_format*(data: PSelectionData): gint {.cdecl, dynlib: lib,
+    importc: "gtk_selection_data_get_format".}
+proc selection_data_get_data_type*(data: PSelectionData): gdk2.TAtom {.cdecl, dynlib: lib,
+    importc: "gtk_selection_data_get_data_type".}
+proc selection_data_get_data*(data: PSelectionData): Pguchar {.cdecl, dynlib: lib,
+    importc: "gtk_selection_data_get_data".}
 proc list_new*(targets: PTargetEntry, ntargets: guint): PTargetList{.
     cdecl, dynlib: lib, importc: "gtk_target_list_new".}
 proc reference*(list: PTargetList){.cdecl, dynlib: lib,

@@ -24,4 +24,5 @@ type
     shape_mask*: gdk2.PBitmap
 
   PWidgetShapeInfo* = ptr TWidgetShapeInfo
-  PClipboard* = pointer
+  TClipboard* {.pure, final, incompleteStruct.} = object
+  PClipboard* = ptr TClipboard

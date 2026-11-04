@@ -30,6 +30,23 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Clipboard and drag/drop boundaries
+
+PClipboard is now ptr to an opaque incomplete TClipboard, not a generic pointer.
+Public selection data length/type/format/data getters, standard drag text-target
+helpers and the selected-action query retain their C pointer/width semantics.
+Native probes cover GtkTargetEntry/GtkSelectionData sizes/offsets, GtkDestDefaults/
+GdkDragAction widths, clipboard callbacks and signed drop coordinates/unsigned time.
+The SDK never substitutes managed strings/booleans into native callback signatures.
+
+Clipboard requests use request_contents with native encoding fallback so valid
+zero-length text can be distinguished from unavailable text (request_text/get_text
+can conflate those in GTK2). Borrowed native selection data is copied immediately;
+application delivery is at UI idle, and cancellation retains the opaque native
+callback bridge until GTK actually completes. Drag/drop is COPY-only and manually
+finishes tracked transfers; it never combines SDK finish with DEFAULT_DROP's
+native automatic finish or guesses a MOVE/delete policy after deferred delivery.
+
 ### Rendering/input and rich-text ABI corrections
 
 Copied input events are checked against C GdkEventKey/Button/Motion/Scroll sizes

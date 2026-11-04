@@ -3,6 +3,22 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_sizeof_target_entry(void) { return sizeof(GtkTargetEntry); }
+size_t nim_gtk2_target_entry_info_offset(void) { return offsetof(GtkTargetEntry, info); }
+size_t nim_gtk2_sizeof_selection_data(void) { return sizeof(GtkSelectionData); }
+size_t nim_gtk2_selection_data_length_offset(void) { return offsetof(GtkSelectionData, length); }
+size_t nim_gtk2_sizeof_dest_defaults(void) { return sizeof(GtkDestDefaults); }
+size_t nim_gtk2_sizeof_drag_action(void) { return sizeof(GdkDragAction); }
+void nim_gtk2_invoke_clipboard_text(GtkClipboardTextReceivedFunc fn, gpointer data) {
+  fn((GtkClipboard *)(guintptr)0x123, "copied text", data);
+}
+void nim_gtk2_invoke_clipboard_contents(GtkClipboardReceivedFunc fn, gpointer data) {
+  fn((GtkClipboard *)(guintptr)0x123, (GtkSelectionData *)(guintptr)0x234, data);
+}
+typedef gboolean (*NimDropFunc)(GtkWidget *, GdkDragContext *, gint, gint, guint32, gpointer);
+gboolean nim_gtk2_invoke_drop(NimDropFunc fn, gpointer data) {
+  return fn(NULL, NULL, -12, 34, 0xfedcba98U, data);
+}
 size_t nim_gtk2_sizeof_event_key(void) { return sizeof(GdkEventKey); }
 size_t nim_gtk2_event_key_code_offset(void) { return offsetof(GdkEventKey, hardware_keycode); }
 size_t nim_gtk2_sizeof_event_button(void) { return sizeof(GdkEventButton); }

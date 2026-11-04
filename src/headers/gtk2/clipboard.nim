@@ -1,4 +1,7 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc clipboard_get_type*(): GType {.cdecl, dynlib: lib, importc: "gtk_clipboard_get_type".}
+proc clipboard_get*(selection: gdk2.TAtom): PClipboard {.cdecl, dynlib: lib,
+    importc: "gtk_clipboard_get".}
 proc clipboard_get_for_display*(display: gdk2.PDisplay, selection: gdk2.TAtom): PClipboard{.
     cdecl, dynlib: lib, importc: "gtk_clipboard_get_for_display".}
 proc get_display*(clipboard: PClipboard): gdk2.PDisplay{.cdecl,
