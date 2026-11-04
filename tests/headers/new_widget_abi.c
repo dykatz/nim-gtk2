@@ -3,6 +3,17 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef GtkBuilder *(*NimBuilderNew)(void);
+typedef guint (*NimBuilderLoad)(GtkBuilder *, const gchar *, gsize, GError **);
+GtkBuilder *nim_gtk2_builder_new(NimBuilderNew fn) { return fn(); }
+guint nim_gtk2_builder_load(NimBuilderLoad fn, GtkBuilder *builder) {
+  const gchar xml[] = "<interface/>";
+  return fn(builder, xml, sizeof(xml) - 1, NULL);
+}
+void nim_gtk2_builder_connect(GtkBuilderConnectFunc fn, gpointer data) {
+  fn((GtkBuilder *)(guintptr)0x12, (GObject *)(guintptr)0x23, "clicked", "handler",
+     (GObject *)(guintptr)0x34, G_CONNECT_AFTER | G_CONNECT_SWAPPED, data);
+}
 typedef GtkAction *(*NimActionNew)(const gchar *, const gchar *, const gchar *, const gchar *);
 typedef gboolean (*NimActionGetBool)(GtkAction *);
 typedef void (*NimActionSetBool)(GtkAction *, gboolean);

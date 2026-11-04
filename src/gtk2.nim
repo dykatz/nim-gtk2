@@ -400,3 +400,4 @@ include gtk2/editableviews
 include gtk2/clipboard
 include gtk2/textdrag
 include gtk2/actions
+include gtk2/builder

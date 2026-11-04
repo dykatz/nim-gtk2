@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="2.24"/>
+  <object class="GtkWindow" id="window">
+    <property name="title">Hello from Nim and GtkBuilder</property>
+    <property name="visible">False</property>
+    <property name="default-width">420</property>
+    <property name="default-height">200</property>
+    <property name="border-width">12</property>
+    <child>
+      <object class="GtkVBox" id="layout">
+        <property name="spacing">8</property>
+        <child>
+          <object class="GtkEntry" id="name">
+            <property name="text">Nim</property>
+            <signal name="activate" handler="greet"/>
+          </object>
+          <packing><property name="expand">False</property></packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="greeting">
+            <property name="label">Enter your name</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkHBox" id="buttons">
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkButton" id="greet">
+                <property name="label">_Greet</property>
+                <property name="use-underline">True</property>
+                <signal name="clicked" handler="greet"/>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="close">
+                <property name="label">_Close UI</property>
+                <property name="use-underline">True</property>
+                <signal name="clicked" handler="close"/>
+              </object>
+            </child>
+          </object>
+          <packing><property name="expand">False</property></packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

@@ -2807,7 +2807,8 @@ Ctrl+N/Ctrl+Q. [examples/toolbars.nim](../examples/toolbars.nim) shares Open and
 commands between toolbar/menu proxies and Ctrl+O/Ctrl+P; a single group sensitivity
 control updates every proxy. Existing tearoffs and native toolbar behavior remain.
 GTK2 actions are within the GTK2.24 scope; their deprecation in GTK3 is not a reason
-to omit them here. GtkBuilder, UIManager and RadioAction are separate future work.
+to omit them here. GtkBuilder is covered below; UIManager and RadioAction remain
+separate future work.
 
 ### Commands and native proxies
 
@@ -2936,7 +2937,7 @@ accelerator groups and returns whether GTK handled the key. It does not synthesi
 an input event or bypass sensitivity. Real key input/focus still follows GTK; Entry
 bindings, IME, mnemonics and toolbar keyboard navigation are not reimplemented.
 Global desktop hotkeys, arbitrary accelerator closures, editable/persistent accel
-maps, UIManager, GtkBuilder, RadioAction groups and synchronous action hooks remain
+maps, UIManager, RadioAction groups and synchronous action hooks remain
 outside this batch.
 
 ### Action validation
@@ -2955,6 +2956,171 @@ On Unix X11 it requires libXtst/XTEST and sends real Ctrl+O with an Entry focuse
 the command safely destroys its window from deferred delivery. Never run this input
 suite on an ordinary desktop. No warnings are suppressed and no GTK private
 structures or installed native libraries are modified.
+
+## Owned GtkBuilder documents
+
+The expanded [examples/ergonomic.nim](../examples/ergonomic.nim) embeds
+[examples/ergonomic.ui](../examples/ergonomic.ui) at compile time. Its XML supplies
+the window/layout/controls and signal handler names; Nim supplies checked handles
+and closure implementations. No exported Nim symbol names, native autoconnection,
+manual C casts or additional import paths are needed.
+
+### Load and lifetime
+
+newBuilder(xml,translationDomain="") creates a fresh Builder from UTF-8/NUL-free
+XML. loadBuilder(filename,translationDomain="") loads a native path, relative or
+absolute. Unix filenames retain native bytes; Windows filenames must be UTF-8.
+Native file loading preserves GTK's relative resource-path semantics. Domain text
+is checked before loading; XML domain declarations follow native GTK behavior.
+translationDomain reads a copied current value. These are one-shot document
+factories, not mutable append/reload operations; do not append XML through raw GTK
+behind the wrapper's ownership/connection bookkeeping.
+
+Builder.raw is a typed borrowed PBuilder. The native builder is a non-floating
+GObject, but the public Builder is an **owned UI document**, not a Widget or a generic
+ObjectHandle. Its aliases share closed state. close() is idempotent, and the last
+Builder handle also closes the document if no reference cycle retains it.
+
+Closing first cancels the document's declared-signal connections, then destroys
+**every XML-created widget in the native builder table**, including standalone
+windows/menus never looked up through the SDK. Ordinary widget destroy observers
+still run. Retained widget handles share destruction state/tombstones and cannot
+resurrect the UI. Reparenting an XML widget into another application container does
+not transfer it out of document ownership: it is still destroyed at close. Children
+subsequently added to document-owned containers follow normal GTK recursive teardown.
+There is no detach/take-ownership API in this batch.
+
+The SDK retains looked-up shared states so temporary get(...).onClicked(...) calls
+do not immediately lose their callback owner. For non-widget objects, close
+disconnects SDK callbacks tracked by those states and releases the builder's table;
+independently retained plain objects (for example TextBuffer or Action) remain
+valid data objects. Closing does not forcibly destroy every non-widget GObject.
+The builder table is released on close, not merely when the final closed alias
+is dropped. Lookup/metadata/wiring operations reject closed/uninitialized builders.
+
+Always use explicit cleanup for UI documents:
+
+```nim
+let ui = newBuilder(xml)
+defer: ui.close()
+let window = ui.get("window", Window)
+let name = ui.get("name", Entry)
+let greeting = ui.get("greeting", Label)
+ui.get("greet", Button).onClicked(proc () =
+  greeting.text = "Hello, " & name.text)
+window.run()
+```
+
+This also breaks native-widget → closure → Builder reference cycles when callbacks
+capture their own document, as the example's Close UI handler does. Merely dropping
+an external Builder variable cannot break such a cycle. Do not close a builder
+prematurely expecting returned widgets to keep its UI alive independently. All
+loading, lookup, callback delivery, close and final native releases stay on the UI
+thread under ARC/ORC and require GTK initialization/a display.
+
+### Checked lookups and copied metadata
+
+get(id,Type) requires an existing, nonempty UTF-8/NUL-free ID and checks its native
+GType before retaining the borrowed object. Missing/mismatched/destroyed objects
+raise ValueError rather than becoming unsafe casts. Aliases use the existing weak
+state cache and share signal/destruction tracking.
+
+Audited widget lookup types currently are Widget, Window, Button, Label, Entry,
+Box/VBox/HBox, ToggleButton/CheckButton/RadioButton, DrawingArea, ScrolledWindow,
+Viewport, Notebook, HPaned/VPaned, SpinButton, ProgressBar, TextView, Image, Frame,
+Alignment, Table, Fixed, EventBox, MenuBar/Menu/MenuItem/CheckMenuItem,
+Toolbar/ToolButton/ToggleToolButton and Dialog. Base lookups accept compatible native
+subtypes and retain the existing runtime guards on their operations. The non-widget
+lookup types are Adjustment, TextBuffer, Action and ToggleAction.
+
+Other SDK wrappers do **not** automatically become valid builder lookup types.
+ActionGroup requires an SDK member collection; fixed model/cell/chooser wrappers
+can require additional schema, renderer or lifetime metadata. Unsupported typed
+lookups fail at compile time. Use a supported Widget view where appropriate or raw
+GTK with its native ownership contract; do not fabricate specialized handles by
+casting a named object. Native builder support is not a claim that every raw GTK
+configuration has an ergonomic wrapper.
+
+The loader explicitly registers core widget types and Action/ActionGroup,
+Adjustment, TextBuffer, ListStore/TreeStore and TextTag/TextTagTable GTypes. Nim
+loads GTK dynamically; GTK2's default lazy GModule search of executable-global
+_get_type symbols is not a reliable way to discover every locally loaded type.
+For other native classes, register their raw *_get_type() before loading the XML.
+This registers types only; it does not construct widgets or map windows.
+
+hasObject(id) reports table membership, not guaranteed widget liveness after an
+independent destroy. objects() copies BuilderObjectInfo(id,typeName) entries in
+unspecified native table order. IDs are obtained through public GtkBuildable;
+a non-Buildable object can have an empty copied id rather than accessing GTK's
+private name data. declarations() copies BuilderSignal metadata: objectId,
+signalName, handlerName, connectObjectId, after and swapped. Copied metadata survives
+close. No native list node, selection data or borrowed C string escapes.
+
+### XML signal names mapped to closures
+
+The loader collects XML signal declarations with gtk_builder_connect_signals_full;
+it never calls the symbol-name autoconnection API. The public callback is scope-call:
+its temporary collector stays alive for the complete synchronous native visit, and
+all borrowed names are copied. GTK consumes its declaration list; the SDK keeps
+its own immutable copy for validation and reconnecting.
+
+connectSignals([BuilderHandler(name:"greet",fn:proc()=...), ...]) supplies named Nim
+closures. A handler name may be reused by multiple XML objects/declarations, as
+Entry.activate and Button.clicked share Greet in the example. Duplicate supplied
+handler names, nil callbacks, unused names or missing mappings are rejected.
+Every declaration is validated **before any handler is connected**, and a failed
+connection phase rolls back its newly created connections. Repeated connectSignals
+without disconnectSignals is rejected rather than duplicating handlers.
+
+This initial named mapping supports **void, zero-argument, non-destroy signals**
+only, validated through public GSignal metadata. Native after ordering is preserved.
+Return-valued/event signals, parameterized signals such as Dialog.response,
+notify::property, swapped closures and object-connected declarations require manual
+existing typed SDK observers or raw GTK; their ABI is never guessed. Wire lifecycle
+signals manually (for example window.onDestroy) rather than through deferred XML
+Destroy handlers. There is no automatic string-to-code execution or arbitrary
+method dispatch.
+
+Mapped closures run **at UI idle after native emission**, queueing each occurrence
+without coalescing. They receive no sender/extra arguments and are not synchronous
+veto hooks or emission-time state snapshots. Use the existing typed observers when
+copied payloads or synchronous input propagation are needed. Exceptions are
+contained. Handlers may disconnect/reconnect or close their document safely;
+closing/unwiring cancels pending delivery. disconnectSignals(builder) removes only
+its mapped XML connections; direct typed connections remain until their normal
+owner cleanup/document close. The builder retains mapped connections even when
+no Connection token is returned to application code.
+
+### Trust boundary and tests
+
+**Load trusted application UI definitions, not untrusted XML.** GtkBuilder can create
+native objects, invoke native constructors/property setters, load resources and map
+windows if XML requests visibility. It is not a sandbox, schema validator or a
+transactional parser for an existing live UI. Unknown properties, invalid child
+relationships and invalid object-connected declarations can still cause GTK-native
+warnings instead of GErrors; the SDK does not suppress them. Type registration does
+not allow-list all classes that GTK might resolve. Custom native type-function
+resolution remains GTK behavior; avoiding signal symbol autoconnection is not a
+security boundary against malicious UI definitions.
+
+On native parse/file GError failures the factory copies message/domain/code into
+BuilderError, frees the GError and closes/destroys the partially constructed UI.
+Invalid SDK strings/IDs/types/mappings raise ValueError. A failed fresh load never
+modifies another live document. Native constructors can already have side effects
+before failure, so this cleanup is not rollback of arbitrary native state.
+
+Hidden tests/tgtk2builder.nim is included in testUi. Its XML leaves all windows
+unmapped; it covers typed lookup, shared state, copied metadata/errors, mapping
+validation, per-handler closure identity, cancellation/reentrancy, independent plain
+data lifetime, last-document finalization and partial-load window cleanup. Native
+ABI probes exercise the opaque constructor, pointer-sized gsize loader and the full
+GtkBuilderConnectFunc calling convention without needing a display.
+
+nimble testMappedBuilder requires an isolated DISPLAY and explicit
+GTK2_TEST_VIRTUAL_DISPLAY=1. It maps the expanded example, verifies native Entry and
+animated Button activation against repeated XML handler names, closes the document
+from a deferred handler and checks queued callback cancellation. No installed GTK
+libraries, private structures or native warning settings are modified.
 
 ## Ownership and safety contract
 
@@ -3015,7 +3181,8 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
-`tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, and `tests/tgtk2actions.nim`.
+`tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
+and `tests/tgtk2builder.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3054,7 +3221,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

@@ -1,24 +1,38 @@
+## GtkBuilder layout with checked handles and Nim closures, never symbol lookup.
+## nim c -r --path:src examples/ergonomic.nim
 import gtk2
+
+type ErgonomicExample* = object
+  ui*: Builder
+  window*: Window
+  name*: Entry
+  greeting*: Label
+  greet*, close*: Button
+
+proc buildErgonomicExample*(): ErgonomicExample =
+  ## Requires gtk2.init(). The XML explicitly leaves its window unmapped.
+  const layoutXml = staticRead("ergonomic.ui")
+  let ui = newBuilder(layoutXml)
+  var ready = false
+  defer:
+    if not ready: ui.close()
+  let window = ui.get("window", Window)
+  let name = ui.get("name", Entry)
+  let greeting = ui.get("greeting", Label)
+  let greet = ui.get("greet", Button)
+  let close = ui.get("close", Button)
+  ui.connectSignals([
+    BuilderHandler(name: "greet", fn: proc () = greeting.text = "Hello, " & name.text & "!"),
+    BuilderHandler(name: "close", fn: proc () = ui.close())])
+  result = ErgonomicExample(ui: ui, window: window, name: name,
+    greeting: greeting, greet: greet, close: close)
+  ready = true
 
 proc main() =
   gtk2.init()
-  let window = newWindow("Hello from Nim", width = 360, height = 180)
-  defer: window.destroy()
-  window.borderWidth = 12
+  let example = buildErgonomicExample()
+  defer: example.ui.close() # Also breaks callbacks capturing the document itself.
+  example.window.run()
 
-  let layout = newVBox(spacing = 8)
-  let name = newEntry("Nim")
-  let greeting = newLabel("Enter your name")
-  let button = newButton("_Greet", mnemonic = true)
-  window.add(layout)
-  layout.packStart(name, packShrink)
-  layout.packStart(greeting)
-  layout.packEnd(button, packShrink)
-
-  button.onClicked do ():
-    greeting.text = "Hello, " & name.text & "!"
-
-  window.run()
-
-when not defined(gtk2DisableMain):
+when isMainModule and not defined(gtk2DisableMain):
   main()

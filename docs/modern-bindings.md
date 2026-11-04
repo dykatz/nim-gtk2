@@ -30,6 +30,27 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### GtkBuilder ownership and signal ABI
+
+Builder/Buildable use opaque native pointers. add_from_string takes gsize, not
+Nim int/cint; GError** and GtkBuilderConnectFunc retain exact native widths, pointer
+levels, cdecl and GConnectFlags representation. C probes invoke constructor/loader
+function pointers and the complete signal-connector callback through GTK headers.
+No GtkBuilder private layout or internal name-data key is read by the SDK.
+
+The ergonomic Builder owns a fresh UI document: close destroys XML-owned widgets,
+invalidates shared widget states, disconnects retained non-widget SDK callbacks and
+releases the native object table. Factories clean partial documents on GError failure;
+this is not rollback or a sandbox for native constructor side effects. Core GTypes
+are explicitly registered because GTK2's lazy GModule lookup is unreliable when
+GTK is dynamically loaded locally by Nim.
+
+XML handlers are collected using the scope-call full connector, copied, validated
+against public GSignal metadata and explicitly mapped to closures. Only void/no-arg,
+non-destroy declarations are supported; parameterized/return-valued/swapped/object
+connections require typed SDK APIs or raw GTK. User delivery is deferred/cancellable,
+not a guessed native signal signature or symbol-name autoconnection.
+
 ### GTK2 actions and native accelerators
 
 Action, ToggleAction and ActionGroup are opaque non-floating GObjects; no GTK private

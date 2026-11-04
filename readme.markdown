@@ -128,6 +128,12 @@ window-local shortcuts without global accel-map changes. See the
 [command guide](docs/gtk2.md#shared-actions-and-window-local-accelerators) and expanded
 menu/toolbar examples. `testMappedActions` sends real XTEST keyboard input and must
 only run on an explicitly opted-in isolated display.
+Owned GtkBuilder documents now provide checked typed lookups, copied load errors,
+explicit UI teardown and validated XML-handler-to-closure mappings without signal
+symbol autoconnection. The [ergonomic example](examples/ergonomic.nim) embeds its
+[XML layout](examples/ergonomic.ui); see the [builder guide](docs/gtk2.md#owned-gtkbuilder-documents).
+Only load trusted application UI definitions. `testMappedBuilder` requires an
+explicitly opted-in isolated display.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

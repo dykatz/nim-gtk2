@@ -14,6 +14,12 @@ else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
 type
+  BuilderNew = proc (): gtk.PBuilder {.cdecl.}
+  BuilderLoad = proc (builder: gtk.PBuilder, text: cstring, length: g.gsize, error: ptr ptr g.GError): g.guint {.cdecl.}
+proc constructBuilder(fn: BuilderNew): gtk.PBuilder {.cdecl, importc: "nim_gtk2_builder_new".}
+proc loadBuilder(fn: BuilderLoad, builder: gtk.PBuilder): g.guint {.cdecl, importc: "nim_gtk2_builder_load".}
+proc invokeBuilderConnect(fn: gtk.TBuilderConnectFunc, data: pointer) {.cdecl, importc: "nim_gtk2_builder_connect".}
+type
   ActionNew = proc (name, label, tooltip, stock: cstring): gtk.PAction {.cdecl.}
   ActionGetBool = proc (action: gtk.PAction): g.gboolean {.cdecl.}
   ActionSetBool = proc (action: gtk.PAction, value: g.gboolean) {.cdecl.}
@@ -160,6 +166,20 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "builder opaque constructor, gsize loader and signal connector ABI":
+    let builder = constructBuilder(gtk.builder_new)
+    require builder != nil
+    defer: g.g_object_unref(builder)
+    check loadBuilder(gtk.builder_add_from_string, builder) != 0
+    var called = false
+    proc connector(b: gtk.PBuilder, obj: g.PGObject, signal, handler: cstring,
+        connectObject: g.PGObject, flags: g.TGConnectFlags, data: pointer) {.cdecl.} =
+      cast[ptr bool](data)[] = cast[uint](b) == 0x12 and cast[uint](obj) == 0x23 and
+        $signal == "clicked" and $handler == "handler" and cast[uint](connectObject) == 0x34 and
+        flags == (g.G_CONNECT_AFTER or g.G_CONNECT_SWAPPED)
+    invokeBuilderConnect(connector, addr called)
+    check called
+
   test "opaque action constructors and gboolean getter/setter ABI through native C prototypes":
     let action = constructAction(gtk.action_new)
     require action != nil
