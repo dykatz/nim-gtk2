@@ -1355,9 +1355,10 @@ the monitored widget; `clearAccelWidget()` releases it. `refetch()` refreshes
 native accelerator display state and `accelWidth` reads its native column width.
 A destroyed monitored target is never resurrected through a getter: cached
 destruction tombstones raise ValueError until the target is cleared/replaced.
-Custom accelerator groups/key registration are not wrapped in this batch; raw
-GTK can install shortcuts on monitored widgets, while ordinary menu mnemonics
-work without extra registration.
+Window-local action shortcuts are now covered by the actions/accelerators guide
+below. AccelLabel.accelWidget monitors widget closures; action-created menu items
+instead monitor the shared action closure directly. Ordinary menu mnemonics work
+without extra registration.
 
 Widget constructors now use the same weak native-state cache as borrowed
 getters, so aliases share destruction tracking and connections without stealing
@@ -1369,8 +1370,9 @@ its window destroys the menu tree and releases captures. Also destroy standalone
 AccelLabels or clear their monitored widgets when done. All operations and final
 releases remain on the UI thread.
 
-This batch is for menu-bar trees. Standalone popup positioning, custom accelerator
-routing, menu grid attachment, and action/UIManager abstractions remain raw APIs.
+Standalone popup positioning, custom accelerator routing, menu grid attachment
+and UIManager remain raw APIs. Shared actions and window-local accelerator groups
+are covered below.
 Tearoff floating-window internals remain owned and managed by GTK.
 
 ## Toolbars and tool palettes
@@ -2798,6 +2800,162 @@ disconnection/destruction. **Never run this suite on an ordinary desktop.** The
 SDK does not suppress warnings, inspect GTK private structures or alter native
 libraries to implement these transfers.
 
+## Shared actions and window-local accelerators
+
+[examples/menus.nim](../examples/menus.nim) now registers New/Quit commands and
+Ctrl+N/Ctrl+Q. [examples/toolbars.nim](../examples/toolbars.nim) shares Open and Pin
+commands between toolbar/menu proxies and Ctrl+O/Ctrl+P; a single group sensitivity
+control updates every proxy. Existing tearoffs and native toolbar behavior remain.
+GTK2 actions are within the GTK2.24 scope; their deprecation in GTK3 is not a reason
+to omit them here. GtkBuilder, UIManager and RadioAction are separate future work.
+
+### Commands and native proxies
+
+newAction(name,label,tooltip="") and newToggleAction(name,label,tooltip="",active=false)
+create owning **non-floating GObjects**, not Widgets. Their raw pointers name opaque
+PAction/PToggleAction records; do not sink/unref borrowed raw pointers or cast them
+to widgets. Names must be nonempty; names/labels/tooltips/icon names are UTF-8 and
+NUL-free. Text getters copy borrowed C strings.
+
+Action exposes immutable name; mutable label, shortLabel, tooltip, iconName,
+important, sensitive and visible; and effectiveSensitive/effectiveVisible including
+its ActionGroup's state. Labels use GTK's native underscore mnemonics. ToggleAction
+adds active. asToggleAction() checks native type when recovering a toggle through
+a group's generic action lookup; it rejects ordinary actions without an unsafe cast.
+
+createMenuItem() and createToolItem() create fresh native GtkActivatable proxies:
+MenuItem/ToolButton for Action, CheckMenuItem/ToggleToolButton for ToggleAction.
+Parent them normally. GTK synchronizes appearance, sensitivity and toggle state
+across every proxy. These are native bindings, not independent closure handlers
+that manually copy state. Prefer changing the action rather than independently
+overriding its proxies. No public API for rebinding arbitrary existing widgets is
+provided yet, so private/native editor content is not commandeered.
+
+Action-managed proxies set public no-show-all=true: their visibility belongs to
+the action. A parent's showAll() must not expose a command the action/group hid.
+Normal action-visible proxies already have their native visible state; their parent
+still controls actual mapping. Explicitly show()/hide() on a proxy can override
+native state; use action.visible for the supported synchronized policy.
+
+activate() invokes native action activation; insensitive commands do not activate.
+Visibility is **not authorization**: GTK allows an invisible but sensitive action's
+accelerator/programmatic activation. Disable sensitive to prevent activation.
+Native toggle state/proxy updates happen synchronously. GTK's active setter can
+emit both toggled and activate; assigning the existing active state is a no-op.
+
+onActivate(proc()) and onToggled(proc(active:bool)) return ordinary Connections.
+User callbacks are **deferred until UI idle**, after GTK's action/group/proxy emitter
+has finished using its native data. Each activation/toggle is queued, not coalesced;
+toggled carries the emission-time state and has no initial event. Commands queued
+before a later sensitivity change remain queued. These are post-activation handlers,
+not synchronous veto or pre-activation hooks. Callback exceptions are contained;
+callbacks may disconnect themselves, reenter commands, or destroy windows safely.
+Disconnecting cancels pending delivery. Dropping a Connection does not disconnect it.
+
+### Group ownership and explicit callback cleanup
+
+newActionGroup(name), add(action), action(name), remove(action), sensitive and visible
+provide checked command collections. Names are unique within each group; an action
+can belong to only one native group at a time. Duplicate membership/names, missing
+lookups and removing a foreign action fail before native warnings. Group aliases
+share the SDK member collection, which retains action handles and their callbacks.
+Removing a command releases that membership but does not automatically disconnect
+an action still retained elsewhere or unbind its shortcut.
+
+Retain an Action or its ActionGroup while its command callbacks are needed. Native
+proxy references alone are not SDK callback ownership: as with other plain GObjects,
+the final shared SDK state disconnects its signals and cancels deferred work even
+if raw/native clients still retain the object. Do not mutate group membership or
+accelerator configuration through raw GTK while using the SDK collection.
+
+Actions have no destroy signal and no widget destroy API. disconnectSignals(action)
+breaks its callback captures; disconnectSignals(group) does this for its current
+members without removing them or changing native toggle/shortcut behavior. A closure
+capturing its own action/group/window can create a reference cycle. Explicitly
+clean up on window destruction, as both examples do:
+
+```nim
+let commands = newActionGroup("editor")
+let shortcuts = newAccelGroup()
+shortcuts.attach(window)
+window.onDestroy(proc () =
+  commands.disconnectSignals()
+  shortcuts.clearShortcuts())
+let save = newAction("save", "_Save", "Save the document")
+commands.add(save)
+shortcuts.bindShortcut(save, "<Control>s")
+save.onActivate(proc () = echo "Save requested")
+menu.append(save.createMenuItem())
+toolbar.append(save.createToolItem())
+```
+
+This cancellation matters even when callbacks do not form a cycle: an already queued
+command must not attempt to update destroyed widgets. Explicitly destroy windows
+and standalone menu roots as usual. All API calls, callbacks, cleanup and final
+native unrefs stay on the UI thread under ARC/ORC.
+
+### Checked shortcut values and registration
+
+parseShortcut("<Control><Shift>s") produces an immutable Shortcut; newShortcut(keyval,
+ModifierMask) accepts numeric GDK keyvals. keyval/modifiers read its components and
+shortcutName returns a copied canonical GTK name. Invalid/default values, malformed
+strings and button/lock/reserved masks are rejected. Portable Shift/Control/Alt and
+virtual Super/Hyper/Meta bits are accepted; physical Mod2..Mod5 bindings remain raw.
+Keys normalize through native keyval_to_lower, not byte/ASCII conversion. Parsing
+uses GTK spelling, including native backend conventions; it is not a hotkey service.
+
+newAccelGroup() owns a non-floating native accelerator group. attach(window),
+detach(window) and attached(window) operate idempotently on live onscreen windows;
+OffscreenWindow is rejected. One group can be attached to multiple windows. Window
+destruction automatically detaches native groups. Keep the SDK AccelGroup alive
+while its registrations are needed, even though GTK also references attached groups.
+
+bindShortcut(action,Shortcut|string), shortcutFor(action), unbindShortcut(action)
+and clearShortcuts() manage its registrations. The group retains SDK Action handles.
+A shortcut already advertised in that group, an action already bound in any group,
+or an existing native action accel path is rejected before GTK is modified. One
+shortcut per action is supported; unbind before rebinding. Other groups can still
+advertise the same key, and normal GTK dispatch order/enablement resolves those;
+the SDK does not claim global conflict detection.
+
+Bindings use the action's native borrowed accel closure and public accelerator
+APIs. They do not install global accel-map paths, private trampolines, process-wide
+mod masks or fake key handlers. Action menu labels monitor this closure through
+public AccelLabel APIs, including proxies created before/after binding. Unbinding
+clears the displayed shortcut. Label width is computed by GTK's size request/layout,
+not immediately by merely reading accelWidth on an unlaid-out menu.
+
+Releasing the final SDK AccelGroup handle unregisters its shortcuts before releasing
+its retained actions; a private cleanup owner holds an extra native group reference
+so this is independent of Nim field destruction order. GTK windows may still own
+an empty native group until detachment/destruction. unbindShortcut is idempotent;
+shortcutFor raises when no SDK binding exists.
+
+Window.activateShortcut(Shortcut) explicitly dispatches through native window
+accelerator groups and returns whether GTK handled the key. It does not synthesize
+an input event or bypass sensitivity. Real key input/focus still follows GTK; Entry
+bindings, IME, mnemonics and toolbar keyboard navigation are not reimplemented.
+Global desktop hotkeys, arbitrary accelerator closures, editable/persistent accel
+maps, UIManager, GtkBuilder, RadioAction groups and synchronous action hooks remain
+outside this batch.
+
+### Action validation
+
+The hidden tests/tgtk2actions.nim is part of testUi: it never maps a window. It tests
+proxy synchronization, checked membership, group retention/finalization, C-width
+native dispatch, duplicate/rebinding guards, disabled commands, deferred payloads,
+exception containment and cancellation. Native C ABI probes pass action constructor
+and gboolean getter/setter function pointers through real GTK prototypes without
+requiring a display.
+
+nimble testMappedActions requires an isolated virtual DISPLAY and explicit
+GTK2_TEST_VIRTUAL_DISPLAY=1. It checks native menu shortcut display, hidden proxy
+visibility across parent showAll, native toggle propagation and queued-work teardown.
+On Unix X11 it requires libXtst/XTEST and sends real Ctrl+O with an Entry focused;
+the command safely destroys its window from deferred delivery. Never run this input
+suite on an ordinary desktop. No warnings are suppressed and no GTK private
+structures or installed native libraries are modified.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -2857,7 +3015,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2choosers.nim`, `tests/tgtk2assistant.nim`, and
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
-`tests/tgtk2extensions.nim`, and `tests/tgtk2transfers.nim`.
+`tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, and `tests/tgtk2actions.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -2896,7 +3054,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

@@ -122,6 +122,12 @@ copy-only text drag/drop pads, without replacing native editor/model DnD. See th
 [transfer guide](docs/gtk2.md#clipboard-and-copy-only-text-dragdrop) and the expanded
 text/controls examples. `nimble testMappedTransfers` changes clipboard ownership
 and drives XTEST input: run it only on an explicitly opted-in isolated display.
+Shared Action/ToggleAction commands now create synchronized native menu/toolbar
+proxies. ActionGroup controls command collections, and AccelGroup registers checked
+window-local shortcuts without global accel-map changes. See the
+[command guide](docs/gtk2.md#shared-actions-and-window-local-accelerators) and expanded
+menu/toolbar examples. `testMappedActions` sends real XTEST keyboard input and must
+only run on an explicitly opted-in isolated display.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

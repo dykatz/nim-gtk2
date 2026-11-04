@@ -54,6 +54,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2desktop.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2extensions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2transfers.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2actions.nim"
 
 task testMappedMenus, "Test actual tearoff windows (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmenus.nim"
@@ -69,6 +70,9 @@ task testMappedExtensions, "Test Cairo pixels and native editing (isolated virtu
 
 task testMappedTransfers, "Test clipboard and native text DnD (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1; X11 DnD needs XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedtransfers.nim"
+
+task testMappedActions, "Test command proxies and real XTEST shortcuts (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedactions.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

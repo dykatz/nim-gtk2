@@ -8,6 +8,8 @@ type MenuExample* = object
   tearoff*: TearoffMenuItem
   tearoffButton*: Button
   tearoffState*: Label
+  commands*: ActionGroup
+  accelerators*: AccelGroup
 
 proc buildMenuExample*(): MenuExample =
   ## Call gtk2.init() first. Construction shows nothing and starts no loop.
@@ -43,18 +45,29 @@ proc buildMenuExample*(): MenuExample =
     tearoffButton.text = (if detached: "Reattach File menu" else: "Detach File menu")
     tearoffState.text = (if detached: "File menu: detached (File actions window)" else: "File menu: attached"))
   tearoffButton.onClicked(proc () = file.tornOff = not file.tornOff)
-  let create = newImageMenuItem("_New", mnemonic = true)
-  create.image = newImage(newPixbuf(16, 16, 0x4080e0ff'u32))
-  create.alwaysShowImage = true
+  let commands = newActionGroup("menu-example")
+  let accelerators = newAccelGroup()
+  accelerators.attach(window)
+  let createAction = newAction("new", "_New", "Create an example document")
+  createAction.iconName = "document-new"
+  let quitAction = newAction("quit", "_Quit")
+  commands.add(createAction)
+  commands.add(quitAction)
+  accelerators.bindShortcut(createAction, "<Control>n")
+  accelerators.bindShortcut(quitAction, "<Control>q")
+  let create = createAction.createMenuItem()
   file.append(create)
   file.append(newSeparatorMenuItem())
-  let quit = newMenuItem("_Quit", mnemonic = true)
+  let quit = quitAction.createMenuItem()
   file.append(quit)
   var count = 0
-  create.onActivate(proc () =
+  createAction.onActivate(proc () =
     inc count
     status.text = "New action " & $count)
-  quit.onActivate(proc () = window.destroy())
+  quitAction.onActivate(proc () = window.destroy())
+  window.onDestroy(proc () =
+    commands.disconnectSignals() # Cancel deferred work and break command -> window captures.
+    accelerators.clearShortcuts())
 
   let viewHeading = newMenuItem("_View", mnemonic = true)
   let view = newMenu()
@@ -85,13 +98,13 @@ proc buildMenuExample*(): MenuExample =
   about.onActivate(proc () =
     body.text = "Menu callbacks are tracked closures; destroying the window cleans up the tree.")
 
-  # Custom accelerator registration is not wrapped yet. This label can monitor
-  # shortcuts installed by raw GTK APIs; mnemonics above already work normally.
-  let monitor = newAccelLabel("The New action's accelerator label (no custom shortcut installed)")
+  # Native action menu proxies also display their registered keyboard shortcut.
+  let monitor = newAccelLabel("Use Ctrl+N for New; Ctrl+Q to close. Menu mnemonics still work.")
   monitor.accelWidget = create
   root.packStart(monitor, packShrink)
   result = MenuExample(window: window, file: file, tearoff: tearoff,
-    tearoffButton: tearoffButton, tearoffState: tearoffState)
+    tearoffButton: tearoffButton, tearoffState: tearoffState,
+    commands: commands, accelerators: accelerators)
   ready = true
 
 proc main() =

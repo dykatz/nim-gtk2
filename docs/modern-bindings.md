@@ -30,6 +30,21 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### GTK2 actions and native accelerators
+
+Action, ToggleAction and ActionGroup are opaque non-floating GObjects; no GTK private
+instance layouts are copied into the SDK. The raw declarations use exact cstring,
+gboolean, pointer and cdecl signatures. Native C probes invoke constructor and
+boolean accessors through the real GTK prototypes, without a display.
+
+The ergonomic layer creates native menu/tool proxies and uses native action accel
+closures with window-local GtkAccelGroups. It neither rewrites the global accel map
+nor invents callback ABI. Activation/toggle handlers copy payloads and defer user
+code until native post-activation has completed. Groups retain member SDK handles;
+accelerator cleanup holds an extra native reference to make unregistration safe
+regardless of field destruction order. Proxy visibility is action-managed through
+public no-show-all, preventing a parent showAll from exposing hidden commands.
+
 ### Clipboard and drag/drop boundaries
 
 PClipboard is now ptr to an opaque incomplete TClipboard, not a generic pointer.

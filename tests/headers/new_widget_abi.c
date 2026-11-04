@@ -3,6 +3,12 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef GtkAction *(*NimActionNew)(const gchar *, const gchar *, const gchar *, const gchar *);
+typedef gboolean (*NimActionGetBool)(GtkAction *);
+typedef void (*NimActionSetBool)(GtkAction *, gboolean);
+GtkAction *nim_gtk2_action_new(NimActionNew fn) { return fn("abi-command", "ABI label", NULL, NULL); }
+gboolean nim_gtk2_action_get_bool(NimActionGetBool fn, GtkAction *action) { return fn(action); }
+void nim_gtk2_action_set_bool(NimActionSetBool fn, GtkAction *action, gboolean value) { fn(action, value); }
 size_t nim_gtk2_sizeof_target_entry(void) { return sizeof(GtkTargetEntry); }
 size_t nim_gtk2_target_entry_info_offset(void) { return offsetof(GtkTargetEntry, info); }
 size_t nim_gtk2_sizeof_selection_data(void) { return sizeof(GtkSelectionData); }

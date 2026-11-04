@@ -13,6 +13,13 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  ActionNew = proc (name, label, tooltip, stock: cstring): gtk.PAction {.cdecl.}
+  ActionGetBool = proc (action: gtk.PAction): g.gboolean {.cdecl.}
+  ActionSetBool = proc (action: gtk.PAction, value: g.gboolean) {.cdecl.}
+proc constructAction(fn: ActionNew): gtk.PAction {.cdecl, importc: "nim_gtk2_action_new".}
+proc getActionBool(fn: ActionGetBool, action: gtk.PAction): g.gboolean {.cdecl, importc: "nim_gtk2_action_get_bool".}
+proc setActionBool(fn: ActionSetBool, action: gtk.PAction, value: g.gboolean) {.cdecl, importc: "nim_gtk2_action_set_bool".}
 proc targetEntrySize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_target_entry".}
 proc targetInfoOffset(): csize_t {.cdecl, importc: "nim_gtk2_target_entry_info_offset".}
 proc selectionDataSize(): csize_t {.cdecl, importc: "nim_gtk2_sizeof_selection_data".}
@@ -153,6 +160,16 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "opaque action constructors and gboolean getter/setter ABI through native C prototypes":
+    let action = constructAction(gtk.action_new)
+    require action != nil
+    defer: g.g_object_unref(action)
+    check $gtk.action_get_name(action) == "abi-command"
+    check $gtk.action_get_label(action) == "ABI label"
+    check g.toBool(getActionBool(gtk.action_get_sensitive, action))
+    setActionBool(gtk.action_set_sensitive, action, g.gbool(false))
+    check not g.toBool(getActionBool(gtk.action_get_sensitive, action))
+
   test "clipboard and drag/drop pointer, struct, flag and callback ABI":
     check targetEntrySize().int == sizeof(gtk.TTargetEntry)
     check targetInfoOffset().int == offsetOf(gtk.TTargetEntry, info)

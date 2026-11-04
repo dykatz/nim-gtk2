@@ -19,17 +19,28 @@ proc main() =
   toolbar.toolbarStyle = toolbarBothHorizontal
   root.packStart(toolbar, packShrink)
 
-  let open = newToolButton("_Open", mnemonic = true)
-  open.image = newImageFromIcon("document-open", iconLargeToolbar)
-  open.important = true
-  open.tooltipText = "Open an example document"
-  open.onClicked(proc () = status.text = "Open clicked")
+  let commands = newActionGroup("toolbar-example")
+  let shortcuts = newAccelGroup()
+  shortcuts.attach(window)
+  window.onDestroy(proc () =
+    commands.disconnectSignals()
+    shortcuts.clearShortcuts())
+  let openAction = newAction("open", "_Open", "Open an example document (Ctrl+O)")
+  openAction.iconName = "document-open"
+  openAction.important = true
+  commands.add(openAction)
+  shortcuts.bindShortcut(openAction, "<Control>o")
+  openAction.onActivate(proc () = status.text = "Open: shared toolbar/menu/keyboard command")
+  let open = openAction.createToolItem()
   toolbar.append(open)
   toolbar.append(newSeparatorToolItem())
-  let pin = newToggleToolButton("Pin")
-  pin.iconName = "emblem-favorite"
-  pin.important = true
-  pin.onToggled(proc () = status.text = "Pinned: " & $pin.active)
+  let pinAction = newToggleAction("pin", "_Pin", "Shared toggle (Ctrl+P)")
+  pinAction.iconName = "emblem-favorite"
+  pinAction.important = true
+  commands.add(pinAction)
+  shortcuts.bindShortcut(pinAction, "<Control>p")
+  pinAction.onToggled(proc (active: bool) = status.text = "Pinned: " & $active)
+  let pin = pinAction.createToolItem()
   toolbar.append(pin)
   let select = newRadioToolButton("Select")
   let draw = newRadioToolButton(select, "Draw")
@@ -56,6 +67,9 @@ proc main() =
   more.onClicked(proc () = status.text = "Main More action (separate from its arrow)")
   let menu = newMenu()
   defer: menu.destroy() # MenuToolButton detaches retained menus on destruction.
+  menu.append(openAction.createMenuItem())
+  menu.append(pinAction.createMenuItem())
+  menu.append(newSeparatorMenuItem())
   let refresh = newMenuItem("_Refresh", mnemonic = true)
   refresh.onActivate(proc () = status.text = "Refresh selected from toolbar dropdown")
   menu.append(refresh)
@@ -63,6 +77,10 @@ proc main() =
   more.menu = menu
   toolbar.append(more)
 
+  let enabled = newCheckButton("Shared commands enabled")
+  enabled.active = true
+  enabled.onToggled(proc () = commands.sensitive = enabled.active)
+  root.packStart(enabled, packShrink)
   let scroller = newScrolledWindow()
   root.packStart(scroller)
   let palette = newToolPalette()
