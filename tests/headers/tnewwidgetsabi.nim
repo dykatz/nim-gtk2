@@ -14,6 +14,14 @@ else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
 type
+  RadioNew = proc (name, label, tooltip, stock: cstring, value: g.gint): gtk.PRadioAction {.cdecl.}
+  RadioChanged = proc (action, current: gtk.PRadioAction, data: pointer) {.cdecl.}
+  UILoad = proc (ui: gtk.PUIManager, text: cstring, length: g.gssize, error: ptr ptr g.GError): g.guint {.cdecl.}
+proc constructRadio(fn: RadioNew): gtk.PRadioAction {.cdecl, importc: "nim_gtk2_radio_new".}
+proc invokeRadioChanged(fn: RadioChanged, data: pointer) {.cdecl, importc: "nim_gtk2_radio_changed".}
+proc uiItemSize(): csize_t {.cdecl, importc: "nim_gtk2_ui_item_size".}
+proc loadUI(fn: UILoad, ui: gtk.PUIManager): g.guint {.cdecl, importc: "nim_gtk2_ui_load".}
+type
   BuilderNew = proc (): gtk.PBuilder {.cdecl.}
   BuilderLoad = proc (builder: gtk.PBuilder, text: cstring, length: g.gsize, error: ptr ptr g.GError): g.guint {.cdecl.}
 proc constructBuilder(fn: BuilderNew): gtk.PBuilder {.cdecl, importc: "nim_gtk2_builder_new".}
@@ -166,6 +174,21 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "radio signed values/changed callback and UIManager C-width flags/gssize":
+    let radio = constructRadio(gtk.radio_action_new)
+    require radio != nil
+    defer: g.g_object_unref(radio)
+    check gtk.radio_action_get_current_value(radio) == -123
+    var called = false
+    proc changed(action, current: gtk.PRadioAction, data: pointer) {.cdecl.} =
+      cast[ptr bool](data)[] = cast[uint](action) == 0x12 and cast[uint](current) == 0x34
+    invokeRadioChanged(changed, addr called)
+    check called and uiItemSize().int == sizeof(gtk.TUIManagerItemType)
+    let ui = gtk.ui_manager_new()
+    require ui != nil
+    defer: g.g_object_unref(ui)
+    check loadUI(gtk.ui_manager_add_ui_from_string, ui) != 0
+
   test "builder opaque constructor, gsize loader and signal connector ABI":
     let builder = constructBuilder(gtk.builder_new)
     require builder != nil

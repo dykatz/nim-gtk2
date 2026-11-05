@@ -3,6 +3,14 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef GtkRadioAction *(*NimRadioNew)(const gchar *, const gchar *, const gchar *, const gchar *, gint);
+GtkRadioAction *nim_gtk2_radio_new(NimRadioNew fn) { return fn("abi-radio", "Radio", NULL, NULL, -123); }
+void nim_gtk2_radio_changed(void (*fn)(GtkRadioAction *, GtkRadioAction *, gpointer), gpointer data) {
+  fn((GtkRadioAction *)(guintptr)0x12, (GtkRadioAction *)(guintptr)0x34, data);
+}
+size_t nim_gtk2_ui_item_size(void) { return sizeof(GtkUIManagerItemType); }
+typedef guint (*NimUILoad)(GtkUIManager *, const gchar *, gssize, GError **);
+guint nim_gtk2_ui_load(NimUILoad fn, GtkUIManager *ui) { return fn(ui, "<ui></ui>", -1, NULL); }
 typedef GtkBuilder *(*NimBuilderNew)(void);
 typedef guint (*NimBuilderLoad)(GtkBuilder *, const gchar *, gsize, GError **);
 GtkBuilder *nim_gtk2_builder_new(NimBuilderNew fn) { return fn(); }

@@ -6,6 +6,8 @@ import headers/gdk2pixbuf as rawPixbuf
 from headers/gdk2 import TColor
 import headers/gdk2 as rawGdk except string
 import headers/cairo as rawCairo
+import std/xmlparser as uiXmlParser
+import std/xmltree as uiXmlTree
 
 when not (defined(gcArc) or defined(gcOrc)):
   {.error: "gtk2 requires --mm:arc or --mm:orc".}
@@ -400,4 +402,6 @@ include gtk2/editableviews
 include gtk2/clipboard
 include gtk2/textdrag
 include gtk2/actions
+include gtk2/radioactions
 include gtk2/builder
+include gtk2/uimanager

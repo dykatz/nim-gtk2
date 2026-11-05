@@ -25,7 +25,8 @@ task testRawWidgets, "Test new raw symbols/support APIs, then hidden widgets (re
 
 task testRawWidgetAbi, "Verify generated bindings and native ABI (requires GTK2 headers, no display)":
   exec "python3 tools/generate_widgets.py --check"
-  exec "nim r --path:src --warningAsError:Deprecated tests/headers/tnewwidgetsabi.nim"
+  # Nim's cached top-level executable can otherwise miss edits in the C probe.
+  exec "nim r --forceBuild:on --path:src --warningAsError:Deprecated tests/headers/tnewwidgetsabi.nim"
 
 task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2.nim"
@@ -56,6 +57,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2transfers.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2actions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2builder.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uimanager.nim"
 
 task testMappedMenus, "Test actual tearoff windows (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmenus.nim"
@@ -77,6 +79,9 @@ task testMappedActions, "Test command proxies and real XTEST shortcuts (isolated
 
 task testMappedBuilder, "Test GtkBuilder layout/activation/teardown (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedbuilder.nim"
+
+task testMappedUIManager, "Test UIManager merges, radio proxies and tearoffs (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduimanager.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

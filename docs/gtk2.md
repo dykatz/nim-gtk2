@@ -1371,7 +1371,7 @@ AccelLabels or clear their monitored widgets when done. All operations and final
 releases remain on the UI thread.
 
 Standalone popup positioning, custom accelerator routing, menu grid attachment
-and UIManager remain raw APIs. Shared actions and window-local accelerator groups
+remain raw APIs. Shared actions, window-local accelerator groups and UIManager
 are covered below.
 Tearoff floating-window internals remain owned and managed by GTK.
 
@@ -2807,8 +2807,7 @@ Ctrl+N/Ctrl+Q. [examples/toolbars.nim](../examples/toolbars.nim) shares Open and
 commands between toolbar/menu proxies and Ctrl+O/Ctrl+P; a single group sensitivity
 control updates every proxy. Existing tearoffs and native toolbar behavior remain.
 GTK2 actions are within the GTK2.24 scope; their deprecation in GTK3 is not a reason
-to omit them here. GtkBuilder is covered below; UIManager and RadioAction remain
-separate future work.
+to omit them here. GtkBuilder, RadioAction and UIManager are covered below.
 
 ### Commands and native proxies
 
@@ -2937,7 +2936,7 @@ accelerator groups and returns whether GTK handled the key. It does not synthesi
 an input event or bypass sensitivity. Real key input/focus still follows GTK; Entry
 bindings, IME, mnemonics and toolbar keyboard navigation are not reimplemented.
 Global desktop hotkeys, arbitrary accelerator closures, editable/persistent accel
-maps, UIManager, RadioAction groups and synchronous action hooks remain
+maps and synchronous action hooks remain
 outside this batch.
 
 ### Action validation
@@ -3031,7 +3030,7 @@ Viewport, Notebook, HPaned/VPaned, SpinButton, ProgressBar, TextView, Image, Fra
 Alignment, Table, Fixed, EventBox, MenuBar/Menu/MenuItem/CheckMenuItem,
 Toolbar/ToolButton/ToggleToolButton and Dialog. Base lookups accept compatible native
 subtypes and retain the existing runtime guards on their operations. The non-widget
-lookup types are Adjustment, TextBuffer, Action and ToggleAction.
+lookup types are Adjustment, TextBuffer, Action, ToggleAction and RadioAction.
 
 Other SDK wrappers do **not** automatically become valid builder lookup types.
 ActionGroup requires an SDK member collection; fixed model/cell/chooser wrappers
@@ -3122,6 +3121,149 @@ animated Button activation against repeated XML handler names, closes the docume
 from a deferred handler and checks queued callback cancellation. No installed GTK
 libraries, private structures or native warning settings are modified.
 
+## Radio commands and UIManager merges
+
+The [menu example](../examples/menus.nim) now has a UIManager-generated menu bar
+and toolbar with shared radio commands, native tearoffs, Ctrl+1/Ctrl+2 and a button
+that adds/removes Refresh through a UI merge. Its original File menu/tearoff still
+works independently. The [toolbar example](../examples/toolbars.nim) shares its
+Select/Draw RadioActions with its dropdown menu instead of maintaining unrelated
+radio widgets.
+
+### RadioAction
+
+RadioAction derives from ToggleAction and is an opaque non-floating GObject.
+newRadioAction(name,label,value:int32,tooltip="") creates a selected singleton;
+newRadioAction(peer,name,label,value,tooltip="") joins an existing group while
+preserving that group's selection. value is an immutable SDK view of the native
+signed gint property, not a row index. Duplicate values in a group and assigning
+an unknown currentValue are rejected before native warnings.
+
+joinGroup(peer) is idempotent for the same group, preserves the destination's
+selection and selects a remaining old-group member when moving its active member.
+The SDK normalizes GTK2's setter, which otherwise can leave two active members,
+using public active setters even if the joining action is insensitive. No private
+radio list fields are read. Group membership uses GTK's borrowed public GSList.
+
+currentValue reads/selects the group value. active, activate, onActivate and onToggled
+retain native ToggleAction behavior; native radio actions resist clearing the only
+selected member. onChanged(proc(value:int32)) queues each emission-time selected
+value at UI idle, with no initial event. It is not a synchronous selection veto.
+Exceptions are contained and disconnection cancels pending delivery. asRadioAction
+checks native type for generic Action lookups. createMenuItem/createToolItem inherit
+the native CheckMenuItem/ToggleToolButton radio appearance, not fabricated
+RadioMenuItem/RadioToolButton instance types.
+
+Native radio membership is weak: keep members alive using ActionGroup or independent
+handles/proxies. Releasing the final native owner of a member removes it; the SDK
+does not invent a replacement-selection observer during native finalization.
+GtkBuilder can look up RadioAction too. Builder-created native radio objects follow
+XML/native initial grouping/selection rather than the SDK singleton constructor;
+currentValue accepts a groupless object's own value and joinGroup initializes a
+native groupless peer when necessary.
+
+### Fixed-schema managed UI
+
+newUIManager([groups...],tearoffs=false) owns a native GtkUIManager, retains SDK
+ActionGroup handles, and reserves their membership until close. Group and action
+names must be unique across the manager; groups cannot simultaneously belong to
+another SDK manager. Existing native accel paths/shortcut bindings must be removed
+before registration. These guards avoid native closure/group conflicts.
+
+While registered, ActionGroup.add/remove raises ValueError. Labels, icons, visibility,
+sensitivity, radio selection and existing command observers remain mutable. Dynamic
+action-group insertion/shadowing is not supported in this first ergonomic layer:
+construct the complete command schema first, then merge/unmerge its presentation.
+Do not mutate these groups, paths or manager-owned nodes through raw GTK.
+
+```nim
+let commands = newActionGroup("editor")
+commands.add(newAction("File", "_File"))
+let open = newAction("Open", "_Open")
+commands.add(open)
+let ui = newUIManager([commands], tearoffs=true)
+defer: ui.close()
+ui.attach(window)
+window.onDestroy(proc () = ui.close())
+ui.bindShortcut(open, "<Control>o")
+let merge = ui.addUi("""<ui><menubar name="Main"><menu action="File">
+  <menuitem action="Open"/></menu></menubar></ui>""")
+box.packStart(ui.get("/Main", MenuBar), packShrink)
+# Later: ui.remove(merge)
+```
+
+addUi(xml) requires a complete <ui> root without attributes. The SDK parses the XML,
+validates referenced commands and required menu/menuitem/toolitem/accelerator action
+attributes, then calls native merging. This prevents GTK's lazy missing-action
+warnings rather than suppressing them. Root serialization handles GTK2's peculiar
+literal-<ui> detection, including XML declarations and an empty <ui/>. GTK validates
+remaining UI grammar; these are trusted application definitions, not a security
+sandbox or an arbitrary GtkBuilder object graph. Native failures copy message,
+domain/code into UIManagerError; SDK schema/path mistakes raise ValueError.
+
+A returned UIMerge is an opaque manager-specific token with a non-owning identity.
+active(merge) tests current membership; remove(merge) is idempotent for an already
+removed token from the same manager and rejects foreign tokens. Tokens do not keep
+a manager alive and cannot accidentally target a newly allocated manager at a
+reused native address. Multiple merges may overlay the same node; removing one
+retains nodes referenced by another. Native parser failure removes its partial
+merge without replacing prior successful merges.
+
+ensureUpdate forces native lazy updates. get(path,WidgetType) retains a checked
+widget view using the audited GtkBuilder widget lookup types; action(path) returns
+a checked owning Action. Paths start with /; names and IDs are native UI node paths,
+not widget indices. uiDescription returns a copied transfer-full native XML string.
+UIManager retains looked-up states and generated toplevels until native destruction;
+unmerging invalidates shared widget aliases and releases dead cache entries.
+Parent generated MenuBar/Toolbar widgets normally. The manager owns them even when
+parented elsewhere; do not independently edit their managed child trees. Native
+tearoffs are enabled with tearoffs=true or the tearoffs property. Native Menu APIs
+still realize before detaching; no hover or fake-click workaround is added.
+
+### Shortcuts, visibility and teardown
+
+UIManager.bindShortcut/unbindShortcut and attach/detach use the manager's native
+accel group with the existing checked Shortcut/native action-closure machinery.
+No global accel-map paths/default masks are installed or overwritten. Register
+managed shortcuts through UIManager, not another SDK AccelGroup. Native action
+menu labels are synchronized after updates, and action proxies use public
+no-show-all so parent showAll cannot expose group-hidden commands. Visibility is
+still not activation authorization; sensitivity controls native dispatch.
+
+close is idempotent across aliases. It disconnects the registered groups' SDK
+callbacks (including pending observations), unregisters shortcuts, detaches live
+host windows, removes merges, forces native proxy destruction, clears native action
+accel-group links and releases its native owner. Groups are then reusable; their
+actions remain valid if independently retained, but their old SDK callbacks have
+been disconnected. Host windows are retained while attached but are **not destroyed**
+by closing the manager. Generated widget handles become destroyed, not independent
+surviving UI. The final manager handle closes automatically only if no capture cycle
+retains it; explicitly close on window destruction/defer to break such cycles.
+
+Native update/unmerge traversal can emit synchronous widget destroy observers.
+Reentrant mutation/lookup while updating is rejected, but close requests are accepted
+and postponed until the active traversal returns. A temporary pin protects the
+manager even if a destroy observer drops the caller's last handle. This avoids
+recursive tree traversal/finalization through a borrowed native emitter. Ordinary
+action/radio observers remain deferred and may safely remove merges or close hosts.
+All operations, callbacks, native unrefs and final cleanup stay on the UI thread.
+
+Raw-only extensions remain: mutable/shadowing action-group schemas, native persistent
+accel-map paths, native merge IDs/programmatic add_ui node flags, arbitrary custom
+proxy factories and UIManager lifecycle hooks. UIManager ownership is intentionally
+separate from GtkBuilder lookup; do not fabricate a wrapper around a builder-created
+native manager.
+
+Hidden tests/tgtk2uimanager.nim joins testUi and maps nothing. It exercises signed
+radio values/snapshots, joins/moves, builder lookup, schema/path/shortcut guards,
+overlay removal, failed merges, group reuse and reentrant close/last-handle release.
+Native C probes check radio constructor/changed callback ABI, GtkUIManagerItemType
+width and signed pointer-width gssize loading. testMappedUIManager requires isolated
+DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1; it checks live native proxies, shortcut
+labels/dispatch, tearoffs, overlay teardown, conditional visibility and close from
+an activation callback. No private GTK layouts, native warning suppression or
+installed-library modifications are used.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -3182,7 +3324,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-and `tests/tgtk2builder.nim`.
+`tests/tgtk2builder.nim`, and `tests/tgtk2uimanager.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3221,7 +3363,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

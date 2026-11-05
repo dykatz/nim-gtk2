@@ -42,14 +42,16 @@ proc main() =
   pinAction.onToggled(proc (active: bool) = status.text = "Pinned: " & $active)
   let pin = pinAction.createToolItem()
   toolbar.append(pin)
-  let select = newRadioToolButton("Select")
-  let draw = newRadioToolButton(select, "Draw")
-  select.important = true
-  draw.important = true
-  select.onToggled(proc () =
-    if select.active: status.text = "Selection tool")
-  draw.onToggled(proc () =
-    if draw.active: status.text = "Drawing tool")
+  let selectAction = newRadioAction("select", "_Select", 10)
+  let drawAction = newRadioAction(selectAction, "draw", "_Draw", 20)
+  commands.add(selectAction)
+  commands.add(drawAction)
+  selectAction.important = true
+  drawAction.important = true
+  selectAction.onChanged(proc (value: int32) =
+    status.text = (if value == 10: "Selection tool" else: "Drawing tool"))
+  let select = selectAction.createToolItem()
+  let draw = drawAction.createToolItem()
   toolbar.append(select)
   toolbar.append(draw)
   let spacer = newSeparatorToolItem(draw = false)
@@ -69,6 +71,8 @@ proc main() =
   defer: menu.destroy() # MenuToolButton detaches retained menus on destruction.
   menu.append(openAction.createMenuItem())
   menu.append(pinAction.createMenuItem())
+  menu.append(selectAction.createMenuItem())
+  menu.append(drawAction.createMenuItem())
   menu.append(newSeparatorMenuItem())
   let refresh = newMenuItem("_Refresh", mnemonic = true)
   refresh.onActivate(proc () = status.text = "Refresh selected from toolbar dropdown")

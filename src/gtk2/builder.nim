@@ -144,6 +144,7 @@ proc get*[T](ui: Builder, id: string, kind: typedesc[T]): T =
     when T is Widget: builderWidgetType(T)
     elif T is Action and Action is T: rawGtk.action_get_type()
     elif T is ToggleAction and ToggleAction is T: rawGtk.toggle_action_get_type()
+    elif T is RadioAction and RadioAction is T: rawGtk.radio_action_get_type()
     elif T is Adjustment and Adjustment is T: rawGtk.adjustment_get_type()
     elif T is TextBuffer and TextBuffer is T: rawGtk.text_buffer_get_type()
     else: {.error: "This handle requires a specialized factory and has no GtkBuilder lookup".}
@@ -168,7 +169,7 @@ proc registerBuilderTypes() =
     rawGtk.check_menu_item_get_type(), rawGtk.toolbar_get_type(), rawGtk.tool_button_get_type(),
     rawGtk.toggle_tool_button_get_type(), rawGtk.dialog_get_type(), rawGtk.action_get_type(),
     rawGtk.toggle_action_get_type(), rawGtk.adjustment_get_type(), rawGtk.text_buffer_get_type(),
-    rawGtk.action_group_get_type(), rawGtk.list_store_get_type(), rawGtk.tree_store_get_type(),
+    rawGtk.action_group_get_type(), rawGtk.radio_action_get_type(), rawGtk.list_store_get_type(), rawGtk.tree_store_get_type(),
     rawGtk.text_tag_get_type(), rawGtk.text_tag_table_get_type()]
   discard types
 

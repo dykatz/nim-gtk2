@@ -134,6 +134,11 @@ symbol autoconnection. The [ergonomic example](examples/ergonomic.nim) embeds it
 [XML layout](examples/ergonomic.ui); see the [builder guide](docs/gtk2.md#owned-gtkbuilder-documents).
 Only load trusted application UI definitions. `testMappedBuilder` requires an
 explicitly opted-in isolated display.
+RadioAction adds checked signed-value groups and copied selection observations.
+UIManager owns native menu/toolbar layouts with removable merge tokens, checked
+paths, scoped shortcuts and native tearoffs. See the
+[managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
+menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

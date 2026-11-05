@@ -2,8 +2,10 @@
 type
   Action* = object of ObjectHandle
   ToggleAction* = object of Action
+  RadioAction* = object of ToggleAction
   ActionMembers = ref object
     items: seq[Action]
+    manager: pointer # Weak UIManager schema reservation, cleared before native release.
   ActionGroup* = object of ObjectHandle
     members: ActionMembers
   Shortcut* = object
@@ -96,6 +98,7 @@ proc actionOwner(a: Action): pointer =
 proc add*(group: ActionGroup, a: Action) =
   let p = group.raw
   let action = a.raw
+  if group.members.manager != nil: raise newException(ValueError, "UIManager action-group membership is frozen")
   if actionOwner(a) != nil: raise newException(ValueError, "action already belongs to a group")
   if rawGtk.action_group_get_action(p, checkedUtf8Text(a.name)) != nil:
     raise newException(ValueError, "duplicate action name")
@@ -107,6 +110,7 @@ proc action*(group: ActionGroup, name: string): Action =
   result.state = adoptObject(p, borrowed = true, cache = true, hasDestroySignal = false)
 proc remove*(group: ActionGroup, a: Action) =
   let p = group.raw
+  if group.members.manager != nil: raise newException(ValueError, "UIManager action-group membership is frozen")
   if actionOwner(a) != cast[pointer](p): raise newException(ValueError, "action is not in this group")
   rawGtk.action_group_remove_action(p, a.raw)
   for i, member in group.members.items:
@@ -195,6 +199,11 @@ proc detach*(group: AccelGroup, window: Window) =
   if group.attached(window): rawGtk.remove_accel_group(window.raw, group.raw)
 proc bindShortcut*(group: AccelGroup, a: Action, shortcut: Shortcut) =
   let p = group.raw
+  let owner = actionOwner(a)
+  if owner != nil:
+    let manager = g.get_data(cast[g.PGObject](owner), "nim-gtk2-ui-manager")
+    if manager != nil and rawGtk.ui_manager_get_accel_group(cast[rawGtk.PUIManager](manager)) != p:
+      raise newException(ValueError, "bind managed command shortcuts through their UIManager")
   discard newShortcut(shortcut.key, shortcut.mods)
   let closure = rawGtk.action_get_accel_closure(a.raw)
   if rawGtk.action_get_accel_path(a.raw) != nil or rawGtk.accel_group_from_accel_closure(closure) != nil:

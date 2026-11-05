@@ -30,6 +30,25 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### RadioAction and UIManager boundaries
+
+RadioAction and UIManager are opaque native GObjects; GtkUIManagerItemType keeps
+C enum width. Native probes check signed gint radio values, the two-instance
+changed callback and pointer-width signed gssize (including -1) for UI loading.
+Radio getters use public property/group APIs, never copied GTK private layouts.
+
+The ergonomic UIManager freezes a retained SDK action schema while merging native
+presentation nodes. XML preflight rejects missing commands before lazy GTK warnings;
+merge identity tokens cannot retain or accidentally address another manager.
+Native update/removal is guarded and pinned: reentrant close is postponed until
+traversal returns, including last-handle release from a destroy observer. Teardown
+removes UI references and drains native updates before native finalization.
+
+Managed shortcuts use the existing native action closure machinery in the manager's
+own GtkAccelGroup. No global accel-map entries are created; pre-existing paths or
+foreign shortcut bindings are rejected. Public no-show-all protects action-managed
+visibility across parent showAll. Raw mutable/shadowing schemas remain separate.
+
 ### GtkBuilder ownership and signal ABI
 
 Builder/Buildable use opaque native pointers. add_from_string takes gsize, not

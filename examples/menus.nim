@@ -10,10 +10,11 @@ type MenuExample* = object
   tearoffState*: Label
   commands*: ActionGroup
   accelerators*: AccelGroup
+  manager*: UIManager
 
 proc buildMenuExample*(): MenuExample =
   ## Call gtk2.init() first. Construction shows nothing and starts no loop.
-  let window = newWindow("gtk2 menus", 580, 340)
+  let window = newWindow("gtk2 menus and managed commands", 640, 460)
   var ready = false
   defer:
     if not ready: window.destroy()
@@ -98,13 +99,51 @@ proc buildMenuExample*(): MenuExample =
   about.onActivate(proc () =
     body.text = "Menu callbacks are tracked closures; destroying the window cleans up the tree.")
 
+  # A second command collection is laid out and merged by native UIManager.
+  let managed = newActionGroup("managed-tools")
+  let choose = newRadioAction("Choose", "_Select", 10)
+  let draw = newRadioAction(choose, "Draw", "_Draw", 20)
+  managed.add(newAction("ManagedTools", "_Managed tools"))
+  managed.add(choose)
+  managed.add(draw)
+  let refresh = newAction("Refresh", "_Refresh")
+  managed.add(refresh)
+  let manager = newUIManager([managed], tearoffs = true)
+  manager.attach(window)
+  window.onDestroy(proc () = manager.close())
+  manager.bindShortcut(choose, "<Control>1")
+  manager.bindShortcut(draw, "<Control>2")
+  choose.onChanged(proc (value: int32) =
+    body.text = (if value == 10: "Managed selection tool" else: "Managed drawing tool"))
+  refresh.onActivate(proc () = status.text = "Merged Refresh command")
+  discard manager.addUi("""<ui>
+    <menubar name="ManagedBar"><menu action="ManagedTools">
+      <menuitem action="Choose"/><menuitem action="Draw"/><placeholder name="Extra"/>
+    </menu></menubar>
+    <toolbar name="ManagedToolbar"><toolitem action="Choose"/><toolitem action="Draw"/>
+      <placeholder name="Extra"/></toolbar>
+  </ui>""")
+  root.packStart(manager.get("/ManagedBar", MenuBar), packShrink)
+  root.packStart(manager.get("/ManagedToolbar", Toolbar), packShrink)
+  let toggleMerge = newButton("Add/remove Refresh command")
+  root.packStart(toggleMerge, packShrink)
+  var extra: UIMerge
+  toggleMerge.onClicked(proc () =
+    if manager.active(extra): manager.remove(extra)
+    else:
+      extra = manager.addUi("""<ui>
+        <menubar name="ManagedBar"><menu action="ManagedTools"><placeholder name="Extra">
+          <menuitem action="Refresh"/></placeholder></menu></menubar>
+        <toolbar name="ManagedToolbar"><placeholder name="Extra"><toolitem action="Refresh"/></placeholder></toolbar>
+      </ui>"""))
+
   # Native action menu proxies also display their registered keyboard shortcut.
   let monitor = newAccelLabel("Use Ctrl+N for New; Ctrl+Q to close. Menu mnemonics still work.")
   monitor.accelWidget = create
   root.packStart(monitor, packShrink)
   result = MenuExample(window: window, file: file, tearoff: tearoff,
     tearoffButton: tearoffButton, tearoffState: tearoffState,
-    commands: commands, accelerators: accelerators)
+    commands: commands, accelerators: accelerators, manager: manager)
   ready = true
 
 proc main() =
