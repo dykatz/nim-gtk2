@@ -3264,6 +3264,126 @@ labels/dispatch, tearoffs, overlay teardown, conditional visibility and close fr
 an activation callback. No private GTK layouts, native warning suppression or
 installed-library modifications are used.
 
+## Popup text completion and editable combo entries
+
+The expanded [inputs example](../examples/inputs.nim) attaches text completion to
+its editable measurement-name combo. Existing editable ComboBoxText support is now
+extended with a checked entry view and copied/coalesced text observations.
+
+### Fixed text completion
+
+newEntryCompletion(items=[]) creates an opaque, non-floating GtkEntryCompletion
+with a private one-string-column ListStore and native text renderer. items() copies
+its strings; setItems(items) validates every UTF-8/NUL-free string and constructs the
+replacement before changing GTK. Callers do not receive mutable model/renderer
+handles or borrowed iterators. Replacing the list cancels stale commits and queued
+selection observations; returned item copies remain independent.
+
+This initial wrapper is **popup-only**: GTK performs normalized, case-insensitive
+prefix matching and native popup rendering/navigation. minimumKeyLength accepts a
+nonnegative gint count; popupCompletion, popupSingleMatch and popupSetWidth control
+native popup policy. refilter() requires an attached entry and updates matching;
+it is not a public force-popup method. Normal user editing triggers GTK's popup
+timeout. gtk_entry_set_text (and entryText=) intentionally suppresses automatic
+popup scheduling in GTK2; do not confuse programmatic replacement with typing.
+Inline completion/selection, custom match functions, arbitrary model columns,
+action rows, markup providers and IME integration remain raw/separate work.
+
+```nim
+let suggestions = newEntryCompletion(["Length", "Length unit", "Width"])
+defer: suggestions.close()
+let choice = newComboBoxText(["Length", "Width"], editable=true)
+choice.entry.completion = suggestions
+suggestions.onSelected(proc (value: CompletionSelection) =
+  echo value.index, ": ", value.text)
+```
+
+Entry.completion= accepts one ordinary exact GtkEntry, including the public entry
+of an editable ComboBoxText. SpinButton/private subclasses are rejected rather
+than overriding their editing. A completion may attach to only one entry at a time;
+reassigning the same pair is a no-op and sharing across entries fails until detach.
+completion reads a retained SDK handle; no completion returns an empty/closed handle.
+Raw/native completion objects are not silently wrapped as fixed SDK text models.
+Changing the fixed model/column or attachment through raw GTK is rejected on checked
+SDK access; do not mix raw configuration with this wrapper.
+
+Password entries cannot attach completion. Hiding an attached entry's text detaches
+completion immediately through public visibility notification, removing its popup
+and pending work. Read-only entries do not receive a deferred commit. These are
+plain-text suggestions, not a suitable store for secrets. clearCompletion(entry)
+or detach(completion) cancels pending work and disconnects that attachment's
+selection observers, releasing their captures. Reattach and reconnect for a new
+session. Entry destruction does the same automatically.
+
+### Deferred selection commit and copied observations
+
+GTK2's match-selected default writes entry text synchronously and then continues
+using entry/popup state; its true-handled accumulator prevents ordinary after
+handlers from observing that selection. The SDK's fixed bridge copies the selected
+text/index and handles this signal, **deferring the actual text commit until UI
+idle**. No application callback runs inside native matching/selection. Native popup
+handling/navigation still runs normally; the commit runs only after its emitter
+returns. This timing is intentionally different from raw GTK's synchronous default.
+
+Only the latest pending selection is retained. Intervening text edits, model changes,
+detach, password hiding or owner destruction cancel stale insertion. At delivery the
+SDK checks live attachment, generation, editable/visible state and the current key,
+retains native objects across the text setter and rechecks lifetime/text before
+moving the cursor or reporting success. Reattachment from inside that native text
+setter's synchronous changed callback is rejected until it returns (detach/close
+remain safe), avoiding GTK trying to unblock a new entry's handler on the old entry.
+GTK's public text setter already suppresses
+reopening completion for the committed text. There is no private handler-ID access,
+warning suppression or native-library modification.
+
+onSelected(proc(CompletionSelection)) returns a CompletionConnection with connected
+and idempotent disconnect. Dropping the token does not disconnect it. Each completed
+commit queues a copied index/text observation at UI idle after native entry/combo
+change handlers have returned. The index is a snapshot in the old suggestion list,
+not a stable row handle or index into a combo's choice model. Observers may detach,
+replace items, close completion or destroy windows; exceptions are contained.
+Disconnection/teardown cancels queued observations. These are post-commit observers,
+not veto callbacks or a contract to mutate native iterators.
+
+Native entry ownership keeps the completion/bridge/observers alive even when the
+last external SDK completion handle is dropped. close() is idempotent, detaches,
+cancels work, releases observer captures and invalidates shared SDK aliases; its
+native GObject is unreffed when retained handles finish. A callback capturing its
+own completion/entry can form a reference cycle: explicitly close or destroy its
+entry to break it. All API calls, callbacks, finalization and unrefs stay on the UI
+thread with GTK initialized under ARC/ORC. GtkBuilder completion lookups are not
+provided: this fixed private-model wrapper requires its own constructor.
+
+### Editable ComboBoxText
+
+newComboBoxText(...,editable=true) already uses GTK2.24's native with-entry constructor.
+entry() now returns an owning checked Entry view of its public editable child;
+noneditable combos reject it. Destroying the combo invalidates retained entry
+aliases. The entry cannot be individually destroyed through Widget.destroy or
+removed through Container.remove, including upcasts: the combo owns this editing
+slot. Destroy the combo instead. Entry text/clipboard/focus/completion helpers can
+be used normally on the retained view.
+
+Entry construction/text assignment/insertion and ComboBoxText constructor items,
+append/prepend/insert and entryText= now validate UTF-8 and NUL
+before mutation. textState() copies ComboTextState(index,text). onTextChanged queues
+a coalesced final state at idle, without an initial event, allowing safe downstream
+updates/destruction. A free-form edit normally has index=-1 even if its text happens
+to equal a listed choice; typing/completion does not implicitly select a row or add
+one. It remains distinct from activeIndex and from a suggestion-list index.
+The older ComboBox.onChanged timing remains unchanged; use onTextChanged for copied,
+deferred text observations. Disconnect/destroy cancels pending delivery.
+
+Hidden tests/tgtk2completion.nim configures unmapped entries and uses public native
+signal emission to probe ownership, stale commits, password/readonly behavior,
+reentrancy, Unicode, destruction and combo private-child guards. They never map a
+popup. Native C ABI probes check the match-selected pointer/iter/gboolean callback.
+The opt-in testMappedCompletion additionally maps real native completion popups on
+an isolated virtual DISPLAY and requires GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 uses
+libXtst/XTEST Down/Return input to verify casefold matching, Unicode selection,
+combo coherence and safe observer-driven window teardown. Never run it on an
+ordinary desktop.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -3324,7 +3444,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, and `tests/tgtk2uimanager.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, and `tests/tgtk2completion.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3363,7 +3483,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

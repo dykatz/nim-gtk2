@@ -164,7 +164,7 @@ proc newLabel*(text = ""): Label =
   result.state = adoptWidget(rawGtk.label_new(checkedUtf8Text(text)))
 
 proc newEntry*(text = ""): Entry =
-  let t = checkedString(text)
+  let t = checkedUtf8Text(text)
   result.state = adoptWidget(rawGtk.entry_new())
   rawGtk.set_text(result.raw, t)
 
@@ -189,13 +189,20 @@ proc hide*(w: Widget) = rawGtk.hide(w.raw)
 proc focus*(w: Widget) = rawGtk.grab_focus(w.raw)
 proc destroy*(w: Widget) =
   ## Idempotent. Destroy containers/windows explicitly to release signal captures.
-  if not w.isDestroyed: rawGtk.destroy(w.raw)
+  if not w.isDestroyed:
+    let p = w.raw
+    let parent = rawGtk.get_parent(p)
+    if parent != nil and g.G_TYPE_CHECK_INSTANCE_TYPE(parent, rawGtk.combo_box_get_type()) and
+        g.toBool(rawGtk.get_has_entry(cast[rawGtk.PComboBox](parent))) and
+        rawGtk.get_child(cast[rawGtk.PBin](parent)) == p:
+      raise newException(ValueError, "editable combo owns its entry; destroy the combo instead")
+    rawGtk.destroy(p)
 
 proc `title=`*(w: Window, text: string) = rawGtk.set_title(w.raw, checkedString(text))
 proc title*(w: Window): string = $rawGtk.get_title(w.raw)
 proc `text=`*(w: Label, text: string) = rawGtk.set_text(w.raw, checkedUtf8Text(text))
 proc text*(w: Label): string = $rawGtk.get_text(w.raw)
-proc `text=`*(w: Entry, text: string) = rawGtk.set_text(w.raw, checkedString(text))
+proc `text=`*(w: Entry, text: string) = rawGtk.set_text(w.raw, checkedUtf8Text(text))
 proc text*(w: Entry): string = $rawGtk.get_text(w.raw)
 proc focus*(w: Entry) =
   ## Restore focus without GTK's default select-all-on-focus changing the edit.
@@ -212,7 +219,7 @@ proc selectAll*(w: Entry) =
 
 proc insertText*(w: Entry, text: string) =
   ## Replace the selection, or insert at the cursor; positions are Unicode chars.
-  let value = checkedString(text)
+  let value = checkedUtf8Text(text)
   let size = checkedInt(text.len)
   let editable = cast[rawGtk.PEditable](w.raw)
   rawGtk.delete_selection(editable)
@@ -405,3 +412,4 @@ include gtk2/actions
 include gtk2/radioactions
 include gtk2/builder
 include gtk2/uimanager
+include gtk2/completion

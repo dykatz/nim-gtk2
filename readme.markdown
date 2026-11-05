@@ -139,6 +139,12 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Popup text EntryCompletion now supports owned UTF-8 suggestions, checked entry
+attachment and deferred safe selection commits/observations. Editable ComboBoxText
+exposes its protected entry and copied text state. See the
+[input guide](docs/gtk2.md#popup-text-completion-and-editable-combo-entries) and expanded
+[inputs example](examples/inputs.nim). `testMappedCompletion` requires an explicitly
+opted-in isolated display and uses XTEST on Unix X11.
 A larger [MATE-style scientific calculator example](examples/calculator.md)
 demonstrates expression entry, memory, history, and closure-based controls.
 

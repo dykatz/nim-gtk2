@@ -30,6 +30,26 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Entry completion and editable text input
+
+EntryCompletion is an opaque non-floating GObject. Core setters/getters retain
+native gint/gboolean/pointer/cdecl signatures; C probes verify match-selected's
+completion/model/iter/data pointers and handled gboolean return. ComboBox's missing
+public get_type declaration was added without copying native private layouts.
+
+The SDK owns a fixed text model and popup-only configuration. It handles native
+match-selected before its true-handled default, copies the match and commits at
+UI idle so native popup code cannot continue after an application callback tears
+its state down. Native objects are retained across the text setter; pending work
+is generation/attachment checked and canceled on edits/replacement/detach/destroy.
+Native matching and popup navigation remain GTK's implementation. No private
+handler IDs or renderer/popup fields are inspected.
+
+Editable ComboBoxText adds a retained public entry view, private-child removal/
+destruction guards and copied/coalesced text observations. Existing text mutations
+now validate UTF-8 before GTK. This is not arbitrary model/renderer rebinding or
+inline/custom-provider completion.
+
 ### RadioAction and UIManager boundaries
 
 RadioAction and UIManager are opaque native GObjects; GtkUIManagerItemType keeps

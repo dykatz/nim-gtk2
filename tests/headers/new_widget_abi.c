@@ -3,6 +3,12 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gboolean (*NimCompletionSelected)(GtkEntryCompletion *, GtkTreeModel *, GtkTreeIter *, gpointer);
+gboolean nim_gtk2_completion_selected(NimCompletionSelected fn, gpointer data) {
+  GtkTreeIter iter = {0};
+  iter.stamp = 0x123;
+  return fn((GtkEntryCompletion *)(guintptr)0x12, (GtkTreeModel *)(guintptr)0x34, &iter, data);
+}
 typedef GtkRadioAction *(*NimRadioNew)(const gchar *, const gchar *, const gchar *, const gchar *, gint);
 GtkRadioAction *nim_gtk2_radio_new(NimRadioNew fn) { return fn("abi-radio", "Radio", NULL, NULL, -123); }
 void nim_gtk2_radio_changed(void (*fn)(GtkRadioAction *, GtkRadioAction *, gpointer), gpointer data) {

@@ -58,6 +58,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2actions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2builder.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uimanager.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2completion.nim"
 
 task testMappedMenus, "Test actual tearoff windows (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmenus.nim"
@@ -82,6 +83,9 @@ task testMappedBuilder, "Test GtkBuilder layout/activation/teardown (isolated DI
 
 task testMappedUIManager, "Test UIManager merges, radio proxies and tearoffs (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduimanager.nim"
+
+task testMappedCompletion, "Test native completion popup keyboard selection (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 needs XTEST)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedcompletion.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

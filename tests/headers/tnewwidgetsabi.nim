@@ -13,6 +13,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type CompletionSelected = proc (completion: gtk.PEntryCompletion, model: gtk.PTreeModel,
+  iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.}
+proc invokeCompletion(fn: CompletionSelected, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_completion_selected".}
 type
   RadioNew = proc (name, label, tooltip, stock: cstring, value: g.gint): gtk.PRadioAction {.cdecl.}
   RadioChanged = proc (action, current: gtk.PRadioAction, data: pointer) {.cdecl.}
@@ -174,6 +177,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "completion match-selected pointer/calling convention and gboolean ABI":
+    var called = false
+    proc selected(c: gtk.PEntryCompletion, model: gtk.PTreeModel, iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.} =
+      cast[ptr bool](data)[] = cast[uint](c) == 0x12 and cast[uint](model) == 0x34 and iter.stamp == 0x123
+      g.gbool(true)
+    check g.toBool(invokeCompletion(selected, addr called)) and called
+
   test "radio signed values/changed callback and UIManager C-width flags/gssize":
     let radio = constructRadio(gtk.radio_action_new)
     require radio != nil

@@ -1,4 +1,5 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc combo_box_get_type*(): GType {.cdecl, dynlib: lib, importc: "gtk_combo_box_get_type".}
 proc comboBoxNew*(): PComboBox{.cdecl, importc: "gtk_combo_box_new", dynlib: lib.}
 proc comboBox_new_with_entry*(): PComboBox{.cdecl,
                                        importc: "gtk_combo_box_new_with_entry",

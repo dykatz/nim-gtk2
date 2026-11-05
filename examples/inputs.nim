@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs", 480, 260)
+  let window = newWindow("gtk2 measurement inputs and completion", 520, 340)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -13,6 +13,10 @@ proc main() =
   let name = newComboBoxText(["Length", "Width", "Height"], editable = true)
   name.activeIndex = 0
   layout.packStart(name, packShrink)
+  let suggestions = newEntryCompletion(["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"])
+  defer: suggestions.close()
+  name.entry.completion = suggestions
+  layout.packStart(newLabel("Type a prefix above; use Down/Return to choose a suggestion. Free text is allowed."), packShrink)
 
   let amount = newAdjustment(25.4, 0, 1000, 0.1, 10)
   let input = newSpinButton(amount, digits = 2)
@@ -29,6 +33,10 @@ proc main() =
   layout.packStart(mirror, packShrink)
   let output = newLabel()
   layout.packStart(output)
+  let selected = newLabel("No completion selected")
+  layout.packStart(selected, packShrink)
+  suggestions.onSelected(proc (value: CompletionSelection) =
+    selected.text = "Suggestion " & $value.index & ": " & value.text)
 
   proc refresh() =
     let centimeters = units.activeIndex == 0
@@ -41,7 +49,7 @@ proc main() =
   # before destroying the window so it cannot keep the widget tree alive.
   defer: values.disconnect()
   units.onChanged(proc () = refresh())
-  name.onChanged(proc () = refresh())
+  name.onTextChanged(proc (state: ComboTextState) = refresh())
   refresh()
   window.run()
 

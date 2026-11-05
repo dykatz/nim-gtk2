@@ -130,17 +130,17 @@ proc onChanged*(w: ComboBox, fn: proc () {.closure.}): Connection {.discardable.
   connect(w, "changed", fn)
 
 proc newComboBoxText*(items: openArray[string] = [], editable = false): ComboBoxText =
-  for text in items: discard checkedString(text)
+  for text in items: discard checkedUtf8Text(text)
   result.state = adoptWidget(if editable: rawGtk.combo_box_text_new_with_entry()
                             else: rawGtk.combo_box_text_new())
   for text in items: rawGtk.append_text(result.raw, text.cstring)
 
-proc appendText*(w: ComboBoxText, text: string) = rawGtk.append_text(w.raw, checkedString(text))
+proc appendText*(w: ComboBoxText, text: string) = rawGtk.append_text(w.raw, checkedUtf8Text(text))
 proc insertText*(w: ComboBoxText, index: int, text: string) =
   if index < 0 or index > w.itemCount:
     raise newException(ValueError, "combo insertion index is out of range")
-  rawGtk.insert_text(w.raw, checkedInt(index), checkedString(text))
-proc prependText*(w: ComboBoxText, text: string) = rawGtk.prepend_text(w.raw, checkedString(text))
+  rawGtk.insert_text(w.raw, checkedInt(index), checkedUtf8Text(text))
+proc prependText*(w: ComboBoxText, text: string) = rawGtk.prepend_text(w.raw, checkedUtf8Text(text))
 proc removeText*(w: ComboBoxText, index: int) =
   if index < 0 or index >= w.itemCount:
     raise newException(ValueError, "combo removal index is out of range")
@@ -153,6 +153,9 @@ proc activeText*(w: ComboBoxText): string =
 proc comboEntry(w: ComboBoxText): rawGtk.PEntry =
   if not g.toBool(rawGtk.get_has_entry(cast[rawGtk.PComboBox](w.raw))):
     raise newException(ValueError, "combo has no editable entry")
-  cast[rawGtk.PEntry](rawGtk.get_child(cast[rawGtk.PBin](w.raw)))
+  let child = rawGtk.get_child(cast[rawGtk.PBin](w.raw))
+  if child == nil or not rawGtk.IS_ENTRY(child):
+    raise newException(ValueError, "editable combo entry was replaced through raw GTK")
+  cast[rawGtk.PEntry](child)
 proc entryText*(w: ComboBoxText): string = $rawGtk.get_text(comboEntry(w))
-proc `entryText=`*(w: ComboBoxText, text: string) = rawGtk.set_text(comboEntry(w), checkedString(text))
+proc `entryText=`*(w: ComboBoxText, text: string) = rawGtk.set_text(comboEntry(w), checkedUtf8Text(text))

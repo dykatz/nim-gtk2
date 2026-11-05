@@ -32,6 +32,10 @@ proc remove*(parent: Container, child: Widget) =
   ## Unparent a retained child without destroying it. Container-managed internal
   ## children are not public handles; raw bypasses remain the caller's responsibility.
   checkMember(parent, child)
+  if g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.combo_box_get_type()) and
+      g.toBool(rawGtk.get_has_entry(cast[rawGtk.PComboBox](parent.raw))) and
+      rawGtk.get_child(cast[rawGtk.PBin](parent.raw)) == child.raw:
+    raise newException(ValueError, "editable combo owns its entry; it cannot be removed")
   when defined(posix) and not defined(macosx):
     if g.G_TYPE_CHECK_INSTANCE_TYPE(parent.raw, rawGtk.socket_get_type()):
       raise newException(ValueError, "socket embedding is protocol-managed; destroy the local Plug to detach it")
