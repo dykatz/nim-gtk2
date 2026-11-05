@@ -52,8 +52,9 @@ proc newTreeModelSort*(child: TreeModel, column: int, order = sortAscending): Tr
 proc sortConfiguration(m: TreeModelSort): tuple[column: int, order: SortOrder] =
   var column: g.gint
   var order: rawGtk.TSortType
-  if not g.toBool(rawGtk.get_sort_column_id(cast[rawGtk.PTreeSortable](m.raw), addr column, addr order)):
-    raise newException(ValueError, "sort proxy has no supported column sort configured")
+  let byColumn = g.toBool(rawGtk.get_sort_column_id(cast[rawGtk.PTreeSortable](m.raw), addr column, addr order))
+  if not byColumn and column != -1:
+    raise newException(ValueError, "sort proxy has no supported sort configured")
   (column.int, SortOrder(order))
 proc sortColumn*(m: TreeModelSort): int = m.sortConfiguration.column
 proc sortOrder*(m: TreeModelSort): SortOrder = m.sortConfiguration.order

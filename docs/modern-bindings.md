@@ -30,6 +30,32 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Synchronous model functions and audited cell presentation
+
+Custom sort comparisons, filter visibility and text cell-data functions use native
+cdecl/gint/gboolean/pointer callback shapes, checked by C probes. The visible-function
+setter and column queue-resize declarations were added with their public GTK2 ABI.
+Filter's set-once native visible bridge is never reinstalled on predicate replacement.
+
+Application functions receive copied paths/CellValues, never live GtkTreeIters or
+renderer pointers. Comparators normalize signs before returning a gint. Functions
+must be pure with respect to GTK: checked ObjectHandle access is rejected during
+execution, and last ordinary object-state native releases are deferred to UI idle
+so a native traversal cannot lose its object halfway through. This is not a sandbox
+for raw calls or arbitrary user/controller destructors; those remain forbidden.
+Exceptions have explicit equality/hidden/default-text fallbacks and are reported.
+
+Native function data and GObject lookup roots have independent pins. Reinstalling
+the same comparator for resort preserves its connection through GTK's destroy-then-
+replace callback; replacing a function invalidates the old connection. Filter
+predicate replacement uses a stable bridge with a new application state. Explicit
+disconnection releases captures but callers explicitly refresh native caches.
+
+Text functions validate and reset all managed presentation attributes per call,
+including foreground and font override flags. A fixed owned pixbuf column broadens
+rendering without exposing private renderer layouts or arbitrary property bags.
+See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
+
 ### Entry completion and editable text input
 
 EntryCompletion is an opaque non-floating GObject. Core setters/getters retain

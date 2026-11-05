@@ -13,6 +13,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc invokeCompare(fn: gtk.TTreeIterCompareFunc, data: pointer): g.gint {.cdecl, importc: "nim_gtk2_model_compare".}
+proc invokeVisible(fn: gtk.TTreeModelFilterVisibleFunc, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_model_visible".}
+proc invokeCell(fn: gtk.TTreeCellDataFunc, data: pointer) {.cdecl, importc: "nim_gtk2_cell_data".}
 type CompletionSelected = proc (completion: gtk.PEntryCompletion, model: gtk.PTreeModel,
   iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.}
 proc invokeCompletion(fn: CompletionSelected, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_completion_selected".}
@@ -177,6 +180,24 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "model comparison, visibility and cell-data native callback ABIs":
+    var calls = 0
+    proc compare(model: gtk.PTreeModel, a, b: gtk.PTreeIter, data: pointer): g.gint {.cdecl.} =
+      if cast[uint](model) == 0x42 and a.stamp == 11 and b.stamp == 22:
+        inc cast[ptr int](data)[]
+      -123
+    proc visible(model: gtk.PTreeModel, iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.} =
+      if cast[uint](model) == 0x42 and iter.stamp == 11: inc cast[ptr int](data)[]
+      g.gbool(true)
+    proc present(column: gtk.PTreeViewColumn, cell: gtk.PCellRenderer,
+                 model: gtk.PTreeModel, iter: gtk.PTreeIter, data: pointer) {.cdecl.} =
+      if cast[uint](column) == 0x43 and cast[uint](cell) == 0x44 and
+          cast[uint](model) == 0x42 and iter.stamp == 11: inc cast[ptr int](data)[]
+    check invokeCompare(compare, addr calls) == -123
+    check g.toBool(invokeVisible(visible, addr calls))
+    invokeCell(present, addr calls)
+    check calls == 3
+
   test "completion match-selected pointer/calling convention and gboolean ABI":
     var called = false
     proc selected(c: gtk.PEntryCompletion, model: gtk.PTreeModel, iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.} =

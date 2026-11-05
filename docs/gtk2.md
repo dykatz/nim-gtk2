@@ -2086,7 +2086,8 @@ This neither inspects GTK private structures nor suppresses native diagnostics.
 optional pixbuf renderer. `setModel` replaces that fixed layout after validating
 the complete schema, even for the same model. GTK and the SDK's private observer
 retain the model; `model` returns an owning cached alias. Text is not interpreted
-as markup. Arbitrary renderers/cell-data functions remain raw.
+as markup. CellView-specific cell-data functions and arbitrary renderers remain raw;
+TreeView text-column presentation functions are covered below.
 
 `displayedPath` selects a checked TreePath in a list, tree or proxy model; an empty
 path unsets the native row. `displayedRow` is the flat-model convenience with -1
@@ -3384,6 +3385,145 @@ libXtst/XTEST Down/Return input to verify casefold matching, Unicode selection,
 combo coherence and safe observer-driven window teardown. Never run it on an
 ordinary desktop.
 
+## Synchronous model functions and cell presentation
+
+The expanded [proxies example](../examples/proxies.nim) combines a custom score
+comparison, closure-controlled visibility, styled text and a pixbuf column without
+changing source order. These functions return decisions to GTK synchronously;
+they are not deferred observations like completion or selection notifications.
+
+### Copied rows and pure-function contract
+
+ModelRow contains a copied TreePath and a values sequence of typed CellValue copies,
+one per supported model column. Strings and paths are independent of GTK iterators;
+pixbuf values retain the image object, not a deep pixel copy. Snapshots may be kept
+on the UI thread, but their paths are historical coordinates, not stable identities.
+Use a separately created TreeRowReference when stable identity is required.
+
+Functions must be short, deterministic computations using the supplied values and
+ordinary application state. **Do not access live GUI/model handles, mutate GTK,
+change GUI ownership, close document/controller owners, pump events, or call raw
+GTK from these functions.** Checked ObjectHandle-based SDK access and function-token
+disconnection reject reentrancy with ValueError. This guard is not a sandbox for
+raw pointers, arbitrary native calls, constructors or custom user destructors.
+Value-only helpers such as treePath/rgba16 and ordinary string/numeric operations
+are suitable. Schedule application changes outside the function after the native
+traversal returns; these functions are not application event handlers.
+
+As additional protection, a last ordinary ObjectHandle state released inside a
+function clears its weak state hook immediately but defers native signal cleanup
+and its final unref until UI idle, after GTK's traversal. Keep the UI context
+running/drain it normally to deliver those releases. This does not authorize
+releasing other owned controllers with custom teardown inside a function.
+
+Exceptions, including rejected handle access, never cross C. A failed comparison
+returns equality, a failed predicate hides that row, and a failed text presentation
+restores the bound model text with default styling. Failures are reported, not
+silenced. A throwing/inconsistent comparison does not promise a meaningful order;
+applications must supply a consistent strict weak ordering. No native warnings are
+suppressed and no private GTK storage or handler IDs are used.
+
+### Custom sorting
+
+newTreeModelSort(child, ModelCompare, order=sortAscending) selects a native custom
+default comparison. ModelCompare takes two ModelRow snapshots and returns int;
+only its sign is passed to GTK as a signed gint. GTK handles ascending/descending
+ordering and sibling groups. The paths/values are in the **immediate child model**,
+which may itself be a proxy, not automatically in the original source model.
+
+```nim
+let sorted = newTreeModelSort(source, proc (a, b: ModelRow): int =
+  cmp(a.values[1].intValue, b.values[1].intValue))
+```
+
+setCompare(fn,order) installs/replaces the custom function and selects it; the old
+function connection becomes inactive. GTK2 ignores an order change while DEFAULT
+is already selected, so the SDK uses its public UNSORTED/DEFAULT operations when
+selecting a new comparison. sortColumn is -1 for the custom default; sortOrder
+reports its native order. Existing sortBy(column,order) still selects the ordinary
+per-column GTK comparison, without losing the registered custom function.
+
+Source row changes drive GTK's normal proxy updates. Changes to captured application
+state are not automatically observable: call resort() to rerun the selected custom
+default comparison. resort rejects a currently selected ordinary column sort and
+keeps the existing function connection active. Path conversion and stable source
+references remain unchanged; translate through proxy layers one hop at a time.
+
+### Custom visibility
+
+newTreeModelFilter(child, ModelPredicate) creates a filter using one permanent native
+visible-function bridge. ModelPredicate takes one ModelRow and returns bool. Child
+paths/values refer to the immediate child model. GTK's hierarchical ancestor rules
+still apply: a visible descendant cannot appear beneath an invisible ancestor.
+
+setPredicate(fn) replaces the bridge's application function and invalidates the old
+connection, without illegally calling GTK2's set-once visible-function setter again.
+Call refilter() after replacement or changes to captured predicate state. Existing
+visible-column filters cannot switch to this mechanism: construct a function filter
+instead. They retain their existing boolean-column API.
+
+### Function ownership and disconnection
+
+setCompare, setPredicate and setCellData return ModelFunctionConnection tokens with
+connected and idempotent disconnect. Constructor-installed functions are available
+through functionConnection(model); text columns have functionConnection(column).
+Dropping a token does not disconnect, and a token does not retain its native owner.
+Native bridges retain the function even if SDK aliases are dropped while a view
+still owns the model/column. Native finalization or replacement deactivates the old
+connection and releases its captures.
+
+Explicit disconnect immediately releases that function's captures and leaves a
+safe native fallback installed: equal comparison, all-visible predicate, or bound
+text/default presentation. It does not automatically invalidate native caches.
+Use resort(), refilter() or refreshCells(column) respectively to apply the change
+to existing cached rows. A registered comparator may be connected even when an
+ordinary column sort is selected. disconnectSignals(model) continues to disconnect
+signals only; use the function token for these functions. disconnectSignals(textColumn)
+also clears its cell function, matching its existing renderer-callback cleanup.
+
+A function capturing its own model/column can form a reference cycle. Explicitly
+disconnect the function (or clearCellData for a column) before releasing that owner.
+Keep operations, callbacks, snapshots containing handles and final releases on the
+UI thread with GTK initialized under ARC/ORC.
+
+### Text and pixbuf columns
+
+setCellData(TextColumn, TextCellFunction) overrides the existing text renderer's
+presentation using a copied ModelRow in the **view model's** coordinates. It returns
+TextCellData(text,bold,italic,dimmed,foregroundSet,foreground). Each call resets all
+these managed properties so style cannot leak from the previous row. False bold/
+italic flags remove their overrides and inherit the native default; dimmed controls
+renderer sensitivity. Optional foreground uses opaque rgba16 colors; alpha and
+invalid UTF-8/NUL text are rejected before applying the presentation. Text is literal,
+not markup. The source model is not changed and edit observations still require an
+explicit application commit; applications own parsing of any formatted edit text.
+
+refreshCells(column) requests native column size/layout recalculation, useful when
+captured presentation state changes without a model notification. clearCellData()
+removes the function and resets its managed styling to ordinary attribute binding.
+Native GTK may request a presentation repeatedly for sizing and painting, not once
+per row; functions must not rely on call counts/order or perform side effects.
+
+newPixbufColumn(title,modelColumn) and appendPixbufColumn(view,title,modelColumn)
+add an owned fixed GtkCellRendererPixbuf binding. Attachment checks a pixbuf model
+column and rejects double parenting. NULL pixbuf cells are allowed. Retained columns
+have typed borrowed raw pointers and title/visible/resizable properties, matching
+existing text-column ownership. This batch does not expose mutable renderer handles,
+arbitrary property bags, custom renderer subclasses, toggle-cell data functions or
+arbitrary multi-renderer layouts. GtkBuilder specialized column lookups remain
+unsupported because they lack constructor metadata.
+
+### Validation
+
+Hidden tests/tgtk2modelfunctions.nim checks copied values/coordinates, hierarchical
+filters, replacement, refresh, disconnection/capture release, reentrancy rejection,
+last-handle idle release, exception fallbacks, style reset and schema validation
+without mapping windows. Native C probes verify comparison, visibility and cell-data
+callback pointer/gint/gboolean/cdecl ABI. testMappedModelFunctions exercises real
+TreeView sizing/painting, Unicode, pixbufs, filtering/resorting and refreshed styles
+only on an explicitly isolated display with GTK2_TEST_VIRTUAL_DISPLAY=1. See TODO.md
+for the remaining work and next proposed batch.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -3444,7 +3584,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, and `tests/tgtk2completion.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, and `tests/tgtk2modelfunctions.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3483,14 +3623,14 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
 an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
-Other gaps include standalone popup positioning, custom model comparison/predicate callbacks,
-multiple IconView selection, arbitrary cell renderers, broader event argument/return-value APIs,
+Other gaps include standalone popup positioning, multiple IconView selection, arbitrary/custom cell renderers beyond the audited
+text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
 rich-text child anchors/serialization, actual print jobs,
 arbitrary GObject properties,

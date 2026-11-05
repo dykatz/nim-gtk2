@@ -1,4 +1,9 @@
 # Included by headers/gtk2.nim; do not import directly.
+type TTreeModelFilterVisibleFunc* = proc (model: PTreeModel, iter: PTreeIter,
+    data: gpointer): gboolean {.cdecl.}
+proc tree_model_filter_set_visible_func*(filter: ptr TreeModelFilter,
+    fn: TTreeModelFilterVisibleFunc, data: gpointer, destroy: TDestroyNotify) {.cdecl,
+    dynlib: lib, importc: "gtk_tree_model_filter_set_visible_func".}
 proc tree_model_filter_get_type*(): GType {.cdecl, dynlib: lib,
     importc: "gtk_tree_model_filter_get_type".}
 proc tree_model_filter_new*(child: PTreeModel, root: PTreePath): PTreeModel {.cdecl,

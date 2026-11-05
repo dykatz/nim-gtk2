@@ -44,18 +44,48 @@ type
 
 const objectStateKey = "nim-gtk2-owned-object-state"
 
+# Synchronous model functions consume copied data, not live GUI handles. Native
+# traversals continue after they return, so last-handle releases wait for UI idle.
+var modelFunctionDepth {.threadvar.}: int
+type DeferredModelRelease = object
+  p: pointer
+  handlers: seq[g.gulong]
+var deferredModelReleases {.threadvar.}: seq[DeferredModelRelease]
+var deferredModelReleaseIdle {.threadvar.}: g.guint
+proc requireOutsideModelFunction() =
+  if modelFunctionDepth != 0:
+    raise newException(ValueError, "GTK handle access is forbidden inside a synchronous model function; use copied row values")
+proc flushModelReleases(data: pointer): g.gboolean {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}:
+    if modelFunctionDepth != 0: return g.gbool(true)
+    deferredModelReleaseIdle = 0
+    let pending = move(deferredModelReleases)
+    for item in pending:
+      for id in item.handlers:
+        if g.g_signal_handler_is_connected(item.p, id): g.g_signal_handler_disconnect(item.p, id)
+      g.g_object_unref(item.p)
+    g.gbool(false)
+
 proc `=destroy`(s: var ObjectStateObj) =
   if s.p != nil:
     if s.cached and g.get_data(cast[g.PGObject](s.p), objectStateKey) == addr s:
       g.set_data(cast[g.PGObject](s.p), objectStateKey, nil)
+    # Detach the borrowed state hook before this state storage goes away.
+    if s.destroyHandler != 0 and g.g_signal_handler_is_connected(s.p, s.destroyHandler):
+      g.g_signal_handler_disconnect(s.p, s.destroyHandler)
+    if modelFunctionDepth != 0:
+      deferredModelReleases.add(DeferredModelRelease(p: s.p,
+        handlers: (if s.hasDestroySignal: @[] else: move(s.handlers))))
+      if deferredModelReleaseIdle == 0:
+        deferredModelReleaseIdle = g.g_idle_add_full(g.G_PRIORITY_DEFAULT_IDLE,
+          cast[pointer](flushModelReleases), nil, nil)
+      `=destroy`(s.handlers)
+      return
     # Plain GObject signals belong to the shared Nim state, not a destroy signal.
     if not s.hasDestroySignal:
       for id in s.handlers:
         if g.g_signal_handler_is_connected(s.p, id):
           g.g_signal_handler_disconnect(s.p, id)
-    # This callback borrows s; detach it before releasing our native reference.
-    if s.destroyHandler != 0 and g.g_signal_handler_is_connected(s.p, s.destroyHandler):
-      g.g_signal_handler_disconnect(s.p, s.destroyHandler)
     g.g_object_unref(s.p)
   `=destroy`(s.handlers)
 
@@ -101,6 +131,7 @@ proc adoptObject(p: pointer, borrowed = false, cache = false,
 proc adoptWidget(p: pointer): ObjectState = adoptObject(p, cache = true)
 
 proc nativePointer(w: ObjectHandle): pointer =
+  requireOutsideModelFunction()
   if w.state == nil or w.state.destroyed:
     raise newException(ValueError, "object is uninitialized or destroyed")
   w.state.p
@@ -344,6 +375,7 @@ proc onDestroy*(w: ObjectHandle, fn: proc () {.closure.}): Connection {.discarda
   connect(w, "destroy", fn)
 
 proc connected*(c: Connection): bool =
+  requireOutsideModelFunction()
   c.state != nil and not c.state.destroyed and
     g.g_signal_handler_is_connected(c.state.p, c.id)
 
@@ -413,3 +445,4 @@ include gtk2/radioactions
 include gtk2/builder
 include gtk2/uimanager
 include gtk2/completion
+include gtk2/modelfunctions

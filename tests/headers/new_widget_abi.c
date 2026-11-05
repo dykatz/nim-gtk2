@@ -3,6 +3,20 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gint nim_gtk2_model_compare(GtkTreeIterCompareFunc fn, gpointer data) {
+  GtkTreeIter a = {0}, b = {0};
+  a.stamp = 11; b.stamp = 22;
+  return fn((GtkTreeModel *)(guintptr)0x42, &a, &b, data);
+}
+gboolean nim_gtk2_model_visible(GtkTreeModelFilterVisibleFunc fn, gpointer data) {
+  GtkTreeIter iter = {0}; iter.stamp = 11;
+  return fn((GtkTreeModel *)(guintptr)0x42, &iter, data);
+}
+void nim_gtk2_cell_data(GtkTreeCellDataFunc fn, gpointer data) {
+  GtkTreeIter iter = {0}; iter.stamp = 11;
+  fn((GtkTreeViewColumn *)(guintptr)0x43, (GtkCellRenderer *)(guintptr)0x44,
+     (GtkTreeModel *)(guintptr)0x42, &iter, data);
+}
 typedef gboolean (*NimCompletionSelected)(GtkEntryCompletion *, GtkTreeModel *, GtkTreeIter *, gpointer);
 gboolean nim_gtk2_completion_selected(NimCompletionSelected fn, gpointer data) {
   GtkTreeIter iter = {0};

@@ -1,4 +1,6 @@
 # Included by headers/gtk2.nim; do not import directly.
+proc column_queue_resize*(column: PTreeViewColumn) {.cdecl, dynlib: lib,
+    importc: "gtk_tree_view_column_queue_resize".}
 proc TYPE_TREE_VIEW_COLUMN*(): GType
 proc TREE_VIEW_COLUMN*(obj: pointer): PTreeViewColumn
 proc TREE_VIEW_COLUMN_CLASS*(klass: pointer): PTreeViewColumnClass

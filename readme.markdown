@@ -139,6 +139,12 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Custom model comparison/visibility functions and text cell presentation now take
+copied typed rows with synchronous reentrancy guards and explicit refresh/cleanup.
+Fixed pixbuf columns are also available. See the expanded
+[proxy example](examples/proxies.nim), [model-function guide](docs/gtk2.md#synchronous-model-functions-and-cell-presentation),
+and [work plan](TODO.md). `testMappedModelFunctions` validates native painting only
+on an explicitly opted-in isolated display.
 Popup text EntryCompletion now supports owned UTF-8 suggestions, checked entry
 attachment and deferred safe selection commits/observations. Editable ComboBoxText
 exposes its protected entry and copied text state. See the

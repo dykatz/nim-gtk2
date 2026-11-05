@@ -203,8 +203,10 @@ proc appendColumn*(w: TreeView, column: TextColumn) =
 proc appendTextColumn*(w: TreeView, title: string, modelColumn: int): TextColumn =
   result = newTextColumn(title, modelColumn)
   w.appendColumn(result)
+proc clearCellData*(c: TextColumn)
 proc disconnectSignals*(c: TextColumn) =
   discard nativePointer(c)
+  c.clearCellData()
   disconnectObjectSignals(c.renderer)
   disconnectObjectSignals(c)
 proc title*(c: TextColumn): string = $rawGtk.column_get_title(c.raw)

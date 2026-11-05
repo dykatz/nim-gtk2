@@ -9,16 +9,31 @@ proc main() =
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)
   window.add(layout)
-  let source = newListStore([cellString, cellString, cellInt, cellBool])
+  let source = newListStore([cellString, cellString, cellInt, cellBool, cellPixbuf])
   for row in [("Nim", 95), ("Python", 85), ("C", 90), ("Example", 40)]:
-    discard source.appendRow([cell(row[0]), cell($row[1]), cell(row[1]), cell(true)])
-  let filtered = newTreeModelFilter(source, 3)
-  let sorted = newTreeModelSort(filtered, 2, sortDescending)
+    let icon = newPixbuf(12, 12, if row[1] >= 60: 0x30a050ff'u32 else: 0xd08030ff'u32)
+    discard source.appendRow([cell(row[0]), cell($row[1]), cell(row[1]), cell(true), cell(icon)])
+  var minimum = 0
+  let filtered = newTreeModelFilter(source, proc (row: ModelRow): bool =
+    row.values[2].intValue >= minimum)
+  let compare: ModelCompare = proc (a, b: ModelRow): int =
+    result = cmp(a.values[2].intValue, b.values[2].intValue)
+    if result == 0: result = cmp(a.values[0].stringValue, b.values[0].stringValue)
+  let sorted = newTreeModelSort(filtered, compare, sortDescending)
+  defer:
+    sorted.functionConnection.disconnect()
+    filtered.functionConnection.disconnect()
   let combo = newComboBox(sorted)
   layout.packStart(combo, packShrink)
   let view = newTreeView(sorted)
-  discard view.appendTextColumn("Name", 0)
+  discard view.appendPixbufColumn("", 4)
+  let name = view.appendTextColumn("Name", 0)
+  name.setCellData(proc (row: ModelRow): TextCellData =
+    let score = row.values[2].intValue
+    TextCellData(text: row.values[0].stringValue, bold: score >= 90,
+      italic: score < 60, foregroundSet: score < 60, foreground: rgba16(50000, 15000, 0)))
   discard view.appendTextColumn("Score", 1)
+  defer: name.clearCellData()
   let scroll = newScrolledWindow()
   scroll.add(view)
   layout.packStart(scroll)
@@ -62,14 +77,14 @@ proc main() =
   window.onDestroy(proc () = sorted.disconnectSignals())
   defer: sorted.disconnectSignals()
   highOnly.onToggled do ():
-    for row in 0 ..< source.rowCount:
-      source.setValue(row, 3, cell(not highOnly.active or source.value(row, 2).intValue >= 60))
+    minimum = if highOnly.active: 60 else: 0
+    filtered.refilter() # Closure state is not automatically observable by GTK.
     refresh()
   ascending.onClicked do ():
-    sorted.sortBy(2, sortAscending)
+    sorted.setCompare(compare, sortAscending)
     refresh()
   descending.onClicked do ():
-    sorted.sortBy(2, sortDescending)
+    sorted.setCompare(compare, sortDescending)
     refresh()
   remember.onClicked do ():
     let original = selectedSource()
