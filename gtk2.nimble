@@ -63,6 +63,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2iconselection.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textanchors.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textserialization.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2richclipboard.nim"
 
 task testMappedMenus, "Test actual tearoff windows (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmenus.nim"
@@ -102,6 +103,9 @@ task testMappedTextAnchors, "Test native inline TextView widgets (isolated DISPL
 
 task testMappedTextSerialization, "Test restored native text/tag/image layout (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedtextserialization.nim"
+
+task testMappedRichClipboard, "Test rich clipboard negotiation and foreign owners (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedrichclipboard.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

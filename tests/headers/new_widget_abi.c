@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef GdkAtom (*NimSelectionTarget)(GtkSelectionData *);
+gboolean nim_gtk2_rich_clipboard_abi(GtkClipboardGetFunc get, GtkClipboardClearFunc clear,
+  NimSelectionTarget target) {
+  typedef char signature[__builtin_types_compatible_p(NimSelectionTarget,
+    __typeof__(&gtk_selection_data_get_target)) ? 1 : -1];
+  guintptr wide = sizeof(guintptr) == 8 ? (guintptr)0x100000063ULL : 0x63;
+  (void)sizeof(signature);
+  get((GtkClipboard *)(guintptr)0x61, (GtkSelectionData *)(guintptr)0x62,
+    G_MAXUINT, (gpointer)(guintptr)0x64);
+  clear((GtkClipboard *)(guintptr)0x61, (gpointer)(guintptr)0x64);
+  return (guintptr)target((GtkSelectionData *)(guintptr)0x62) == wide;
+}
 typedef gboolean (*NimTextDeserialize)(GtkTextBuffer *, GtkTextBuffer *, GdkAtom,
   GtkTextIter *, const guint8 *, gsize, GError **);
 gboolean nim_gtk2_text_serialization_abi(GtkTextBufferSerializeFunc serialize, NimTextDeserialize deserialize) {

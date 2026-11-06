@@ -3,6 +3,8 @@ proc selection_data_get_length*(data: PSelectionData): gint {.cdecl, dynlib: lib
     importc: "gtk_selection_data_get_length".}
 proc selection_data_get_format*(data: PSelectionData): gint {.cdecl, dynlib: lib,
     importc: "gtk_selection_data_get_format".}
+proc selection_data_get_target*(data: PSelectionData): gdk2.TAtom {.cdecl, dynlib: lib,
+    importc: "gtk_selection_data_get_target".}
 proc selection_data_get_data_type*(data: PSelectionData): gdk2.TAtom {.cdecl, dynlib: lib,
     importc: "gtk_selection_data_get_data_type".}
 proc selection_data_get_data*(data: PSelectionData): Pguchar {.cdecl, dynlib: lib,

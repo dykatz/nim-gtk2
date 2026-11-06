@@ -501,8 +501,8 @@ allocated strings are copied and freed. Text getters include invisible tagged
 characters by default; embedded images/anchors are not returned by GTK's plain
 text getter. Tags, marks, bounded Unicode search and embedded pixbufs are covered in the
 rich-text extensions below. Plain-text clipboard integration is covered in the transfer guide below;
-Text child anchors/embedded widgets have a dedicated guide below. Rich clipboard
-formats remain separate work.
+Text child anchors/embedded widgets and explicit native rich clipboard document
+transfer have dedicated guides below.
 
 ### View behavior
 
@@ -2653,8 +2653,8 @@ character. Ordinary text/textRange omit objects; slice(first,last,includeHidden)
 returns U+FFFC object replacement characters, preserving offset correspondence.
 All operations still resolve fresh native iterators and copy/free returned strings.
 Embedded child widgets/anchors and native rich-text serialization are covered in
-their dedicated guides below. Rich clipboard protocols and undo remain separate
-work. Plain-text clipboard integration is covered below.
+their dedicated guides below, alongside explicit rich clipboard document transfer.
+Undo remains separate work. Plain-text clipboard integration is covered below.
 
 ### Editable columns and multiple selection
 
@@ -3699,7 +3699,7 @@ in two views, checks allocation, then exercises deletion and buffer replacement;
 it requires an explicitly isolated display and GTK2_TEST_VIRTUAL_DISPLAY=1.
 
 Native rich-text serialization is covered below; anchors/widgets deliberately have
-no implicit save/load representation. Rich clipboard, undo/redo, fixed-position
+no implicit save/load representation. Undo/redo, fixed-position
 TextView window children and arbitrary raw/Builder anchor wrapping remain separate
 work. See TODO.md for the next batch.
 
@@ -3711,7 +3711,8 @@ files. The expanded [text example](../examples/text.nim) has an explicit path en
 Save and Load trusted file buttons. Loading first decodes a detached document, then
 replaces both views; parse/read errors leave the live editor untouched. Saving a
 selection is available through the API, but the example saves the whole buffer.
-Neither path negotiates rich clipboard formats or records undo/history.
+Those file buttons do not negotiate clipboard formats or record undo/history;
+separate rich clipboard document controls are described below.
 
 ```nim
 let codec = newTextFormat("my-editor-v1", canCreateTags = true)
@@ -3842,8 +3843,145 @@ C probes cover native callbacks, pointer-sized atoms/gsize, gboolean and GError*
 testMappedTextSerialization checks restored tag/image layout and explicit two-view
 buffer replacement; like other mapped suites it requires an opted-in isolated
 display and GTK2_TEST_VIRTUAL_DISPLAY=1. Calls and final releases remain UI-thread
-ARC/ORC operations. Rich clipboard negotiation, live insertion, custom codecs,
+ARC/ORC operations. Rich clipboard negotiation is covered below. Live insertion, custom codecs,
 widget serialization and undo/redo remain separate work.
+
+## Rich clipboard negotiation
+
+Rich clipboard support is **explicit document transfer**, not a replacement for
+plain-text copy/cut/paste or native TextView key bindings. The expanded text example
+has Copy document (includes hidden text), Import clipboard as document and a
+Trust native rich owner checkbox, initially off. An import returns a detached
+buffer and the example explicitly replaces both views only after success. No rich
+cut, implicit insertion, automatic fallback after parse errors or undo is provided.
+
+### Snapshot offers
+
+```nim
+let codec = newTextFormat("my-editor-v1", canCreateTags = true)
+let snapshot = buffer.serialize(codec)
+let offer = getClipboard().offerRichText(snapshot, buffer.text)
+# Later, only if this particular offer is still active:
+offer.clear()
+```
+
+offerRichText(clipboard,SerializedText,plainText) claims CLIPBOARD (or the Clipboard's
+explicit PRIMARY selection) with an immutable copied binary snapshot and explicit
+validated UTF-8 plain fallback. It offers the payload's exact native MIME/tagset
+atom plus UTF8_STRING, COMPOUND_TEXT, TEXT, STRING and common text/plain targets;
+GTK converts text for the requested target. Byte lengths are explicit, including
+native binary NULs. Target-entry strings are consumed/interned during registration;
+get callbacks copy into GTK selection data, never lend a source buffer's memory.
+There are no application callbacks inside native offer/get/clear handlers.
+
+RichClipboardOffer.active tracks native clear notification. Dropping a token does
+not clear the offer; a native pin retains snapshot bytes until ownership is lost,
+replaced or cleared. clear(offer) only acts while that offer remains active, so an
+old token cannot clear a subsequent local offer. Native loss notifications can be
+delayed until display events are processed. This is not proof of current foreign
+ownership or an atomic X-server ownership check. No clipboard-manager persistence
+or automatic store is requested. Clear notification releases data and the pin once,
+including GTK's unusual failed/reentrant replacement path.
+
+An offer retains **no source buffer, view, marks or application callback**. It can
+outlive the originating document/window while the process/display remains alive.
+Serialization's anchor/literal U+FFFC rejection and exact-range rules apply before
+offering. Plain fallback is deliberately supplied by the application, not inferred
+from serialized XML or silently sanitized. Native serialization includes invisible
+tagged text. Only offer such data intentionally; buffer.text includes hidden text,
+whereas existing plain copySelection excludes it. There is no rich Entry/password
+copy helper. Existing plain-text Clipboard/Entry/TextView APIs are unchanged.
+
+### Requests and explicit trust
+
+```nim
+let request = getClipboard().requestRichText(view, codec, trusted = false,
+  fn = proc (value: RichClipboardResult) =
+    case value.kind
+    of richDocument: view.buffer = value.document # Explicit application commit.
+    of richPlainText: discard # Application chooses how/if to use plain fallback.
+    of richRejected: echo value.error
+    of richUnavailable: discard)
+# Explicit user/application cancellation:
+request.cancel()
+```
+
+requestRichText has overloads with/without a TextView owner, requires a TextFormat
+and an explicit trusted boolean, and accepts fallbackToText=true and optional
+tagsFrom. With trusted=false it **never requests or parses rich bytes**, even when
+advertised. It uses the existing UTF8_STRING → COMPOUND_TEXT → STRING text path, or
+returns unavailable at idle if fallback is disabled. Acquiring a Clipboard handle
+alone does not claim ownership; the no-trust/no-fallback path makes no selection
+request at all.
+
+With trusted=true it requests exactly the descriptor's native format atom, without
+blocking wait_for_* calls, nested loops or implicit guesses at another tagset. GTK's
+borrowed selection data is checked for requested target, native data type, format 8
+and explicit nonnegative length, then copied before the callback returns. Native
+rich-text parsing happens **only at UI idle**, outside the selection callback, via
+the detached deserialize API and its native framing checks. The request never
+modifies a live buffer or invokes application code while GTK is transferring data.
+Tag creation/shared-schema policy is exactly TextFormat's policy: creation requires
+a fresh table; false may reuse tagsFrom's table/properties without changing its
+text. Invalid policy combinations fail before issuing a selection request.
+
+RichClipboardResult.kind is:
+
+- richDocument: document owns a newly decoded detached TextBuffer.
+- richPlainText: text is copied validated UTF-8. Empty-but-available text is valid.
+- richUnavailable: no compatible rich/text data, or fallback deliberately disabled.
+- richRejected: an offered rich reply has invalid type/format/data, framing, tags or
+  native parse failure; error is copied. **No automatic plain fallback after a rich
+  reply is rejected.** This avoids disguising damaged/denied rich data as success.
+
+Only an absent/refused rich target proceeds to plain fallback. A format-name
+mismatch can therefore yield text, but never an automatically selected alternate
+native codec. A successful empty rich reply is rejected, not treated as empty text.
+Clipboard ownership may change between requests/fallback targets; results are not
+an atomic multi-target snapshot and no portable authenticated owner identity is
+claimed. Native atom identity is format matching, not trust or authentication.
+
+trusted=true is the application's assertion that native GTK2 parsing is appropriate
+for the replying owner in this environment. It is not a sandbox, a verified owner,
+a prompt supplied by the library or protection against malicious XML/pixdata.
+The known native parser defects/resource limits described above still apply,
+including unpatched native cleanup leaks. Do not automatically enable it for
+arbitrary desktop owners; use plain text by default. The example cancels a pending
+request when its trust checkbox changes. The SDK does not rewrite native Ctrl+C/
+Ctrl+V bindings or globally change GTK clipboard registrations.
+
+### Lifetime, cancellation and explicit commit
+
+RichTextRequest.pending becomes false before delivery. cancel is idempotent, drops
+application captures/copied data promptly and suppresses queued observations.
+Dropping the token does not cancel. Native GTK has no request_contents cancellation:
+a separate small pinned bridge/clipboard reference remains until an outstanding
+native callback actually returns. That bridge does not retain the cancelled user
+closure, format/schema/view or copied body. Native/source/request lifetime pins are
+independent, including synchronous same-process replies and foreign-owner replies.
+
+The TextView-owner overload cancels on destruction and edits to its captured buffer;
+it validates the view's buffer identity again at idle before decoding/delivery and
+silently cancels if the buffer was replaced. Replacement need not immediately clear
+pending while the wire request remains outstanding. This avoids decoding a stale
+reply into a different document. It does not detect every tag/property change or
+provide transactional document replacement. The owner buffer/schema are retained
+until completion/cancellation; no buffer iterator survives the request.
+
+Before calling the application, owner hooks, pending state and request captures are
+released. Result buffers/text are copied into the delivery payload, so callbacks
+can reenter, replace views, start another request, close windows or throw safely;
+exceptions are contained. An unowned request has no automatic window cancellation:
+cancel it explicitly on close if its closure captures GUI state. All operations,
+callback delivery and native final releases remain UI-thread ARC/ORC work.
+
+Hidden tests/tgtk2richclipboard.nim validates cancellation/capture release, owner
+staleness and arguments with **no clipboard ownership or selection requests**.
+testMappedRichClipboard owns only an explicitly isolated display's selections and
+requires GTK2_TEST_VIRTUAL_DISPLAY=1. It covers copied snapshot lifetime, text-only
+trust policy, malformed/wrong-type replies, fixed schemas, fallback/empty/refused
+results, PRIMARY, reentrant callbacks and foreign-process transfer/cancellation.
+C probes verify get/clear callback ABI and pointer-width selection target atoms.
 
 ## Ownership and safety contract
 
@@ -3905,7 +4043,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, and `tests/tgtk2textserialization.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3944,7 +4082,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -3953,7 +4091,7 @@ Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
-rich clipboard/undo and live rich-text insertion, actual print jobs,
+undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

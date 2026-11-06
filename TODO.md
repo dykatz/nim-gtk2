@@ -8,19 +8,38 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: rich clipboard negotiation
+## Next proposed batch: EntryCompletion inline mode and selection
 
-- [ ] Audit native rich-text clipboard request/offer ownership, cancellation and
-      selection lifetime independently of existing plain-text helpers.
-- [ ] Require explicit trust/format/tag policy before native rich-text parsing;
-      never automatically decode arbitrary desktop owners with GTK2's old parser.
-- [ ] Prefer detached decode and an explicit application commit. Define plain-text
-      fallback, unsupported anchors/widgets and stale view/buffer cancellation.
-- [ ] Expand the text example; hidden tests must not claim clipboard ownership,
-      while foreign-owner/clipboard tests require an opted-in isolated display.
+- [ ] Audit native insert-prefix/cursor-on-match/inline-selection timing independently
+      of existing popup match-selected commits and application observations.
+- [ ] Add checked inline policy/selection on the existing fixed owned string model,
+      preserving native matching/navigation without unsafe callback reentrancy.
+- [ ] Define password/read-only/editable ComboBoxText behavior, edit/model/detach
+      cancellation and interaction with existing deferred popup commits.
+- [ ] Expand examples/inputs.nim with hidden ARC/ORC/ABI and isolated native keyboard
+      tests. Custom match functions, action rows and arbitrary models remain separate.
 
-Live rich-text insertion, custom codecs, undo/redo and model drag-and-drop remain
-separate batches. Native parser safety may constrain rich clipboard scope.
+## Completed batch: rich clipboard negotiation
+
+- [x] Audited public native ownership/request callbacks; immutable serialized offers
+      plus explicit validated plain fallback, independent of source buffer lifetime.
+- [x] Required per-request trust and immutable native format/tag policy: false never
+      requests/parses rich data; no automatic decoding of arbitrary desktop owners.
+- [x] Copy borrowed typed binary replies before native return; detached decode and
+      application observations run at idle, never inside selection callbacks.
+- [x] Cancellable requests with immediate capture release and independent native/
+      source/lifetime pins; owner edit/destruction cancellation and stale-buffer checks.
+- [x] Explicit absent-target text fallback, empty/unavailable distinction, rejected
+      rich replies without silent downgrade, fixed schema policy and PRIMARY support.
+- [x] Expanded text example with document copy/import and initially-off trust checkbox;
+      existing plain paste/native key bindings remain unchanged.
+- [x] Hidden no-ownership/no-wire tests, ABI probes, isolated foreign-owner/ownership/
+      malformed-reply and ARC/ORC lifecycle coverage.
+
+Native parser safety still limits this to explicitly trusted document transfers;
+owner identity is not authenticated and multi-target requests are not atomic.
+Live rich-text insertion, richer clipboard protocols/custom codecs, undo/redo and
+model drag-and-drop remain separate batches.
 
 ## Completed batch: native rich-text serialization
 
@@ -112,14 +131,14 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Text editing
 
-- [ ] Rich clipboard formats and negotiation (next proposed batch above).
+- [ ] Additional rich clipboard protocols and application acceptance policies.
 - [ ] Live rich-text insertion with a safe native reentrancy/commit contract.
 - [ ] Custom ergonomic codecs and any explicit widget save/load representation.
 - [ ] Undo/redo support with an explicit application-facing history contract.
 
 ### Completion and input
 
-- [ ] Inline completion and inline selection.
+- [ ] Inline completion and inline selection (next proposed batch above).
 - [ ] Custom completion match functions and arbitrary completion models/columns.
 - [ ] Completion action rows and richer presentation/providers.
 - [ ] Deeper IME integration.
@@ -175,6 +194,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Explicit trusted rich clipboard document negotiation, immutable offers,
+      cancellable detached requests and plain fallback (above).
 - [x] Native rich-text serialization with copied data, private formats, detached
       imports, tag policy, exact ranges and explicit file save/load (above).
 - [x] TextView child anchors, shared-view inline widgets, weak buffer ownership and

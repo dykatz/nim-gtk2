@@ -13,6 +13,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type SelectionTarget = proc (data: gtk.PSelectionData): TAtom {.cdecl.}
+proc invokeRichClipboard(get: gtk.TClipboardGetFunc, clear: gtk.TClipboardClearFunc,
+    target: SelectionTarget): g.gboolean {.cdecl, importc: "nim_gtk2_rich_clipboard_abi".}
 type RawTextDeserialize = proc (registration, content: gtk.PTextBuffer, format: TAtom,
   iter: gtk.PTextIter, bytes: ptr g.guint8, length: g.gsize, error: ptr ptr g.GError): g.gboolean {.cdecl.}
 proc invokeTextSerialization(serialize: gtk.TTextBufferSerializeFunc, deserialize: RawTextDeserialize): g.gboolean
@@ -191,6 +194,18 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "rich clipboard get/clear callbacks and pointer-width target atom ABI":
+    proc get(c: gtk.PClipboard, selection: gtk.PSelectionData, info: g.guint, data: pointer) {.cdecl.} =
+      doAssert cast[uint](c) == 0x61 and cast[uint](selection) == 0x62
+      doAssert info == high(g.guint) and cast[uint](data) == 0x64
+    proc clear(c: gtk.PClipboard, data: pointer) {.cdecl.} =
+      doAssert cast[uint](c) == 0x61 and cast[uint](data) == 0x64
+    proc target(selection: gtk.PSelectionData): TAtom {.cdecl.} =
+      doAssert cast[uint](selection) == 0x62
+      when sizeof(pointer) == 8: TAtom(0x100000063'u64)
+      else: TAtom(0x63)
+    check g.toBool(invokeRichClipboard(get, clear, target))
+
   test "rich text native callback, atom/gsize/gboolean and GError double-pointer ABI":
     proc serialize(registration, content: gtk.PTextBuffer, first, last: gtk.PTextIter,
         length: ptr g.gsize, data: pointer): ptr g.guint8 {.cdecl.} =

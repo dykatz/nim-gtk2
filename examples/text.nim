@@ -56,7 +56,17 @@ proc main() =
   files.packStart(saveRich, packShrink)
   files.packStart(loadRich, packShrink)
   layout.packStart(files, packShrink)
-  # Native GTK2 binary data, not RTF/HTML or a clipboard format. The application
+  let richTools = newHBox(spacing = 6)
+  let richCopy = newButton("Copy document (includes hidden text)")
+  let richImport = newButton("Import clipboard as document")
+  let trustRich = newCheckButton("Trust native rich owner")
+  richTools.packStart(richCopy, packShrink)
+  richTools.packStart(richImport, packShrink)
+  richTools.packStart(trustRich, packShrink)
+  layout.packStart(richTools, packShrink)
+  let clipboard = getClipboard() # Does not overwrite its contents.
+  var richRequest: RichTextRequest
+  # Native GTK2 binary data, not RTF/HTML. The application
   # explicitly selects this named codec and permits imported tags in a fresh buffer.
   let richFormat = newTextFormat("nim-gtk2-text-example", canCreateTags = true)
   let editor = newTextView(buffer)
@@ -89,6 +99,46 @@ proc main() =
     buffer.onModifiedChanged(proc () = refresh())
     buffer.onCursorMoved(proc () = refresh())
   watchBuffer()
+  proc replaceDocument(loaded: TextBuffer) =
+    var imported: TextTag
+    try: imported = loaded.tag("emphasis")
+    except ValueError:
+      imported = loaded.createTag("emphasis")
+      imported.bold = true
+      imported.underline = true
+    let mark = loaded.createMark(0, "bookmark", leftGravity = true)
+    richRequest.cancel()
+    buffer.disconnectSignals()
+    if not inline.isDestroyed: inline.disconnectSignals()
+    inline = default(TextChildAnchor)
+    editor.buffer = loaded
+    mirror.buffer = loaded
+    buffer = loaded
+    emphasis = imported
+    bookmark = mark
+    watchBuffer()
+    buffer.modified = false
+    refresh()
+  richCopy.onClicked(proc () =
+    try:
+      # Explicit whole document snapshot: tags/images/hidden text, never widgets.
+      discard clipboard.offerRichText(buffer.serialize(richFormat), buffer.text)
+      status.text = "Offered a document snapshot, not a live buffer"
+    except CatchableError as error: status.text = error.msg)
+  trustRich.onToggled(proc () = richRequest.cancel())
+  richImport.onClicked(proc () =
+    richRequest.cancel()
+    richRequest = clipboard.requestRichText(editor, richFormat, trustRich.active,
+      proc (value: RichClipboardResult) =
+        case value.kind
+        of richDocument:
+          replaceDocument(value.document)
+          status.text = "Imported trusted rich clipboard as a new document"
+        of richPlainText:
+          replaceDocument(newTextBuffer(value.text))
+          status.text = "Imported plain text as a new document"
+        of richRejected: status.text = "Rich clipboard rejected: " & value.error
+        of richUnavailable: status.text = "Clipboard has no compatible document/text"))
   saveRich.onClicked(proc () =
     try:
       let snapshot = buffer.serialize(richFormat)
@@ -101,32 +151,17 @@ proc main() =
       # Decode detached before touching either live view. Failure leaves the editor
       # unchanged; no live changed observers can invalidate native import iterators.
       let loaded = richFormat.deserialize(newSerializedText(richFormat, readFile(filePath.text)))
-      var imported: TextTag
-      try: imported = loaded.tag("emphasis")
-      except ValueError:
-        imported = loaded.createTag("emphasis")
-        imported.bold = true
-        imported.underline = true
-      let mark = loaded.createMark(0, "bookmark", leftGravity = true)
-      buffer.disconnectSignals()
-      if not inline.isDestroyed: inline.disconnectSignals()
-      inline = default(TextChildAnchor)
-      editor.buffer = loaded
-      mirror.buffer = loaded
-      buffer = loaded
-      emphasis = imported
-      bookmark = mark
-      watchBuffer()
-      buffer.modified = false
-      refresh()
+      replaceDocument(loaded)
       status.text = "Loaded " & filePath.text & "; marks/history/inline widgets are not serialized"
     except CatchableError as error: status.text = error.msg)
   # GObject buffers have no destroy signal. Break buffer -> closure -> widget
   # cycles when closing the window, while retaining normal native ownership.
   window.onDestroy(proc () =
+    richRequest.cancel()
     buffer.disconnectSignals()
     if not inline.isDestroyed: inline.disconnectSignals())
   defer:
+    richRequest.cancel()
     buffer.disconnectSignals()
     if not inline.isDestroyed: inline.disconnectSignals()
   append.onClicked do ():
@@ -175,7 +210,6 @@ proc main() =
       return true
     false)
   clearSelection.onClicked(proc () = discard buffer.deleteSelection())
-  let clipboard = getClipboard() # Merely obtaining it does not overwrite its contents.
   copy.onClicked(proc () =
     if not editor.copySelection(clipboard): status.text = "No text selected")
   cut.onClicked(proc () = discard editor.cutSelection(clipboard))

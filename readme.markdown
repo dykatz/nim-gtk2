@@ -139,6 +139,12 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Rich clipboard document transfer now offers immutable snapshots and cancellable
+requests with explicit native-parser trust and text fallback. Imports remain
+detached until the application commits them; plain copy/paste is unchanged.
+See the [rich clipboard guide](docs/gtk2.md#rich-clipboard-negotiation) and expanded
+[examples/text.nim](examples/text.nim). `testMappedRichClipboard` requires an
+explicitly opted-in isolated display.
 Native rich-text save/load now uses explicit owned formats, copied binary data,
 checked tag policy and detached imports. See [examples/text.nim](examples/text.nim)
 and the [serialization guide](docs/gtk2.md#native-rich-text-serialization). This is

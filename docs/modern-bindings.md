@@ -30,6 +30,27 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Rich clipboard negotiation
+
+RichClipboardOffer pins immutable native bytes/explicit plain fallback until native
+clear notification, without retaining a source buffer or user callback. Native
+get/clear handlers contain exceptions and release pins once, including replacement
+failure paths. Dropping a token is not a clipboard-clear operation.
+
+RichTextRequest requires explicit trust: false never requests native rich bytes;
+true requests only the selected native atom and copies borrowed selection data
+before return. Parsing and application observations happen at UI idle, using the
+detached serialization decoder/tag policy. Missing targets may fall back to text;
+malformed/denied rich replies are rejected without a silent downgrade.
+
+Cancellation releases user captures/schema/view/format promptly while independent
+native/source pins protect outstanding C callback data. Owner views cancel on
+edits/destruction and buffer identity is rechecked before decode/delivery. Existing
+plain paste/native key bindings are unchanged; no automatic untrusted native parsing
+or live rich insertion is supplied. Hidden tests never claim/request selections;
+isolated tests include foreign owners. ABI probes cover callback info width and
+the new public selection target getter's native atom representation.
+
 ### Native rich-text serialization
 
 Public raw rich-text registration, native codec callbacks, transferred atom arrays
@@ -47,8 +68,9 @@ Native section framing is checked before dispatch, but XML/pixdata remain truste
 native data, not a sandbox. The opt-in tests/headers/text_serialization.c diagnostic
 and patches/gtk2-text-serialization.patch document native progress/error/cleanup
 defects; installed libraries and native warnings are unchanged. See docs/gtk2.md
-for policy, object limits and the expanded text example. Rich clipboard, live
-insertion, custom ergonomic codecs and undo remain separate work.
+for policy, object limits and the expanded text example. Explicit rich clipboard
+document transfer is covered above; live insertion, custom ergonomic codecs and
+undo remain separate work.
 
 ### Text child anchors and embedded widgets
 
