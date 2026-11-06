@@ -501,7 +501,8 @@ allocated strings are copied and freed. Text getters include invisible tagged
 characters by default; embedded images/anchors are not returned by GTK's plain
 text getter. Tags, marks, bounded Unicode search and embedded pixbufs are covered in the
 rich-text extensions below. Plain-text clipboard integration is covered in the transfer guide below;
-embedded child anchors and rich clipboard formats remain raw.
+Text child anchors/embedded widgets have a dedicated guide below. Rich clipboard
+formats remain separate work.
 
 ### View behavior
 
@@ -2651,8 +2652,9 @@ insertImage(offset,Pixbuf) inserts an owning native pixbuf segment occupying one
 character. Ordinary text/textRange omit objects; slice(first,last,includeHidden)
 returns U+FFFC object replacement characters, preserving offset correspondence.
 All operations still resolve fresh native iterators and copy/free returned strings.
-Embedded child widgets/anchors, rich clipboard protocols, serialization and undo
-remain outside this batch. Plain-text clipboard integration is covered below.
+Embedded child widgets/anchors are covered in their dedicated guide below. Rich
+clipboard protocols, serialization and undo remain separate work. Plain-text
+clipboard integration is covered below.
 
 ### Editable columns and multiple selection
 
@@ -3581,6 +3583,125 @@ TreeView sizing/painting, Unicode, pixbufs, filtering/resorting and refreshed st
 only on an explicitly isolated display with GTK2_TEST_VIRTUAL_DISPLAY=1. See TODO.md
 for the remaining work and next proposed batch.
 
+## Text child anchors and inline widgets
+
+The expanded [text example](../examples/text.nim) inserts one buffer anchor with a
+button in the editable view and a different label in the shared read-only view.
+These are actual GtkTextView embedded widgets, not DrawingArea overlays or markup.
+
+### Creation, identity and offsets
+
+createChildAnchor(buffer,offset) inserts a TextChildAnchor at a checked Unicode
+character offset, including the end of the buffer. It owns a non-floating native
+anchor reference **before** insertion. GTK's convenience create_child_anchor returns
+a borrowed pointer which a changed observer could delete before it is returned;
+the SDK deliberately uses public new()+insert() instead. A retained result remains
+safe and reports deleted even if an existing changed observer immediately removes
+it. No native iterators escape the operation.
+
+childAnchorAt(buffer,offset) returns an owning cached alias, or an empty/deleted
+handle if that character is not an anchor (including buffer end). It accepts only
+SDK-created anchors with known buffer identity; arbitrary raw/Builder anchors are
+not silently wrapped. There is no uninserted constructor or reinsertion API.
+Deleted anchors cannot be reused: create a new one.
+
+```nim
+let buffer = newTextBuffer("Aλ🙂B")
+let anchor = buffer.createChildAnchor(2)
+let view = newTextView(buffer)
+view.addChildAtAnchor(newButton("Inline"), anchor)
+```
+
+Anchor offset is its current character offset and follows edits before it. buffer()
+returns an owning live buffer handle. Both reject deleted anchors. deleteAnchor(b,a)
+checks live buffer identity before deleting exactly the anchor's one-character
+range; foreign/deleted anchors fail before GTK's get_iter_at_child_anchor could
+receive them. Buffer/anchor operations use public getters, not private segment/tree
+fields. The constructor and explicit delete helper pin their native buffer through
+the native operation.
+
+A child anchor counts as **one character**. Ordinary text/textRange/selectedText
+omit it, while slice includes U+FFFC, the object replacement character. That slice
+is not a serialization of the anchor or widget; a literal U+FFFC in text does not
+create an anchor. Existing findText(textOnly=true) can match text across the object,
+with returned offsets still counting the anchor; textOnly=false includes the object
+in matching, so searching U+FFFC can locate it. These semantics match existing
+pixbuf insertion. Tags, cursor/selection and range offsets remain native Unicode
+character coordinates, not byte offsets or plain-text string lengths. Plain-text
+clipboard helpers omit embedded widgets and do not reconstruct them on paste.
+
+### Widget slots, shared views and cleanup
+
+addChildAtAnchor(view,child,anchor) validates that the anchor is live in the view's
+current buffer and that the child is unparented, non-toplevel and introduces no
+containment cycle. The SDK supports **one widget per anchor per view**; a shared
+buffer may have different widget instances at the same anchor in different views.
+A widget cannot be parented in multiple views. Read-only TextView editing policy
+does not automatically disable the independently interactive embedded widget.
+
+widgets(anchor) returns copied owning Widget aliases across all views; GTK's list
+container is freed without unreffing its borrowed elements. A deleted anchor returns
+an empty list, not GTK's temporary list while segment cleanup is in progress.
+Show newly inserted children explicitly when adding them after showAll().
+
+Normal Container.remove(view,child) detaches the retained child, unregistering its
+native anchor/layout association without destroying it or deleting the anchor.
+It can subsequently be embedded again. Destroying a child leaves the anchor's
+one-character slot in the buffer. Destroying a view or replacing its buffer destroys
+that view's anchored children, not children in other views and not anchors in a
+still-live shared old buffer. Deleting the anchor, replacing the buffer's contents,
+or finalizing its buffer destroys all widgets at that anchor in all views. Retained
+widget aliases become destroyed and reject further native access.
+
+Anchors do **not** retain their buffer or view. A shared SDK identity uses native
+weak notification, independent signal-data pins and weak anchor metadata entries;
+it never creates an anchor-to-buffer owning edge or reads GTK private storage.
+A retained anchor safely reports deleted when its buffer finalizes. Calling its
+buffer getter explicitly obtains a strong buffer handle, as expected. Buffer's
+internal changed inspector scans live SDK anchor metadata and queues notifications;
+it invokes no application code and does not pump events. Public raw mutation of
+SDK anchor metadata/insertion signals is outside this contract.
+
+### Deferred deletion observations
+
+onDeleted(anchor,proc()) returns an AnchorConnection with connected and idempotent
+disconnect. It is a **one-shot UI-idle observation**, not a synchronous pre-deletion
+hook. It runs after native buffer/view/segment cleanup has returned, so application
+code can edit buffers, delete another anchor or destroy windows safely. Exceptions
+are contained. The connection becomes inactive before delivery and releases its
+capture automatically. Registering on an already deleted retained anchor schedules
+one idle delivery as well. No initial event occurs for a live anchor.
+
+Disconnect or disconnectSignals(anchor) cancels queued delivery and releases
+captures. Dropping a token does not disconnect. Keep the SDK anchor handle while
+observations are needed: native anchor finalization cancels undelivered observers;
+the token itself does not keep its owner alive. A self-capturing observer is released
+by one-shot delivery, but a callback capturing a buffer/view can still create an
+ownership cycle that prevents deletion in the first place. Explicitly disconnect
+before abandoning such owners. The text example cancels these observers on close.
+
+Existing synchronous TextBuffer.onChanged and Widget.onDestroy retain their native
+contracts. **Do not recursively edit buffers, replace view buffers, destroy other
+views/children, or otherwise reenter GTK from embedded-widget destroy callbacks**:
+GTK may still be walking a text segment or shallow child list. Merely recording
+ordinary application state there is appropriate; use onDeleted for post-anchor-
+deletion GUI work. It does not report child-only destruction or view-buffer changes
+when the anchor remains live. Raw signal handlers cannot bypass native reentrancy
+restrictions. All calls, observer delivery and final unrefs stay on the UI thread
+under ARC/ORC.
+
+Hidden tests/tgtk2textanchors.nim covers Unicode/search/slice behavior, buffer identity,
+shared views, unparenting, replacement, immediate constructor-time deletion, weak
+buffer lifetime, one-shot self-capture release and cancellation without mapping
+windows. C probes verify native anchor insertion/deleted callback shapes and
+pointer/gboolean/cdecl ABI. testMappedTextAnchors maps real inline buttons/entries
+in two views, checks allocation, then exercises deletion and buffer replacement;
+it requires an explicitly isolated display and GTK2_TEST_VIRTUAL_DISPLAY=1.
+
+Rich-text serialization, rich clipboard, undo/redo, fixed-position TextView window
+children and arbitrary raw/Builder anchor wrapping remain separate work. Embedded
+widgets have no implicit save/load representation. See TODO.md for the next batch.
+
 ## Ownership and safety contract
 
 Call `gtk2.init()` before creating widgets. It raises `IOError` if no display
@@ -3641,7 +3762,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, and `tests/tgtk2iconselection.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, and `tests/tgtk2textanchors.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3680,7 +3801,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -3689,7 +3810,7 @@ Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
-rich-text child anchors/serialization, actual print jobs,
+rich-text serialization/clipboard and undo, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

@@ -139,6 +139,11 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+TextView now supports owned buffer-bound child anchors and checked inline widgets,
+including different widgets in shared-buffer views and one-shot idle deletion
+observations. See the expanded [text example](examples/text.nim) and
+[anchor guide](docs/gtk2.md#text-child-anchors-and-inline-widgets).
+`testMappedTextAnchors` requires an explicitly opted-in isolated display.
 IconView now supports checked multiple selection, copied/coalesced idle observations,
 stable row references and deferred activation. See the expanded
 [icon example](examples/icons.nim) and [IconView guide](docs/gtk2.md#iconview).

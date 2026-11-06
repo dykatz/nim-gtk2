@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef void (*NimAnchorInsert)(GtkTextBuffer *, GtkTextIter *, GtkTextChildAnchor *);
+typedef gboolean (*NimAnchorDeleted)(GtkTextChildAnchor *);
+gboolean nim_gtk2_text_anchor_abi(NimAnchorInsert insert, NimAnchorDeleted deleted) {
+  typedef char insert_signature[__builtin_types_compatible_p(NimAnchorInsert,
+    __typeof__(&gtk_text_buffer_insert_child_anchor)) ? 1 : -1];
+  typedef char deleted_signature[__builtin_types_compatible_p(NimAnchorDeleted,
+    __typeof__(&gtk_text_child_anchor_get_deleted)) ? 1 : -1];
+  (void)sizeof(insert_signature); (void)sizeof(deleted_signature);
+  insert((GtkTextBuffer *)(guintptr)0x51, (GtkTextIter *)(guintptr)0x52,
+         (GtkTextChildAnchor *)(guintptr)0x53);
+  return deleted((GtkTextChildAnchor *)(guintptr)0x53);
+}
 typedef gboolean (*NimIconCursor)(GtkIconView *, GtkTreePath **, GtkCellRenderer **);
 gboolean nim_gtk2_icon_cursor(NimIconCursor fn) {
   GtkTreePath *path = NULL;

@@ -13,6 +13,10 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  AnchorInsert = proc (buffer: gtk.PTextBuffer, iter: gtk.PTextIter, anchor: gtk.PTextChildAnchor) {.cdecl.}
+  AnchorDeleted = proc (anchor: gtk.PTextChildAnchor): g.gboolean {.cdecl.}
+proc invokeAnchor(insert: AnchorInsert, deleted: AnchorDeleted): g.gboolean {.cdecl, importc: "nim_gtk2_text_anchor_abi".}
 type IconCursor = proc (view: ptr gtk.IconView, path: ptr gtk.PTreePath,
   cell: ptr gtk.PCellRenderer): g.gboolean {.cdecl.}
 proc invokeIconCursor(fn: IconCursor): g.gboolean {.cdecl, importc: "nim_gtk2_icon_cursor".}
@@ -183,6 +187,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "text child anchor insert/deleted pointer and gboolean ABI":
+    proc insert(buffer: gtk.PTextBuffer, iter: gtk.PTextIter, anchor: gtk.PTextChildAnchor) {.cdecl.} =
+      doAssert cast[uint](buffer) == 0x51 and cast[uint](iter) == 0x52 and cast[uint](anchor) == 0x53
+    proc deleted(anchor: gtk.PTextChildAnchor): g.gboolean {.cdecl.} =
+      g.gbool(cast[uint](anchor) == 0x53)
+    check g.toBool(invokeAnchor(insert, deleted))
+
   test "icon cursor gboolean and pointer-to-pointer ABI":
     proc cursor(view: ptr gtk.IconView, path: ptr gtk.PTreePath, cell: ptr gtk.PCellRenderer): g.gboolean {.cdecl.} =
       path[] = cast[gtk.PTreePath](0x22)

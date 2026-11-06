@@ -40,6 +40,14 @@ proc main() =
   for button in [find, style, saveMark, goMark, insertImage]:
     tools.packStart(button, packShrink)
   layout.packStart(tools, packShrink)
+  let anchorTools = newHBox(spacing = 6)
+  let insertAnchor = newButton("Insert inline widget")
+  let removeAnchor = newButton("Remove inline widget")
+  anchorTools.packStart(insertAnchor, packShrink)
+  anchorTools.packStart(removeAnchor, packShrink)
+  anchorTools.packStart(newLabel("One buffer anchor, different widgets in each view"), packShrink)
+  layout.packStart(anchorTools, packShrink)
+  var inline: TextChildAnchor
   let editor = newTextView(buffer)
   let mirror = newTextView(buffer)
   editor.wrapMode = wrapWordChar
@@ -70,8 +78,12 @@ proc main() =
   buffer.onCursorMoved(proc () = refresh())
   # GObject buffers have no destroy signal. Break buffer -> closure -> widget
   # cycles when closing the window, while retaining normal native ownership.
-  window.onDestroy(proc () = buffer.disconnectSignals())
-  defer: buffer.disconnectSignals()
+  window.onDestroy(proc () =
+    buffer.disconnectSignals()
+    if not inline.isDestroyed: inline.disconnectSignals())
+  defer:
+    buffer.disconnectSignals()
+    if not inline.isDestroyed: inline.disconnectSignals()
   append.onClicked do ():
     buffer.withUserAction:
       buffer.appendText("More text: λ🙂\n")
@@ -95,6 +107,22 @@ proc main() =
     editor.scrollToMark(bookmark))
   let sampleImage = newPixbuf(16, 16, 0x2090ffff'u32)
   insertImage.onClicked(proc () = buffer.insertImage(buffer.cursorOffset, sampleImage))
+  insertAnchor.onClicked(proc () =
+    if not inline.deleted:
+      status.text = "An inline anchor is already present"
+      return
+    inline = buffer.createChildAnchor(buffer.cursorOffset)
+    if inline.deleted: return
+    let button = newButton("Inline λ🙂")
+    let label = newLabel("[Shared inline object]")
+    editor.addChildAtAnchor(button, inline)
+    mirror.addChildAtAnchor(label, inline)
+    button.onClicked(proc () = status.text = "Inline button activated")
+    inline.onDeleted(proc () = status.text = "Anchor deleted; both inline widgets were destroyed")
+    button.showAll()
+    label.showAll())
+  removeAnchor.onClicked(proc () =
+    if not inline.deleted: buffer.deleteAnchor(inline))
   editor.onKeyPress(proc (event: KeyEvent): bool =
     if event.modifiers.has(modifierControl) and event.unicode in [uint32(ord('f')), uint32(ord('F'))]:
       query.focus()

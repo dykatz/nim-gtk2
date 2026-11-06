@@ -8,19 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: TextView child anchors and embedded widgets
+## Next proposed batch: rich-text serialization
 
-- [ ] Add owned/checked text child anchors with explicit buffer identity, deletion
-      and retained-handle lifetime rules.
-- [ ] Embed ordinary widgets through TextView's public anchor API with checked
-      parenting and cleanup across buffer/view destruction or replacement.
-- [ ] Define character-offset and object-preserving slice/search behavior around
-      anchors; do not silently turn embedded widgets into serializable rich text.
-- [ ] Expand the existing text example and add hidden ARC/ORC ownership tests,
-      ABI probes and isolated mapped layout tests as needed.
+- [ ] Audit GTK2's serialization/deserialization format registration, copied binary
+      data ownership, tag creation policy and error cleanup.
+- [ ] Add an explicit checked format/serialization surface for trusted application
+      data, preserving native format identity rather than guessing byte layouts.
+- [ ] Define behavior for tags, pixbufs, object replacement characters and unsupported
+      embedded widget reconstruction. Anchors/widgets have no implicit save/load form.
+- [ ] Expand the text example with explicit save/load choices and add hidden ARC/ORC
+      round-trip/error tests, ABI probes and isolated layout checks as needed.
 
-Rich-text clipboard/serialization, undo/redo and model drag-and-drop remain separate
-batches.
+Rich clipboard negotiation, undo/redo and model drag-and-drop remain separate batches.
+
+## Completed batch: TextView child anchors and embedded widgets
+
+- [x] Owned buffer-bound anchors, weak buffer identity, checked lookup/deletion and
+      retained deleted-handle behavior without private segment access.
+- [x] Own new() before insert() so immediate deletion by a changed observer cannot
+      invalidate a borrowed constructor return; pin the native buffer across helpers.
+- [x] Checked inline widget parenting, one widget per anchor per view, shared-buffer
+      views, ordinary detach/reparent and native destruction/replacement cleanup.
+- [x] Unicode offsets, plain text versus object-preserving slices, bounded search
+      behavior and explicit non-serialization of embedded widgets.
+- [x] One-shot idle deletion observations with disconnection, capture release and
+      buffer-finalization support; ordinary native changed/destroy callbacks retain
+      their synchronous reentrancy restrictions.
+- [x] Expanded examples/text.nim, documentation, hidden ARC/ORC ownership/reentrancy
+      tests, C ABI probes and isolated real two-view inline layout tests.
 
 ## Completed batch: multiple IconView selection
 
@@ -71,8 +86,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Text editing
 
-- [ ] TextView child anchors and embedded widgets (next proposed batch above).
-- [ ] Rich-text serialization and rich clipboard formats.
+- [ ] Rich-text serialization (next proposed batch above).
+- [ ] Rich clipboard formats and negotiation.
 - [ ] Undo/redo support with an explicit application-facing history contract.
 
 ### Completion and input
@@ -133,6 +148,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] TextView child anchors, shared-view inline widgets, weak buffer ownership and
+      one-shot idle deletion observations (above).
 - [x] Multiple IconView selection, copied idle observations, stable activation
       references and native keyboard selection tests (above).
 - [x] Custom sort/filter functions, copied-row text presentation, pixbuf columns,

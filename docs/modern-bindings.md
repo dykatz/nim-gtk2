@@ -30,6 +30,27 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Text child anchors and embedded widgets
+
+TextChildAnchor uses owned non-floating GObject handles and public buffer/iterator/
+widget APIs only. Construction retains new() before insert(), avoiding GTK's
+borrowed convenience return becoming dangling when a changed observer deletes the
+new anchor immediately. Native buffer pins span the constructor/delete helper.
+
+Shared SDK buffer identities use independent weak-notify/signal pins and weak
+metadata entries: an anchor never owns its buffer or view. Native finalization
+clears identity and queues one-shot UI-idle deletion observations. Disconnect,
+owner finalization or delivery releases the corresponding captures/pins; callbacks
+never run inside native text-segment widget cleanup. Existing synchronous buffer
+changed/widget destroy callbacks still forbid unsafe native reentrancy.
+
+Embedding checks buffer identity, live anchors, ordinary parenting/cycles and one
+widget per anchor per view. Public widget lists are transfer-container snapshots.
+Deletion, view destruction and buffer replacement follow GTK ownership without
+private segment/layout access. C probes verify insert/deleted pointer/cdecl/gboolean
+shapes; hidden ARC/ORC tests cover weak ownership and constructor-time deletion, and
+isolated mapped tests exercise actual two-view inline allocation/cleanup.
+
 ### Multiple IconView selection
 
 Fixed IconView models/layouts now support native selection modes, checked multi-row
