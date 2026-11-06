@@ -8,18 +8,37 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: multiple IconView selection
+## Next proposed batch: TextView child anchors and embedded widgets
 
-- [ ] Add checked selection modes and multi-selection operations without changing
-      the fixed model/layout ownership contract.
-- [ ] Provide copied/coalesced selection observations and unambiguous path/index
-      access, with stable references where needed for delayed application work.
-- [ ] Preserve source/proxy coordinate semantics and clear stale selection anchors
-      when changing modes, according to audited native GTK2 behavior.
-- [ ] Expand the existing icon example, documentation and hidden lifecycle tests;
-      add isolated mapped tests for native selection/input behavior.
+- [ ] Add owned/checked text child anchors with explicit buffer identity, deletion
+      and retained-handle lifetime rules.
+- [ ] Embed ordinary widgets through TextView's public anchor API with checked
+      parenting and cleanup across buffer/view destruction or replacement.
+- [ ] Define character-offset and object-preserving slice/search behavior around
+      anchors; do not silently turn embedded widgets into serializable rich text.
+- [ ] Expand the existing text example and add hidden ARC/ORC ownership tests,
+      ABI probes and isolated mapped layout tests as needed.
 
-Model drag-and-drop remains a separate transfer/protocol batch.
+Rich-text clipboard/serialization, undo/redo and model drag-and-drop remain separate
+batches.
+
+## Completed batch: multiple IconView selection
+
+- [x] Checked shared selection modes, validated multi-selection operations and
+      ascending copied paths/indices without changing fixed model/layout ownership.
+- [x] Coalesced idle selection observations with copied final-state payloads and
+      stable references in displayed-model coordinates.
+- [x] Per-emission deferred activation with copied historical paths/stable rows;
+      existing positional activation conveniences also use safe idle delivery.
+- [x] Clear selected items on mode changes, explicitly leaving BROWSE before NONE.
+      Native cursor/range anchors are intentionally preserved: GTK2 has no public
+      anchor reset, and no private-field/model-rebinding/fake-input workaround is used.
+- [x] Public checked cursor paths independent of selection, proxy/source deletion
+      example, documentation and hidden ARC/ORC lifecycle tests.
+- [x] Native cursor ABI probe and isolated XTEST Shift/Ctrl+A/Return validation.
+
+Model replacement, custom/editable IconView renderers and model drag-and-drop remain
+separate work.
 
 ## Completed batch: richer model sorting, filtering and cell presentation
 
@@ -47,13 +66,12 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Models and views
 
-- [ ] Multiple IconView selection (next proposed batch above).
 - [ ] Model drag-and-drop.
 - [ ] Arbitrary/custom cell renderers beyond the audited presentation batch.
 
 ### Text editing
 
-- [ ] TextView child anchors and embedded widgets.
+- [ ] TextView child anchors and embedded widgets (next proposed batch above).
 - [ ] Rich-text serialization and rich clipboard formats.
 - [ ] Undo/redo support with an explicit application-facing history contract.
 
@@ -115,6 +133,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Multiple IconView selection, copied idle observations, stable activation
+      references and native keyboard selection tests (above).
 - [x] Custom sort/filter functions, copied-row text presentation, pixbuf columns,
       explicit refresh/disconnection and synchronous traversal protection (above).
 - [x] Popup-only EntryCompletion with owned UTF-8 suggestions, checked attachment,

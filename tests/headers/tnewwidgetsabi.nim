@@ -13,6 +13,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type IconCursor = proc (view: ptr gtk.IconView, path: ptr gtk.PTreePath,
+  cell: ptr gtk.PCellRenderer): g.gboolean {.cdecl.}
+proc invokeIconCursor(fn: IconCursor): g.gboolean {.cdecl, importc: "nim_gtk2_icon_cursor".}
 proc invokeCompare(fn: gtk.TTreeIterCompareFunc, data: pointer): g.gint {.cdecl, importc: "nim_gtk2_model_compare".}
 proc invokeVisible(fn: gtk.TTreeModelFilterVisibleFunc, data: pointer): g.gboolean {.cdecl, importc: "nim_gtk2_model_visible".}
 proc invokeCell(fn: gtk.TTreeCellDataFunc, data: pointer) {.cdecl, importc: "nim_gtk2_cell_data".}
@@ -180,6 +183,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "icon cursor gboolean and pointer-to-pointer ABI":
+    proc cursor(view: ptr gtk.IconView, path: ptr gtk.PTreePath, cell: ptr gtk.PCellRenderer): g.gboolean {.cdecl.} =
+      path[] = cast[gtk.PTreePath](0x22)
+      cell[] = cast[gtk.PCellRenderer](0x23)
+      g.gbool(cast[uint](view) == 0x21)
+    check g.toBool(invokeIconCursor(cursor))
+
   test "model comparison, visibility and cell-data native callback ABIs":
     var calls = 0
     proc compare(model: gtk.PTreeModel, a, b: gtk.PTreeIter, data: pointer): g.gint {.cdecl.} =

@@ -30,6 +30,26 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Multiple IconView selection
+
+Fixed IconView models/layouts now support native selection modes, checked multi-row
+operations, ascending copied paths/indices and stable displayed-model references.
+Mode changes clear selected items with public calls, explicitly leaving BROWSE
+before clearing through NONE. GTK2 has no public cursor/range-anchor reset; the SDK
+does not inspect anchor_item or rebind the fixed model to simulate one.
+
+Selection observers now coalesce at idle; the typed overload collects the final
+selection there. Native callback data weakly borrows the view and destruction
+cancels pending work. Activations copy a path/reference at emission and deliver
+per-emission at idle, so user code cannot destroy native item state halfway through
+GTK's selection/activation traversal. Legacy positional activation conveniences
+share this deferred timing. Stable proxy references retain proxy coordinates, not
+source identity; applications explicitly translate before source edits.
+
+C probes check the public cursor getter's pointer-to-pointer/gboolean ABI. Hidden
+ARC/ORC tests and isolated XTEST Shift/Ctrl+A/Return tests cover ownership, mode
+transitions, native range selection and observer-driven teardown.
+
 ### Synchronous model functions and audited cell presentation
 
 Custom sort comparisons, filter visibility and text cell-data functions use native

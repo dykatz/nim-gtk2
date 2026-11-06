@@ -6,6 +6,9 @@ import headers/glib2 as g
 
 proc finalized(data: pointer, obj: g.PGObject) {.cdecl.} = cast[ptr bool](data)[] = true
 
+proc drain() =
+  while rawGtk.events_pending() != 0: discard rawGtk.main_iteration_do(g.gbool(false))
+
 proc runTests() =
   gtk2.init()
   suite "gtk2 pixbufs and icon views":
@@ -107,9 +110,12 @@ proc runTests() =
       view.onSelectionChanged(proc () = inc selections)
       view.selectedIndex = 1
       check view.selectedPath == treePath(1)
+      check selections == 0
+      drain()
       check selections == 1
       view.selectedPath = treePath()
       check view.selectedIndex == -1
+      drain()
       check selections == 2
       view.selectedPath = treePath(2)
       view.scrollToRow(2)
@@ -137,7 +143,8 @@ proc runTests() =
       expect ValueError: view.itemWidth = -2
       expect ValueError: view.spacing = -1
       expect ValueError: view.scrollToRow(9)
-      expect ValueError: discard view.onSelectionChanged(nil)
+      let empty: proc () {.closure.} = nil
+      expect ValueError: discard view.onSelectionChanged(empty)
       rawGtk.icon_view_set_selection_mode(view.raw, rawGtk.SELECTION_MULTIPLE)
       expect ValueError: discard view.selectedIndex
       expect ValueError: view.selectedIndex = 0
@@ -178,18 +185,22 @@ proc runTests() =
         once.disconnect())
       view.activateRow(0)
       view.activateRow(0)
+      check paths.len == 0
+      drain()
       check paths == @[treePath(0)]
       view.onItemActivated(proc (index: int) =
         raise newException(ValueError, "expected icon activation error"))
       var activated = -1
       view.onItemActivated(proc (index: int) = activated = index)
       view.activateRow(0)
+      drain()
       check activated == 0
       expect ValueError: view.activateRow(3)
       expect ValueError: discard view.onItemActivated(nil)
       expect ValueError: discard view.onPathActivated(nil)
       let closer = view.onItemActivated(proc (index: int) = view.destroy())
       view.activateRow(0)
+      drain()
       check view.isDestroyed
       check not closer.connected
       check source.rowCount == 1

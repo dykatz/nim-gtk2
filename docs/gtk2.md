@@ -936,27 +936,84 @@ scroll.add(icons) # Native GTK2 scrolling; no viewport adaptation.
 normally, including pixbuf reads. Sort by scalar caption/rank columns: sorting a
 pixbuf column is rejected before GTK's built-in comparator is called.
 
+- `selectionMode` shares TreeView's TreeSelectionMode enum and its
+  selectionNone/selectionSingle/selectionBrowse/selectionMultiple values.
 - `selectedIndex` uses `-1` for no selection; assigning `-1` clears it.
-- `selectedPath` uses the virtual root for no selection. Other paths/indices
-  must identify existing rows. Native modes other than SINGLE are rejected.
-- `onSelectionChanged(proc () = ...)` observes native selection changes.
-- `onItemActivated(proc (index: int) = ...)` and
-  `onPathActivated(proc (path: TreePath) = ...)` deliver copied positional values.
-  `activateRow(index)` emits activation without selecting the row automatically.
+  `selectedPath` uses the virtual root for no selection. These convenience
+  helpers remain **SINGLE-only** rather than arbitrarily choosing among many rows.
+- `selectedPaths`/`selectedIndices` copy all selected positions in ascending model
+  order in every mode. Assignment requires MULTIPLE and validates the entire input
+  before clearing existing selection. Duplicates select the same row once.
+- `selectPath`/`unselectPath` validate existing flat positions; pathSelected checks
+  membership. selectPath rejects NONE. `selectAll` requires MULTIPLE. unselectAll
+  and unselectPath reject BROWSE because native browse selection cannot be cleared.
+- `selectedRows` creates stable TreeRowReferences in the displayed model. `selection`
+  copies IconSelection(mode,model,paths,rows), retaining the model and one stable
+  reference per path. The paths remain positional snapshots; references track later
+  reorder/insertion and become invalid on deletion or filtering out of that proxy.
+- `onSelectionChanged(proc () = ...)` now coalesces native changes at UI idle;
+  it no longer runs synchronously inside GTK's native item traversal.
+  The typed overload `proc(value: IconSelection)` collects a copied final selection
+  at idle, not a snapshot of every intermediate native emission. Neither overload
+  delivers an initial event. Mode-only changes without a native selection-change
+  emission do not generate an observation. Observers may mutate models or destroy
+  windows after GTK has finished using its selected-item list.
+- `onActivated(proc(value: IconActivation))` captures a positional path and stable
+  row reference at emission and delivers each activation at idle, without coalescing.
+  A row may already be invalid when delivered. `onItemActivated(proc(index:int))`
+  and `onPathActivated(proc(path:TreePath))` likewise now deliver at idle but expose
+  only historical positional values. Prefer the stable-row form for delayed edits.
+  Activation works in all selection modes; `activateRow(index)` emits activation
+  without selecting the row automatically.
+- `cursorPath` copies GTK's focus cursor, independently of selection. Assignment
+  validates a nonempty existing path and does not start editing. GTK has no public
+  clear-cursor operation; an unset getter returns the virtual root.
 - `scrollToRow(index)` asks GTK to bring a row into view, including deferred
   scrolling before realization.
 - `columns` and `itemWidth` accept positive values or `-1` for automatic sizing.
   `spacing`, `rowSpacing`, `columnSpacing`, and `margin` accept nonnegative pixels.
 
-Native selected-item lists and every allocated path are freed after copying.
-Callbacks contain exceptions, support self-disconnection, and are disconnected
-on widget destruction. Model coordinates remain positional: convert proxy paths
-before source edits or use a stable source row reference. Multiple selection,
-custom/editable renderers, drag-and-drop, and model replacement remain deferred.
+Mode changes explicitly clear selected items; assigning the same mode is a no-op.
+GTK2's BROWSE unselect_all is a no-op even inside set_selection_mode(NONE), so the
+SDK first leaves BROWSE through SINGLE, then clears through NONE before selecting
+the requested mode. This uses public API only. It does **not** claim to clear the
+native keyboard cursor/range anchor: GtkIconView exposes no public anchor reset.
+The fixed model is never rebound as a workaround, private fields are untouched,
+and no fake input is synthesized. Ordinary unmodified navigation establishes a
+fresh native anchor; Shift/Ctrl extension otherwise retains native semantics.
+
+```nim
+icons.selectionMode = selectionMultiple
+icons.selectedIndices = [0, 2]
+icons.onSelectionChanged(proc (value: IconSelection) =
+  for row in value.rows:
+    if row.valid: echo value.model.value(row.path, 0).stringValue)
+```
+
+Native selected-item lists, cursor paths and every allocated path are freed after
+copying. All callbacks contain exceptions, support self-disconnection and cancel
+pending delivery on disconnect or widget destruction. Payloads retain model/row
+objects, not the view. The typed selection bridge weakly borrows the native view
+until idle and pins it while collecting a snapshot; native destruction cancels the
+bridge before that pointer can be used. Explicit widget destruction/disconnection
+still breaks application self-capture cycles. All operations, callbacks and final
+releases stay on the UI thread under ARC/ORC. Native/raw synchronous handlers remain
+subject to GTK's reentrancy restrictions; do not use them to bypass these rules.
+
+Coordinates refer to the displayed model: convert proxy paths one hop at a time
+before source edits, and create stable **source** references before deleting many
+rows. A proxy reference is not automatically a source reference. Custom/editable
+renderers, model drag-and-drop and model replacement remain separate work.
 
 [`examples/icons.nim`](../examples/icons.nim) demonstrates generated color tiles,
-a scaled Image preview, filtering, sorting, selection, and activation. Validation
-compiles this sampler without launching visible windows.
+a scaled preview, multiple/single mode switching, select-all/clear, stable multi-row
+source deletion through sort/filter proxies and safe activation. Hidden tests cover
+modes, atomic validation, coalescing, reference invalidation, cancellation and
+reentrant destruction without mapping windows. A native C probe checks the cursor
+pointer-to-pointer/gboolean ABI. `testMappedIconSelection` additionally verifies real
+Shift range selection, Ctrl+A, mode transitions, Unicode and Return activation with
+XTEST on an explicitly isolated Unix X11 display. It refuses to run without
+GTK2_TEST_VIRTUAL_DISPLAY=1; never run it on an ordinary desktop.
 
 ## Calendar and selector controls
 
@@ -3584,7 +3641,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, and `tests/tgtk2modelfunctions.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, and `tests/tgtk2iconselection.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3623,13 +3680,13 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
 an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
-Other gaps include standalone popup positioning, multiple IconView selection, arbitrary/custom cell renderers beyond the audited
+Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
 rich-text child anchors/serialization, actual print jobs,

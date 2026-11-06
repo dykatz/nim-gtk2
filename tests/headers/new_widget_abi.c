@@ -3,6 +3,16 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gboolean (*NimIconCursor)(GtkIconView *, GtkTreePath **, GtkCellRenderer **);
+gboolean nim_gtk2_icon_cursor(NimIconCursor fn) {
+  GtkTreePath *path = NULL;
+  GtkCellRenderer *cell = NULL;
+  typedef char signature_check[__builtin_types_compatible_p(NimIconCursor,
+    __typeof__(&gtk_icon_view_get_cursor)) ? 1 : -1];
+  (void)sizeof(signature_check);
+  return fn((GtkIconView *)(guintptr)0x21, &path, &cell) &&
+    path == (GtkTreePath *)(guintptr)0x22 && cell == (GtkCellRenderer *)(guintptr)0x23;
+}
 gint nim_gtk2_model_compare(GtkTreeIterCompareFunc fn, gpointer data) {
   GtkTreeIter a = {0}, b = {0};
   a.stamp = 11; b.stamp = 22;

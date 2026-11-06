@@ -17,6 +17,7 @@ proc main() =
   let filtered = newTreeModelFilter(source, 2)
   let sorted = newTreeModelSort(filtered, 0)
   let icons = newIconView(sorted, pixbufColumn = 1, textColumn = 0)
+  icons.selectionMode = selectionMultiple
   icons.itemWidth = 90
   icons.spacing = 8
   icons.margin = 10
@@ -36,26 +37,51 @@ proc main() =
   let reverse = newCheckButton("Reverse name order")
   actions.packStart(warmOnly, packShrink)
   actions.packStart(reverse, packShrink)
+  let multiple = newCheckButton("Multiple selection")
+  multiple.active = true
+  let all = newButton("Select all")
+  let clear = newButton("Clear")
+  let remove = newButton("Delete selected")
+  actions.packStart(multiple, packShrink)
+  actions.packStart(all, packShrink)
+  actions.packStart(clear, packShrink)
+  actions.packStart(remove, packShrink)
   layout.packStart(actions, packShrink)
-  let status = newLabel("Double-click an icon to activate it")
+  let status = newLabel("Shift/Ctrl select icons; Ctrl+A selects all. Double-click or Return activates.")
   layout.packStart(status, packShrink)
-  icons.onSelectionChanged do ():
-    let index = icons.selectedIndex
-    if index < 0:
+  icons.onSelectionChanged do (value: IconSelection):
+    if value.rows.len == 0:
       preview.clear()
       caption.text = "Choose an icon"
     else:
-      let model = icons.model
-      preview.pixbuf = model.value(index, 1).pixbufValue.scaled(112, 112)
-      caption.text = model.value(index, 0).stringValue
-  icons.onItemActivated do (index: int):
-    status.text = "Activated: " & icons.model.value(index, 0).stringValue
+      let row = value.rows[0]
+      if row.valid:
+        preview.pixbuf = value.model.value(row.path, 1).pixbufValue.scaled(112, 112)
+        caption.text = $value.rows.len & " selected; preview: " & value.model.value(row.path, 0).stringValue
+  icons.onActivated do (value: IconActivation):
+    if value.row.valid:
+      status.text = "Activated: " & value.row.model.value(value.row.path, 0).stringValue
+  multiple.onToggled do ():
+    icons.selectionMode = if multiple.active: selectionMultiple else: selectionSingle
+    all.sensitive = multiple.active
+  all.onClicked do (): icons.selectAll()
+  clear.onClicked do (): icons.unselectAll()
+  remove.onClicked do ():
+    # Resolve each proxy reference through both layers before deleting anything.
+    var originals: seq[TreeRowReference]
+    for row in icons.selectedRows:
+      if row.valid:
+        let path = filtered.toChildPath(sorted.toChildPath(row.path))
+        originals.add(newTreeRowReference(source, path))
+    for row in originals:
+      if row.valid: source.removeRow(row.path.indices[0])
   warmOnly.onToggled do ():
     for row in 0 ..< source.rowCount:
-      source.setValue(row, 2, cell(not warmOnly.active or row < 2))
+      let name = source.value(row, 0).stringValue
+      source.setValue(row, 2, cell(not warmOnly.active or name in ["Ruby", "Amber"]))
   reverse.onToggled do ():
     sorted.sortBy(0, if reverse.active: sortDescending else: sortAscending)
-  icons.selectedIndex = 0
+  icons.selectedIndices = [0]
   window.run()
 
 when isMainModule:

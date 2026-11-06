@@ -6,6 +6,7 @@ import headers/gdk2pixbuf as rawPixbuf
 from headers/gdk2 import TColor
 import headers/gdk2 as rawGdk except string
 import headers/cairo as rawCairo
+import std/algorithm as uiAlgorithm
 import std/xmlparser as uiXmlParser
 import std/xmltree as uiXmlTree
 
@@ -446,3 +447,4 @@ include gtk2/builder
 include gtk2/uimanager
 include gtk2/completion
 include gtk2/modelfunctions
+include gtk2/iconselection

@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+IconView now supports checked multiple selection, copied/coalesced idle observations,
+stable row references and deferred activation. See the expanded
+[icon example](examples/icons.nim) and [IconView guide](docs/gtk2.md#iconview).
+`testMappedIconSelection` requires an opted-in isolated display and XTEST on Unix X11.
 Custom model comparison/visibility functions and text cell presentation now take
 copied typed rows with synchronous reentrancy guards and explicit refresh/cleanup.
 Fixed pixbuf columns are also available. See the expanded

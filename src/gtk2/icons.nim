@@ -1,5 +1,9 @@
-# Included by gtk2.nim. Flat models, fixed bindings, plain text, single selection.
-type IconView* = object of Container
+# Included by gtk2.nim. Flat models, fixed bindings and plain text.
+type
+  IconView* = object of Container
+  IconActivation* = object
+    path*: TreePath
+    row*: TreeRowReference
 proc raw*(w: IconView): ptr rawGtk.IconView = cast[ptr rawGtk.IconView](raw(Widget(w)))
 proc model*(w: IconView): TreeModel = ownedTreeModel(rawGtk.icon_view_get_model(w.raw))
 proc newIconView*(model: TreeModel, pixbufColumn: int, textColumn = -1): IconView =
@@ -41,17 +45,18 @@ proc `selectedPath=`*(w: IconView, path: TreePath) =
 proc `selectedIndex=`*(w: IconView, index: int) =
   if index == -1: w.selectedPath = treePath()
   else: w.selectedPath = treePath(index)
+proc connectIconSelection(w: IconView, fn: proc () {.closure.}): Connection
 proc onSelectionChanged*(w: IconView, fn: proc () {.closure.}): Connection {.discardable.} =
-  checkIconSelection(w)
-  connect(w, "selection-changed", fn, after = true)
+  connectIconSelection(w, fn)
+proc onActivated*(w: IconView, fn: proc (value: IconActivation) {.closure.}): Connection {.discardable.}
 proc onPathActivated*(w: IconView, fn: proc (path: TreePath) {.closure.}): Connection {.discardable.} =
-  checkIconSelection(w)
-  connectModelPath(w, "item-activated", fn, deleted = true)
+  if fn == nil: raise newException(ValueError, "activation callback cannot be nil")
+  w.onActivated(proc (value: IconActivation) = fn(value.path))
 proc onItemActivated*(w: IconView, fn: proc (index: int) {.closure.}): Connection {.discardable.} =
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
   w.onPathActivated(proc (path: TreePath) = fn(path.indices[0]))
 proc activateRow*(w: IconView, index: int) =
-  checkIconSelection(w)
+  checkFlatModel(w.model.raw)
   discard rowIter(w.model, index)
   let native = nativeTreePath(treePath(index))
   defer: rawGtk.free(native)
