@@ -30,6 +30,26 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Native rich-text serialization
+
+Public raw rich-text registration, native codec callbacks, transferred atom arrays
+and serialize/deserialize operations now use pointer-width GdkAtom/gsize, native
+gboolean and GError**. C probes exercise wide values and exact callback ABI.
+
+The ergonomic TextFormat owns a private registration buffer with immutable tag
+creation policy; SerializedText owns copied binary bytes and native format identity.
+Serialization uses an exact detached insert_range snapshot to avoid GTK2's
+past-end image scan. Anchors/non-pixbuf U+FFFC are rejected before its native progress
+bug. Imports decode into an unobserved new buffer, optionally sharing an existing
+tag table only when creation is forbidden. No application callback runs mid-import.
+
+Native section framing is checked before dispatch, but XML/pixdata remain trusted
+native data, not a sandbox. The opt-in tests/headers/text_serialization.c diagnostic
+and patches/gtk2-text-serialization.patch document native progress/error/cleanup
+defects; installed libraries and native warnings are unchanged. See docs/gtk2.md
+for policy, object limits and the expanded text example. Rich clipboard, live
+insertion, custom ergonomic codecs and undo remain separate work.
+
 ### Text child anchors and embedded widgets
 
 TextChildAnchor uses owned non-floating GObject handles and public buffer/iterator/

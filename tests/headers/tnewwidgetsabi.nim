@@ -13,6 +13,10 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type RawTextDeserialize = proc (registration, content: gtk.PTextBuffer, format: TAtom,
+  iter: gtk.PTextIter, bytes: ptr g.guint8, length: g.gsize, error: ptr ptr g.GError): g.gboolean {.cdecl.}
+proc invokeTextSerialization(serialize: gtk.TTextBufferSerializeFunc, deserialize: RawTextDeserialize): g.gboolean
+  {.cdecl, importc: "nim_gtk2_text_serialization_abi".}
 type
   AnchorInsert = proc (buffer: gtk.PTextBuffer, iter: gtk.PTextIter, anchor: gtk.PTextChildAnchor) {.cdecl.}
   AnchorDeleted = proc (anchor: gtk.PTextChildAnchor): g.gboolean {.cdecl.}
@@ -187,6 +191,22 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "rich text native callback, atom/gsize/gboolean and GError double-pointer ABI":
+    proc serialize(registration, content: gtk.PTextBuffer, first, last: gtk.PTextIter,
+        length: ptr g.gsize, data: pointer): ptr g.guint8 {.cdecl.} =
+      doAssert cast[uint](registration) == 0x51 and cast[uint](content) == 0x52
+      doAssert cast[uint](first) == 0x53 and cast[uint](last) == 0x54 and cast[uint](data) == 0x55
+      length[] = when sizeof(pointer) == 8: g.gsize(0x100000033'u64) else: g.gsize(0x33)
+      cast[ptr g.guint8](0x61)
+    proc deserialize(registration, content: gtk.PTextBuffer, format: TAtom,
+        iter: gtk.PTextIter, bytes: ptr g.guint8, length: g.gsize, error: ptr ptr g.GError): g.gboolean {.cdecl.} =
+      doAssert cast[uint](registration) == 0x51 and cast[uint](content) == 0x52
+      doAssert cast[uint](iter) == 0x53 and cast[uint](bytes) == 0x61
+      doAssert format == TAtom(length)
+      error[] = cast[ptr g.GError](0x71)
+      g.gboolean(17)
+    check g.toBool(invokeTextSerialization(serialize, deserialize))
+
   test "text child anchor insert/deleted pointer and gboolean ABI":
     proc insert(buffer: gtk.PTextBuffer, iter: gtk.PTextIter, anchor: gtk.PTextChildAnchor) {.cdecl.} =
       doAssert cast[uint](buffer) == 0x51 and cast[uint](iter) == 0x52 and cast[uint](anchor) == 0x53

@@ -1,0 +1,36 @@
+--- a/gtk/gtktextbufferserialize.c
++++ b/gtk/gtktextbufferserialize.c
+@@ -548,6 +548,8 @@ serialize_text (GtkTextBuffer        *buffer,
+ 		  context->n_pixbufs++;
+ 		  context->pixbufs = g_list_prepend (context->pixbufs, pixbuf);
+ 		}
++	      else
++		gtk_text_iter_forward_char (&iter);
+ 	    }
+           else if (ch == 0)
+             {
+@@ -1619,6 +1621,8 @@ static void
+ text_span_free (TextSpan *span)
+ {
+   g_free (span->text);
++  if (span->pixbuf)
++    g_object_unref (span->pixbuf);
+   g_slist_free (span->tags);
+   g_free (span);
+ }
+@@ -1632,6 +1636,7 @@ parse_info_free (ParseInfo *info)
+ 
+   g_hash_table_destroy (info->substitutions);
+   g_hash_table_destroy (info->defined_tags);
++  g_hash_table_destroy (info->anonymous_tags);
+ 
+   if (info->current_tag)
+     g_object_unref (info->current_tag);
+@@ -1686,6 +1691,7 @@ insert_text (ParseInfo   *info,
+ 	{
+ 	  gtk_text_buffer_insert_pixbuf (info->buffer, iter, span->pixbuf);
+ 	  g_object_unref (span->pixbuf);
++	  span->pixbuf = NULL;
+ 	}
+       gtk_text_buffer_get_iter_at_mark (info->buffer, &start_iter, mark);
+ 

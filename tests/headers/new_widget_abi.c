@@ -3,6 +3,23 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gboolean (*NimTextDeserialize)(GtkTextBuffer *, GtkTextBuffer *, GdkAtom,
+  GtkTextIter *, const guint8 *, gsize, GError **);
+gboolean nim_gtk2_text_serialization_abi(GtkTextBufferSerializeFunc serialize, NimTextDeserialize deserialize) {
+  typedef char signature[__builtin_types_compatible_p(NimTextDeserialize,
+    __typeof__(&gtk_text_buffer_deserialize)) ? 1 : -1];
+  gsize length = 0, wide = sizeof(gsize) == 8 ? (gsize)0x100000033ULL : 0x33;
+  GError *error = NULL;
+  guint8 *bytes;
+  (void)sizeof(signature);
+  bytes = serialize((GtkTextBuffer *)(guintptr)0x51, (GtkTextBuffer *)(guintptr)0x52,
+    (const GtkTextIter *)(guintptr)0x53, (const GtkTextIter *)(guintptr)0x54,
+    &length, (gpointer)(guintptr)0x55);
+  if (bytes != (guint8 *)(guintptr)0x61 || length != wide) return FALSE;
+  return deserialize((GtkTextBuffer *)(guintptr)0x51, (GtkTextBuffer *)(guintptr)0x52,
+    (GdkAtom)(guintptr)wide, (GtkTextIter *)(guintptr)0x53, bytes, wide, &error) == 17 &&
+    error == (GError *)(guintptr)0x71;
+}
 typedef void (*NimAnchorInsert)(GtkTextBuffer *, GtkTextIter *, GtkTextChildAnchor *);
 typedef gboolean (*NimAnchorDeleted)(GtkTextChildAnchor *);
 gboolean nim_gtk2_text_anchor_abi(NimAnchorInsert insert, NimAnchorDeleted deleted) {

@@ -139,6 +139,11 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Native rich-text save/load now uses explicit owned formats, copied binary data,
+checked tag policy and detached imports. See [examples/text.nim](examples/text.nim)
+and the [serialization guide](docs/gtk2.md#native-rich-text-serialization). This is
+trusted GTK2 data, not RTF/HTML or an untrusted-file parser; widgets are not saved.
+`testMappedTextSerialization` requires an explicitly opted-in isolated display.
 TextView now supports owned buffer-bound child anchors and checked inline widgets,
 including different widgets in shared-buffer views and one-shot idle deletion
 observations. See the expanded [text example](examples/text.nim) and

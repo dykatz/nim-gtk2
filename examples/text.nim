@@ -23,12 +23,12 @@ proc main() =
   layout.packStart(actions, packShrink)
   layout.packStart(newLabel("Edit on the left; the right view shares the same buffer."), packShrink)
 
-  let buffer = newTextBuffer("Hello, Nim!\nUnicode: λ, 界, 🙂\nSelect some text or start typing.\n")
-  let emphasis = buffer.createTag("emphasis")
+  var buffer = newTextBuffer("Hello, Nim!\nUnicode: λ, 界, 🙂\nSelect some text or start typing.\n")
+  var emphasis = buffer.createTag("emphasis")
   emphasis.bold = true
   emphasis.underline = true
   emphasis.setForeground(rgba16(5000, 12000, 50000))
-  let bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
+  var bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
   let tools = newHBox(spacing = 6)
   let query = newEntry("λ")
   let find = newButton("Find next")
@@ -48,6 +48,17 @@ proc main() =
   anchorTools.packStart(newLabel("One buffer anchor, different widgets in each view"), packShrink)
   layout.packStart(anchorTools, packShrink)
   var inline: TextChildAnchor
+  let files = newHBox(spacing = 6)
+  let filePath = newEntry("text.gtk2rt")
+  let saveRich = newButton("Save native rich text")
+  let loadRich = newButton("Load trusted file")
+  files.packStart(filePath)
+  files.packStart(saveRich, packShrink)
+  files.packStart(loadRich, packShrink)
+  layout.packStart(files, packShrink)
+  # Native GTK2 binary data, not RTF/HTML or a clipboard format. The application
+  # explicitly selects this named codec and permits imported tags in a fresh buffer.
+  let richFormat = newTextFormat("nim-gtk2-text-example", canCreateTags = true)
   let editor = newTextView(buffer)
   let mirror = newTextView(buffer)
   editor.wrapMode = wrapWordChar
@@ -73,9 +84,43 @@ proc main() =
       " lines; cursor " & $buffer.cursorOffset &
       (if buffer.modified: " — modified" else: " — saved")
 
-  buffer.onChanged(proc () = refresh())
-  buffer.onModifiedChanged(proc () = refresh())
-  buffer.onCursorMoved(proc () = refresh())
+  proc watchBuffer() =
+    buffer.onChanged(proc () = refresh())
+    buffer.onModifiedChanged(proc () = refresh())
+    buffer.onCursorMoved(proc () = refresh())
+  watchBuffer()
+  saveRich.onClicked(proc () =
+    try:
+      let snapshot = buffer.serialize(richFormat)
+      writeFile(filePath.text, snapshot.data) # Binary string, including NUL bytes.
+      buffer.modified = false
+      status.text = "Saved " & $snapshot.byteCount & " bytes to " & filePath.text
+    except CatchableError as error: status.text = error.msg)
+  loadRich.onClicked(proc () =
+    try:
+      # Decode detached before touching either live view. Failure leaves the editor
+      # unchanged; no live changed observers can invalidate native import iterators.
+      let loaded = richFormat.deserialize(newSerializedText(richFormat, readFile(filePath.text)))
+      var imported: TextTag
+      try: imported = loaded.tag("emphasis")
+      except ValueError:
+        imported = loaded.createTag("emphasis")
+        imported.bold = true
+        imported.underline = true
+      let mark = loaded.createMark(0, "bookmark", leftGravity = true)
+      buffer.disconnectSignals()
+      if not inline.isDestroyed: inline.disconnectSignals()
+      inline = default(TextChildAnchor)
+      editor.buffer = loaded
+      mirror.buffer = loaded
+      buffer = loaded
+      emphasis = imported
+      bookmark = mark
+      watchBuffer()
+      buffer.modified = false
+      refresh()
+      status.text = "Loaded " & filePath.text & "; marks/history/inline widgets are not serialized"
+    except CatchableError as error: status.text = error.msg)
   # GObject buffers have no destroy signal. Break buffer -> closure -> widget
   # cycles when closing the window, while retaining normal native ownership.
   window.onDestroy(proc () =

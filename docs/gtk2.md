@@ -2652,9 +2652,9 @@ insertImage(offset,Pixbuf) inserts an owning native pixbuf segment occupying one
 character. Ordinary text/textRange omit objects; slice(first,last,includeHidden)
 returns U+FFFC object replacement characters, preserving offset correspondence.
 All operations still resolve fresh native iterators and copy/free returned strings.
-Embedded child widgets/anchors are covered in their dedicated guide below. Rich
-clipboard protocols, serialization and undo remain separate work. Plain-text
-clipboard integration is covered below.
+Embedded child widgets/anchors and native rich-text serialization are covered in
+their dedicated guides below. Rich clipboard protocols and undo remain separate
+work. Plain-text clipboard integration is covered below.
 
 ### Editable columns and multiple selection
 
@@ -3698,9 +3698,152 @@ pointer/gboolean/cdecl ABI. testMappedTextAnchors maps real inline buttons/entri
 in two views, checks allocation, then exercises deletion and buffer replacement;
 it requires an explicitly isolated display and GTK2_TEST_VIRTUAL_DISPLAY=1.
 
-Rich-text serialization, rich clipboard, undo/redo, fixed-position TextView window
-children and arbitrary raw/Builder anchor wrapping remain separate work. Embedded
-widgets have no implicit save/load representation. See TODO.md for the next batch.
+Native rich-text serialization is covered below; anchors/widgets deliberately have
+no implicit save/load representation. Rich clipboard, undo/redo, fixed-position
+TextView window children and arbitrary raw/Builder anchor wrapping remain separate
+work. See TODO.md for the next batch.
+
+## Native rich-text serialization
+
+This surface reads/writes **GTK2's own binary tagset format for trusted application
+data**, not RTF, HTML, a portable document standard or a safe parser for untrusted
+files. The expanded [text example](../examples/text.nim) has an explicit path entry,
+Save and Load trusted file buttons. Loading first decodes a detached document, then
+replaces both views; parse/read errors leave the live editor untouched. Saving a
+selection is available through the API, but the example saves the whole buffer.
+Neither path negotiates rich clipboard formats or records undo/history.
+
+```nim
+let codec = newTextFormat("my-editor-v1", canCreateTags = true)
+let saved = buffer.serialize(codec) # Or serialize(codec, first, last).
+writeFile("document.gtk2rt", saved.data) # Binary string; embedded NUL is normal.
+let loaded = codec.deserialize(newSerializedText(codec, readFile("document.gtk2rt")))
+view.buffer = loaded # Explicit application commit, after successful decoding.
+loaded.modified = false # Explicit application save/load policy.
+```
+
+### Native formats and copied binary data
+
+TextFormat is a copyable owned descriptor. newTextFormat(tagset="",canCreateTags=false)
+registers GTK's native serialize/deserialise tagset functions on a **private owned
+registration buffer**, never on a live application/content buffer. There are no
+user codec callbacks, mutable registration tables or public raw controller pointers.
+Dropping the last descriptor copy releases this ordinary non-floating native owner;
+no explicit close/unregister ordering or native callback-data capture is required.
+
+mimeType is copied from native gdk_atom_name. An empty tagset selects
+application/x-gtk-text-buffer-rich-text; a nonempty name selects the native
+;format=NAME suffix. Names are checked portable ASCII letters/digits/hyphen/underscore,
+maximum 64 characters. Native GdkAtom identity is preserved internally with its
+pointer width; the SDK does not invent a codec or infer a format from a filename.
+Descriptors with the same name are compatible, but their tag-creation policies are
+independent because their registration owners are distinct. The default native
+serialization registration on a GtkTextBuffer does not get overwritten by a public
+SDK descriptor: its buffer is private.
+
+SerializedText owns copied binary bytes and native format identity. data returns a
+fresh binary string, byteCount counts bytes (not characters), and mimeType is the
+copied native name. It retains neither source buffer, tags, pixbufs nor descriptor.
+newSerializedText(format,binaryString) copies imported bytes and explicitly associates
+the caller-selected format. deserialize rejects incompatible format identities.
+The bytes themselves do **not** encode the MIME/tagset name: persist that separately
+if an application supports multiple formats. A caller claiming a format on imported
+bytes is not authentication, schema enforcement or content-type detection.
+
+Native serialize allocations are copied by returned gsize and g_free'd, never
+strlen'd; GError messages are copied and every returned error is freed. Native
+format-array getters in headers/gtk2 return transfer-full arrays of borrowed atoms;
+raw callers free the array, not atoms. Raw custom codec registration and signatures
+are available there, not exposed as ergonomic application callbacks.
+
+### Exact ranges, tags, images and unsupported objects
+
+serialize(buffer,format,first=0,last=-1) uses checked Unicode offsets and ordered
+ranges; -1 means buffer end only for last. It checks the selected range, then uses
+public gtk_text_buffer_insert_range to copy text/tags/pixbufs into an unobserved
+buffer sharing the source tag table. GTK serializes that snapshot's full range.
+This is necessary because GTK2's serializer scans beyond a requested end before
+clamping and can include out-of-range images or produce invalid markup. The snapshot
+preserves exact boundaries and source tag identity; no source text/modified/cursor
+changes or SDK changed observations occur. Native temporary marks used during
+insert_range are not saved. Raw mark/signal hooks must not reenter this operation.
+
+Named/anonymous tag properties, relative priority, invisible characters and embedded
+pixbuf pixels are handled by the native codec. New native pixbufs are owned by the
+decoded document. Marks, cursor/selection state, modified flag/history, view settings,
+widgets and application callback connections are not document data; establish them
+explicitly after loading. An empty document or empty selected range is supported.
+
+Anchors and **literal U+FFFC** in the selected range are rejected before native
+serialization. GTK2's serializer does not advance over a non-pixbuf U+FFFC and can
+hang. No widgets are silently omitted, converted to text or reconstructed. Genuine
+pixbuf replacement characters are supported. Unsupported characters outside the
+selected range do not prevent saving a valid range, since the private snapshot
+contains only that range. A literal U+FFFC imported through native XML remains a
+literal character, not an anchor; saving it later is subject to this same check.
+
+### Detached import and tag policy
+
+deserialize(format,SerializedText,tagsFrom=default(TextBuffer)) returns a new
+**detached** TextBuffer. It never inserts into a live observed buffer: GTK emits
+synchronous changes while continuing to use iterators/tags. Application callbacks
+cannot see or mutate the destination until import completes. On failure the private
+buffer and its native tags are released; an existing document is not rolled back
+because it was never modified. On success ordinary TextBuffer operations/callbacks
+work normally. Setting view.buffer is a separate explicit commit, not a transaction
+across windows. Replacing an old view buffer follows the anchor cleanup rules above.
+
+canCreateTags is immutable and defaults false. With false, named tags must already
+exist, anonymous/unknown tags fail, and existing tag **properties win** over serialized
+properties. To provide a fixed schema, pass tagsFrom=anExistingBuffer: the returned
+buffer shares its native tag table, but not its text, marks or changed callbacks.
+Returned tag handles have the same native identity as schema tags; subsequent tag
+property edits affect all buffers sharing that table. This is sharing, not cloning.
+Without tagsFrom, false can import untagged data into an empty table.
+
+With canCreateTags=true, import uses a fresh tag table and permits the native codec
+to create named/anonymous tags. Combining it with tagsFrom is rejected, preventing
+partial parser-created tag pollution of an application table. The native parser
+can create tags before reporting a later XML error; private destination ownership
+contains these side effects. A native tagset/MIME name alone is not a tag allowlist.
+
+### Limits, native diagnostics and validation
+
+newSerializedText validates the audited GTK2 native outer section framing: known
+first content/subsequent pixdata section identifiers, positive in-bounds big-endian
+lengths and total length below native signed-gint limits. It rejects empty,
+truncated, unknown-header, negative/overflowing-length and trailing-section data
+before GTK can take known bad paths. It does not parse/rewrite the XML or pixdata
+bodies, guess another codec or make GTK's old native parser safe for untrusted
+input. Malformed properties/images can still trigger native resource consumption
+or defects. Use trusted data from a controlled application, not arbitrary uploads.
+
+Audited GTK 2.24.33 also leaks its anonymous-tag parser hash table on imports and
+can leak decoded pixbuf spans on later parse failure. The optional, **not applied**
+[gtk2-text-serialization.patch](../patches/gtk2-text-serialization.patch) fixes these
+native cleanup defects and the U+FFFC progress bug. It does not fix range scanning
+or turn the parser into a security boundary. The SDK keeps its snapshot/rejection
+contract even with patched GTK. Native GTK rich-clipboard serialization outside
+this API can still encounter the progress/range defects; the SDK does not globally
+rewrite clipboard registrations or native key bindings. No native warnings are
+hidden, private GTK fields inspected at runtime or installed libraries modified.
+
+The opt-in C diagnostic tests/headers/text_serialization.c maps no windows. Compile
+with GTK2 development flags (`gcc -m64` and `/usr/lib/64/pkgconfig` on illumos).
+--anchor/--literal use a two-second alarm to report the native hang; --past-end
+reports native out-of-range image corruption; --bad-header with G_DEBUG=fatal-warnings
+exposes GTK's invalid domain-zero GError fallback. These expected-failure probes
+are not part of normal SDK tests. Disable core dumps when running fatal diagnostics.
+
+Hidden tests/tgtk2textserialization.nim covers raw registration/array ownership,
+owned binary copies, format matching, weak source lifetime, tag policy/shared
+schema, Unicode/invisible text, exact ranges/images, rejected objects and errors.
+C probes cover native callbacks, pointer-sized atoms/gsize, gboolean and GError**.
+testMappedTextSerialization checks restored tag/image layout and explicit two-view
+buffer replacement; like other mapped suites it requires an opted-in isolated
+display and GTK2_TEST_VIRTUAL_DISPLAY=1. Calls and final releases remain UI-thread
+ARC/ORC operations. Rich clipboard negotiation, live insertion, custom codecs,
+widget serialization and undo/redo remain separate work.
 
 ## Ownership and safety contract
 
@@ -3762,7 +3905,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, and `tests/tgtk2textanchors.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, and `tests/tgtk2textserialization.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -3801,7 +3944,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -3810,7 +3953,7 @@ Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
-rich-text serialization/clipboard and undo, actual print jobs,
+rich clipboard/undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.

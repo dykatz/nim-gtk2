@@ -449,3 +449,4 @@ include gtk2/completion
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors
+include gtk2/textserialization

@@ -8,18 +8,44 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: rich-text serialization
+## Next proposed batch: rich clipboard negotiation
 
-- [ ] Audit GTK2's serialization/deserialization format registration, copied binary
-      data ownership, tag creation policy and error cleanup.
-- [ ] Add an explicit checked format/serialization surface for trusted application
-      data, preserving native format identity rather than guessing byte layouts.
-- [ ] Define behavior for tags, pixbufs, object replacement characters and unsupported
-      embedded widget reconstruction. Anchors/widgets have no implicit save/load form.
-- [ ] Expand the text example with explicit save/load choices and add hidden ARC/ORC
-      round-trip/error tests, ABI probes and isolated layout checks as needed.
+- [ ] Audit native rich-text clipboard request/offer ownership, cancellation and
+      selection lifetime independently of existing plain-text helpers.
+- [ ] Require explicit trust/format/tag policy before native rich-text parsing;
+      never automatically decode arbitrary desktop owners with GTK2's old parser.
+- [ ] Prefer detached decode and an explicit application commit. Define plain-text
+      fallback, unsupported anchors/widgets and stale view/buffer cancellation.
+- [ ] Expand the text example; hidden tests must not claim clipboard ownership,
+      while foreign-owner/clipboard tests require an opted-in isolated display.
 
-Rich clipboard negotiation, undo/redo and model drag-and-drop remain separate batches.
+Live rich-text insertion, custom codecs, undo/redo and model drag-and-drop remain
+separate batches. Native parser safety may constrain rich clipboard scope.
+
+## Completed batch: native rich-text serialization
+
+- [x] Audited native registration, callback signatures, atom/array/binary ownership,
+      tag creation policy, error cleanup and synchronous import timing.
+- [x] Private owned TextFormat registration buffers, copied SerializedText data and
+      native MIME identity; no application buffer's clipboard formats are modified.
+- [x] Exact range snapshots through public insert_range avoid GTK2 past-end scanning;
+      selected anchors/literal U+FFFC are rejected before its native progress bug.
+- [x] Fresh detached imports prevent changed observers invalidating native iterators;
+      false tag policy can share a fixed schema, while true requires a fresh table.
+- [x] Audited native framing validation rejects unsafe outer lengths/unknown headers;
+      native XML/pixdata remain trusted data, not a security boundary or guessed codec.
+- [x] Explicit file save/load in examples/text.nim, Unicode/tag/image/range/error and
+      weak source lifetime tests, raw registration/array checks and ABI probes.
+- [x] Hidden ARC/ORC and isolated mapped layout/two-view replacement coverage.
+- [x] Native defect diagnostic and optional source patch; installed GTK unchanged.
+
+Discovered native gaps: serializer hangs on non-pixbuf U+FFFC, scans beyond a range
+end, and the unknown-first-header fallback uses an invalid GError domain. Native
+imports also leak an anonymous-tag hash table, and decoded pixbuf spans on later
+parse errors. The SDK guards known framing/progress/range paths; the optional patch
+fixes progress and parser cleanup, not full native parser safety or range scanning.
+Widgets/anchors, marks/history/view settings and application callbacks have no
+implicit serialized representation.
 
 ## Completed batch: TextView child anchors and embedded widgets
 
@@ -86,8 +112,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Text editing
 
-- [ ] Rich-text serialization (next proposed batch above).
-- [ ] Rich clipboard formats and negotiation.
+- [ ] Rich clipboard formats and negotiation (next proposed batch above).
+- [ ] Live rich-text insertion with a safe native reentrancy/commit contract.
+- [ ] Custom ergonomic codecs and any explicit widget save/load representation.
 - [ ] Undo/redo support with an explicit application-facing history contract.
 
 ### Completion and input
@@ -148,6 +175,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Native rich-text serialization with copied data, private formats, detached
+      imports, tag policy, exact ranges and explicit file save/load (above).
 - [x] TextView child anchors, shared-view inline widgets, weak buffer ownership and
       one-shot idle deletion observations (above).
 - [x] Multiple IconView selection, copied idle observations, stable activation
