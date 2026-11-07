@@ -9,6 +9,66 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextTagTable raw migration: public construction and traversal
+
+Removed table_add_buffer/table_remove_buffer, formerly bound to the private
+_gtk_text_tag_table_* registration hooks, without aliases or replacement bookkeeping.
+Those hooks manipulate GTK's weak list of buffers and native BTree tag cleanup;
+they are not an application attach/detach API. Use public text_buffer_new(table) for
+initial sharing, and ordinary final unref for buffer teardown. Never write table
+hash/anonymous/count/buffers fields, register a buffer twice, manually unregister it,
+retarget private table pointers or repair native lists. ABI storage is retained,
+not endorsed for access. No installed GTK changes or native patches are needed.
+
+Source audit of GTK2.24.33 gtktexttagtable.c and gtktextbuffer.c confirms:
+
+- text_tag_table_new returns an owned nonfloating GObject, not a widget/boxed value.
+  text_buffer_new(table) refs its supplied table and internally registers itself;
+  get_tag_table returns borrowed, lazily creating a default table if needed. The
+  public GObject tag-table property is construct-only, not a live table setter;
+  initial GtkBuilder/GObject construction likewise uses GTK's native registration.
+  Each buffer unregisters itself on native finalization. Tables do not own buffers.
+- table_add returns void in GTK2, requires a detached tag and unique named-tag names,
+  and refs the tag. Duplicate names/foreign membership are native precondition
+  violations, not an SDK merge or recovery path. Anonymous tags can coexist; a raw
+  empty-string name is still named, unlike the SDK createTag("") anonymous policy.
+- table_lookup returns borrowed or nil, not a fresh ref. Retain before removing the
+  tag or releasing its owner. Explicit table_remove strips that tag's ranges from
+  **all** registered buffers, removes membership, compacts priorities, emits
+  tag-removed and releases the table's tag ref. Adding/name reuse does not apply
+  ranges or make an old detached SDK handle a member again.
+- Table finalization detaches/releases tags **without** emitting tag-removed. A
+  retained raw tag does not own its table; a retained SDK TextTag deliberately owns
+  its recorded table handle but still does not keep document buffers alive.
+- table_foreach is a synchronous scope-call callback with borrowed tag/data and
+  unspecified order, not priority order. The table must stay alive. Do not add/remove
+  members during traversal, pump nested events, destroy relevant owners or let Nim
+  exceptions cross the C boundary. A ref taken in the callback retains that tag,
+  but does not legalize table mutation. If changes are needed, collect owned refs
+  without mutation, return from foreach, then operate and release on the UI thread.
+
+Sharing a table shares tag definitions, not text, cursors or ranges. Native
+registration/removal cannot be emulated by SDK lists. Existing checked membership
+uses public foreach with an internal pointer-comparison callback only; no user
+callback/reflection/traversal wrapper, public table handle, rebinding/cache reset
+or new source of application authorization was introduced. Existing pinning protects
+specified native owners, **not every peer buffer**: raw callbacks must not destroy
+other registered buffers or alter membership during table-wide removal/BTree
+traversal. The private buffer registry cannot be safely enumerated or repaired by
+the SDK. Readonly/view defaults and styling remain native, not security boundaries.
+
+Seven additional constructor/type/class callback signature checks, full table field
+offsets and C-to-Nim foreach/tag-changed/added/removed callback probes preserve ABI.
+Unrealized tests/tgtk2tagtables.nim covers ownership, borrowed lookup retention,
+named/empty/anonymous traversal, post-traversal removal, silent table finalization,
+shared-buffer teardown and native range removal/name reuse. Compile/source guards
+reject removed hooks and private-list access in implementations. Isolated
+testMappedTextTags now checks both separate buffers repainting, table-wide removal
+and peer finalization without private registration or a simulated cache reset.
+The text example's anonymous highlight toggle performs real table-wide deletion
+visible in both views, independently of property unsetting. Normal tests never
+realize/map, claim PRIMARY, request selections or synthesize input.
+
 ## GtkTextTag raw migration: real override properties
 
 Removed **48 private flag/padding helpers and 48 mask/shift constants**, without

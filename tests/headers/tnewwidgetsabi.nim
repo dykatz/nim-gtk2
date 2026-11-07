@@ -17,6 +17,21 @@ else:
 type TagEvent = proc (tag: gtk.PTextTag, obj: g.PGObject, event: gd.PEvent, iter: gtk.PTextIter): g.gboolean {.cdecl.}
 proc tagStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_tag_storage_abi".}
 proc tagApi(event: TagEvent): g.gboolean {.cdecl, importc: "nim_gtk2_tag_api_abi".}
+proc tagTableStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_tag_table_storage_abi".}
+proc tagTableApi(klass: gtk.PTextTagTableClass, visit: gtk.TTextTagTableForeach): g.gboolean {.cdecl, importc: "nim_gtk2_tag_table_api_abi".}
+var tableCallbackMask: int
+proc changedTable(table: gtk.PTextTagTable, tag: gtk.PTextTag, changed: g.gboolean) {.cdecl.} =
+  doAssert cast[uint](table) == 0xc1 and cast[uint](tag) == 0xc2 and g.gint(changed) == -93
+  tableCallbackMask = tableCallbackMask or 1
+proc addedTable(table: gtk.PTextTagTable, tag: gtk.PTextTag) {.cdecl.} =
+  doAssert cast[uint](table) == 0xc1 and cast[uint](tag) == 0xc2
+  tableCallbackMask = tableCallbackMask or 2
+proc removedTable(table: gtk.PTextTagTable, tag: gtk.PTextTag) {.cdecl.} =
+  doAssert cast[uint](table) == 0xc1 and cast[uint](tag) == 0xc2
+  tableCallbackMask = tableCallbackMask or 4
+proc visitTable(tag: gtk.PTextTag, data: pointer) {.cdecl.} =
+  doAssert cast[uint](tag) == 0xc2 and cast[uint](data) == 0xc3
+  tableCallbackMask = tableCallbackMask or 8
 type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
 proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
 proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
@@ -255,6 +270,18 @@ suite "new raw binding native header ABI":
     var klass: gtk.TTextTagClass
     klass.event = event
     check g.toBool(tagApi(klass.event))
+
+  test "TextTagTable public constructors/traversal and full native storage ABI":
+    let layout = [offsetOf(gtk.TTextTagTable, hash), offsetOf(gtk.TTextTagTable, anonymous),
+      offsetOf(gtk.TTextTagTable, anon_count), offsetOf(gtk.TTextTagTable, buffers)]
+    for i, expected in layout: check tagTableStorage(g.guint(i)).int == expected
+    var klass: gtk.TTextTagTableClass
+    klass.tag_changed = changedTable
+    klass.tag_added = addedTable
+    klass.tag_removed = removedTable
+    tableCallbackMask = 0
+    check g.toBool(tagTableApi(addr klass, visitTable))
+    check tableCallbackMask == 15
 
   test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
     let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),

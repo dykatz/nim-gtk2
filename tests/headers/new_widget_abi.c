@@ -36,6 +36,34 @@ gboolean nim_gtk2_tag_api_abi(gboolean (*event)(GtkTextTag *, GObject *, GdkEven
   native_event.type = GDK_BUTTON_PRESS;
   return event((GtkTextTag *)(guintptr)0xf5, (GObject *)(guintptr)0xf6, &native_event, &iter) == -123;
 }
+size_t nim_gtk2_tag_table_storage_abi(guint index) {
+  static const size_t layout[] = { offsetof(GtkTextTagTable, hash),
+    offsetof(GtkTextTagTable, anonymous), offsetof(GtkTextTagTable, anon_count),
+    offsetof(GtkTextTagTable, buffers) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_tag_table_api_abi(GtkTextTagTableClass *klass, GtkTextTagTableForeach visit) {
+  typedef GType (*Type)(void) G_GNUC_CONST;
+  typedef GtkTextTagTable *(*New)(void);
+  typedef GtkTextBuffer *(*BufferNew)(GtkTextTagTable *);
+  typedef GtkTextTagTable *(*BufferTable)(GtkTextBuffer *);
+  typedef void (*Changed)(GtkTextTagTable *, GtkTextTag *, gboolean);
+  typedef void (*AddedRemoved)(GtkTextTagTable *, GtkTextTag *);
+#define TABLE_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { TABLE_AUDIT(Type, &gtk_text_tag_table_get_type); }
+  { TABLE_AUDIT(New, &gtk_text_tag_table_new); }
+  { TABLE_AUDIT(BufferNew, &gtk_text_buffer_new); }
+  { TABLE_AUDIT(BufferTable, &gtk_text_buffer_get_tag_table); }
+  { TABLE_AUDIT(Changed, klass->tag_changed); }
+  { TABLE_AUDIT(AddedRemoved, klass->tag_added); }
+  { TABLE_AUDIT(AddedRemoved, klass->tag_removed); }
+#undef TABLE_AUDIT
+  klass->tag_changed((GtkTextTagTable *)(guintptr)0xc1, (GtkTextTag *)(guintptr)0xc2, -93);
+  klass->tag_added((GtkTextTagTable *)(guintptr)0xc1, (GtkTextTag *)(guintptr)0xc2);
+  klass->tag_removed((GtkTextTagTable *)(guintptr)0xc1, (GtkTextTag *)(guintptr)0xc2);
+  visit((GtkTextTag *)(guintptr)0xc2, (gpointer)(guintptr)0xc3);
+  return TRUE;
+}
 size_t nim_gtk2_attributes_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextAppearance), offsetof(GtkTextAppearance, rise),
     offsetof(GtkTextAppearance, padding1), sizeof(GtkTextAttributes),

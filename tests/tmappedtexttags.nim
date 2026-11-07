@@ -70,3 +70,53 @@ suite "native tag override, priority and membership":
     expect ValueError: discard top.priority
     expect ValueError: discard b.hasTag(top, 1)
     check b.text == "Native tag inheritance λ🙂"
+  test "shared table styles/removal reach separate buffers; GTK unregisters closed peers":
+    let host = newOffscreenWindow()
+    defer: host.destroy()
+    let b = newTextBuffer("Shared table λ🙂")
+    let tag = b.createTag("shared")
+    let table = n.get_tag_table(b.raw)
+    var peer = n.text_buffer_new(table) # Actual initial construction, never rebinding.
+    defer:
+      if peer != nil: g.g_object_unref(peer)
+    n.set_text(peer, "Shared table λ🙂", -1)
+    var first, last: n.TTextIter
+    n.get_bounds(peer, addr first, addr last)
+    n.apply_tag(peer, tag.raw, addr first, addr last)
+    b.applyTag(tag, 0, b.characterCount)
+    let stack = newVBox()
+    let view = newTextView(b)
+    view.editable = false
+    view.cursorVisible = false
+    view.setSizeRequest(420, 100)
+    stack.packStart(view)
+    let rawPeerView = n.text_view_new(peer)
+    n.set_editable(cast[n.PTextView](rawPeerView), g.gbool(false))
+    n.set_cursor_visible(cast[n.PTextView](rawPeerView), g.gbool(false))
+    n.set_size_request(rawPeerView, 420, 100)
+    n.pack_start(stack.raw, rawPeerView, g.gbool(true), g.gbool(true), 0)
+    host.add(stack)
+    host.showAll()
+    let plain = host.image()
+    tag.bold = true
+    let styled = host.image()
+    let middle = plain.len div 2
+    check styled.len == plain.len
+    check styled[0..<middle] != plain[0..<middle]
+    check styled[middle..^1] != plain[middle..^1]
+    b.deleteTag(tag)
+    check host.image() == plain
+    n.get_iter_at_offset(peer, addr first, 1)
+    check not g.toBool(n.has_tag(addr first, tag.raw))
+    var peerFinal = 0
+    proc gone(data: pointer, obj: g.PGObject) {.cdecl.} = inc cast[ptr int](data)[]
+    g.weak_ref(cast[g.PGObject](peer), gone, addr peerFinal)
+    n.destroy(rawPeerView) # Parent owns widget; GTK releases its buffer reference.
+    g.g_object_unref(peer)
+    peer = nil
+    check peerFinal == 1
+    let remaining = b.createTag("after-peer")
+    remaining.bold = true
+    b.applyTag(remaining, 0, b.characterCount)
+    b.deleteTag(remaining) # Native registry must contain only live buffers.
+    check host.image().len > 0 and b.text == "Shared table λ🙂"

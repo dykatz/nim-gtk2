@@ -4160,6 +4160,30 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### Raw TextTagTable lifecycle and traversal
+
+Private table_add_buffer/table_remove_buffer bindings are removed without shims.
+GTK registers buffers through public text_buffer_new(table) and unregisters on final
+release; callers must not manipulate native registry fields/hooks. A shared table
+shares tag definitions, not document text. Explicit table removal clears that tag's
+ranges in every registered buffer; table finalization instead detaches/releases
+without emitting tag-removed. Raw constructor/add/lookup ownership differs from
+SDK tag table retention: neither native tables nor SDK tags own document buffers.
+
+Public foreach is synchronous, unordered, borrowed and non-mutating in membership.
+Keep owners alive, contain exceptions, do not pump events or add/remove members.
+Owned refs can be collected first, then used after traversal. Pinning is not a
+blanket guarantee for every peer buffer during destructive raw callbacks. No SDK
+registry mirror, table wrapper, generic callback, rebinding or cache repair is added.
+See [table migration](raw-widgets.md#gtktexttagtable-raw-migration-public-construction-and-traversal).
+
+Tests cover native ownership, retained lookups, named/anonymous iteration,
+post-traversal removal, silent finalization and shared-buffer cleanup, with seven
+new signature/class callback checks plus full native field offsets/foreach ABI.
+Isolated testMappedTextTags exercises separate-buffer repaint/removal/peer teardown.
+The text example's highlight toggle performs genuine table-wide deletion, distinct
+from unsetting an override. No normal test maps/realizes widgets or requests input.
+
 ### TextTag override and priority policy
 
 Raw GtkTextTag flag/padding helpers and masks are removed without shims; native
@@ -4941,7 +4965,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,

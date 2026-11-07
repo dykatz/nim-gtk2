@@ -139,6 +139,23 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextTagTable private-hook/traversal audit
+
+Removed both private buffer registration bindings without aliases. Public native
+construction/final release manages membership: no manual registration or private
+list access. Raw table/tag/buffer ownership, silent table finalization, named versus
+anonymous tags, synchronous unordered borrowed foreach and post-traversal changes
+are documented separately from SDK retained-table handles. No mirror/traversal API
+or synthetic rebind/reset is introduced. Raw destructive peer teardown during
+native removal remains unsupported; lifetime pins do not cover every peer buffer.
+
+Seven new native signature/class callback checks, full table offsets and foreach/
+class callback probes complement compile/source guards. Unrealized ARC/ORC tests
+exercise shared-buffer cleanup and ownership; isolated existing tag tests now
+check separate-buffer paint/removal/peer finalization. The text example adds an
+anonymous highlight tag toggle with real table-wide deletion.
+See [table migration](raw-widgets.md#gtktexttagtable-raw-migration-public-construction-and-traversal).
+
 ### Raw GtkTextTag public-property audit
 
 Removed 48 private flag/padding helpers and 48 constants without aliases. Native

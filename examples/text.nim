@@ -28,14 +28,27 @@ proc main() =
   emphasis.bold = true
   emphasis.underline = true
   emphasis.setForeground(rgba16(5000, 12000, 50000))
-  let underlineEmphasis = newCheckButton("Underline emphasis tag (not an attribute snapshot)")
+  let underlineEmphasis = newCheckButton("Underline override (manual)")
   underlineEmphasis.active = emphasis.underline
   underlineEmphasis.onToggled(proc () = emphasis.underline = underlineEmphasis.active)
   let tagPolicy = newHBox(spacing = 6)
   let inheritUnderline = newButton("Unset underline override")
   tagPolicy.packStart(underlineEmphasis, packShrink)
   tagPolicy.packStart(inheritUnderline, packShrink)
+  let toggleHighlight = newButton("Toggle highlight tag")
+  var highlight: TextTag
+  tagPolicy.packStart(toggleHighlight, packShrink)
   layout.packStart(tagPolicy, packShrink)
+  toggleHighlight.onClicked(proc () =
+    if highlight.isDestroyed:
+      highlight = buffer.createTag() # Anonymous; no imported-name collisions.
+      highlight.setBackground(rgba16(65535, 60000, 35000))
+      buffer.applyTag(highlight, 0, buffer.characterCount)
+    else:
+      buffer.deleteTag(highlight) # Table-wide removal, visible in both views.
+      highlight = default(TextTag) # Explicit app state, not a membership query.
+    # GTK manages buffer registration. Do not walk/mutate private table lists.
+  )
   inheritUnderline.onClicked(proc () = emphasis.clearUnderline())
   # Checkbox assigns a value; this button removes its override, not the tag ranges.
   var bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
@@ -138,6 +151,7 @@ proc main() =
     buffer.disconnectSignals()
     if not inline.isDestroyed: inline.disconnectSignals()
     inline = default(TextChildAnchor)
+    highlight = default(TextTag) # Release old document's table handle on real import.
     editor.buffer = loaded
     mirror.buffer = loaded
     buffer = loaded

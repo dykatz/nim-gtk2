@@ -8,14 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextTagTable private-hook/traversal audit
+## Next proposed batch: Raw GtkTextBuffer flag/public-state audit
 
-- [ ] Audit raw private buffer-registration hooks against GTK2.24 public table APIs;
-      remove unsupported private bindings without aliases or substitute bookkeeping.
-- [ ] Verify table ownership, traversal mutation restrictions and buffer/tag lifetime
-      contracts; keep only native public membership/order semantics and ABI storage.
-- [ ] Extend compile/ABI guards, raw migration docs and text example where relevant,
-      with hidden ARC/ORC/cross-target and isolated regressions.
+- [ ] Remove the private modified-bit helpers/masks without aliases; use public
+      modified state/notifications and audit native instance/class ABI.
+- [ ] Verify public modified/selection/cursor state, signal/lifetime semantics and
+      checked mutation pins; no undo/history/reset or private BTree state substitutes.
+- [ ] Extend compile/ABI guards, docs and existing text example, with hidden ARC/ORC,
+      cross-target and opt-in isolated tests. Private BTree APIs remain a separate audit.
+
+## Completed batch: Raw GtkTextTagTable private-hook/traversal audit
+
+- [x] Removed both private buffer-registration bindings without aliases, shadow
+      bookkeeping or private list access; native public constructors/final releases
+      remain the only buffer registration path. Native ABI storage retained.
+- [x] Audited transfer-full/nonfloating constructors, borrowed lookup/getter/table refs,
+      silent table finalization versus explicit removal, shared definitions versus
+      separate documents, anonymous/name reuse and SDK retained-table ownership.
+- [x] Documented synchronous/unordered/borrowed foreach, no membership mutation or
+      nested event pumping, owned collection before later changes, and destructive
+      peer teardown restrictions. No native cache reset, registry mirror or wrapper.
+- [x] Added seven native signature/class callback checks, full table field offsets,
+      cdecl/signed-gboolean/foreach callback probes and removed-hook/source guards.
+- [x] Added unrealized ownership/traversal/shared-buffer cleanup tests, extended
+      isolated separate-buffer paint/removal/peer-finalization coverage, and updated
+      docs/text example with a genuine anonymous highlight table-wide deletion toggle.
+- [x] Validated hidden ARC/ORC/fatal-warning, calculator, bindings/raw/layout/ABI,
+      Windows amd64/i386 and macOS amd64 semantic checks, every example, generator/
+      package/diff checks, plus all isolated mapped regressions and opt-in guard.
 
 ## Completed batch: Raw GtkTextTag flag/public-property audit
 
@@ -377,7 +397,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; TagTable private-hook audit is next (Entry/TextView/Mark/Attributes/Tag complete).
+      corresponding policies; TextBuffer flag/public-state audit is next (Entry/TextView/Mark/Attributes/Tag/Table complete).
 
 ### Clipboard and drag-and-drop
 
@@ -430,6 +450,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Raw table private-hook removal, public ownership/traversal contracts and native
+      shared-buffer finalization/table-wide removal coverage (above).
 - [x] Raw tag flag removal, native property/priority/membership audit and pinned
       override/range lifetimes, with native inheritance/removal rendering (above).
 - [x] Attributes/Appearance helper removal, ref-return ABI and boxed/style ownership

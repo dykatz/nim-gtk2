@@ -44,6 +44,9 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView|TextMarkBody|TextAttributes|TextAppearance|TextTag)_')
                 self.assertNotRegex(text, r'\b[PT]TextMarkBody\b')
+                self.assertNotRegex(text, r'(?i)\b(?:_gtk_text_tag_table_|table_)(?:add|remove)_buffer\b')
+                if fragment.name.startswith('texttagtable') and '_types' not in fragment.name:
+                    self.assertNotRegex(text, r'\.(?:hash|anonymous|anon_count|buffers)\b')
                 if fragment.name.startswith('textmark'):
                     self.assertNotRegex(text, r'\.segment\b|\.flag0\b')
                 if '_types' not in fragment.name:

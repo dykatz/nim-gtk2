@@ -20,7 +20,7 @@ proc table_foreach*(table: PTextTagTable, fun: TTextTagTableForeach,
     importc: "gtk_text_tag_table_foreach".}
 proc table_get_size*(table: PTextTagTable): gint{.cdecl, dynlib: lib,
     importc: "gtk_text_tag_table_get_size".}
-proc table_add_buffer*(table: PTextTagTable, buffer: gpointer){.cdecl,
-    dynlib: lib, importc: "_gtk_text_tag_table_add_buffer".}
-proc table_remove_buffer*(table: PTextTagTable, buffer: gpointer){.
-    cdecl, dynlib: lib, importc: "_gtk_text_tag_table_remove_buffer".}
+# Buffer registration is GTK-private. Public text_buffer_new(table) and native
+# buffer finalization perform it; callers must never register/unregister buffers.
+# table_foreach is synchronous, unordered and borrowed: do not add/remove tags,
+# release its table, pump nested events or let exceptions escape its C callback.
