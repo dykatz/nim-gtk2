@@ -139,6 +139,9 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+GtkTextBuffer modified-bit helpers are removed; public dirty/selection/user-action
+semantics and native lifetime pins are covered by [the buffer audit](docs/raw-widgets.md#gtktextbuffer-raw-migration-public-state-and-signal-lifetimes).
+The native paste_done class slot/opaque guint storage are corrected without SDK subclassing.
 GtkTextTagTable private registration hooks are removed; native public construction
 and final release manage buffers. See [ownership/traversal](docs/raw-widgets.md#gtktexttagtable-raw-migration-public-construction-and-traversal)
 and the text example's table-wide highlight deletion.

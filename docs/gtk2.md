@@ -487,7 +487,9 @@ buffer handles remain valid. `view.text` forwards to its current buffer.
   `(hasSelection, first, last)` with ordered, half-open endpoints; without a
   selection both endpoints equal the cursor offset.
 - `deleteSelection(interactive = false, defaultEditable = true)` reports whether
-  a selection was removed. Interactive mode honors native editable-tag policy.
+  a nonempty selection existed, **not edit success**. Interactive mode honors native
+  editable-tag policy and can return true without changing readonly text; explicit
+  non-interactive deletion does not enforce interactive permissions.
 - `buffer.withUserAction: ...` balances native begin/end notifications even if
   the body raises. It is grouping, **not an undo stack or rollback transaction**.
 
@@ -519,6 +521,28 @@ allowing GTK to defer scrolling until layout is ready. The finite margin must be
 in `[0, 0.5)` and alignments in `[0, 1]`.
 
 ### Buffer signals and lifetime
+
+Raw modified-bit helpers/masks are removed without shims; use native gboolean
+get_modified/set_modified. Native opaque storage uses guint, and TextBufferClass
+now correctly names paste_done followed by five reserved slots. Full native
+instance/class offsets, sixteen signature checks and signed callback probes preserve
+ABI; this is not a subclass/paste-observer API. See [raw buffer migration](raw-widgets.md#gtktextbuffer-raw-migration-public-state-and-signal-lifetimes).
+
+Modified state is a dirty flag only. Its setter changes no text/files/history and
+emits modified-changed only on transitions; there is no modified GObject property
+or notify::modified. Marks/tags/selection/style-only changes do not inherently dirty
+text. Public cursor-position/has-selection metadata is readonly. Cursor notification
+may occur during intermediate native edits, not just actual final movement, and is
+not a general selection observer. No extra history/IME/undo/reset is synthesized.
+
+Basic text/insert/delete/dirty/cursor/selection operations and removeAllTags pin native
+buffer lifetime through callbacks. User actions retain/pin the original target,
+even if a public alias is dropped/reassigned or the body raises: nested actions
+emit only outermost begin/end, with immediate edits and no rollback. This is not a
+license for destructive BTree reentrancy or nested event pumping in raw observers.
+Tests use viewless buffers normally; opt-in testMappedTextBufferState isolates
+actual realized-view selection/paint behavior because even unmapped realized views
+can claim PRIMARY. The example's Mark clean action explicitly is not persistence.
 
 `onChanged`, `onModifiedChanged`, and `onCursorMoved` accept `proc ()` and return
 normal connections. Changed callbacks run after the native default changed
@@ -4965,7 +4989,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2textbufferaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -5004,7 +5028,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

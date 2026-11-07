@@ -19,12 +19,3 @@ proc TEXT_BUFFER_GET_CLASS*(obj: pointer): PTextBufferClass =
   result = cast[PTextBufferClass](G_TYPE_INSTANCE_GET_CLASS(obj,
       TYPE_TEXT_BUFFER()))
 
-proc modified*(a: PTextBuffer): guint =
-  result = (a.TextBufferflag0 and bm_TGtkTextBuffer_modified) shr
-      bp_TGtkTextBuffer_modified
-
-proc set_modified*(a: PTextBuffer, `modified`: guint) =
-  a.TextBufferflag0 = a.TextBufferflag0 or
-      (uint16(`modified` shl bp_TGtkTextBuffer_modified) and
-      bm_TGtkTextBuffer_modified)
-

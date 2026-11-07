@@ -12,13 +12,13 @@ proc main() =
   let actions = newHBox(spacing = 6)
   let append = newButton("Append Unicode")
   let clearSelection = newButton("Delete selection")
-  let markSaved = newButton("Mark saved")
+  let markClean = newButton("Mark clean (no save)")
   let copy = newButton("Copy")
   let cut = newButton("Cut")
   let paste = newButton("Paste")
   actions.packStart(append, packShrink)
   actions.packStart(clearSelection, packShrink)
-  actions.packStart(markSaved, packShrink)
+  actions.packStart(markClean, packShrink)
   for button in [copy, cut, paste]: actions.packStart(button, packShrink)
   layout.packStart(actions, packShrink)
   layout.packStart(newLabel("Edit on the left; the right view shares the same buffer."), packShrink)
@@ -103,7 +103,7 @@ proc main() =
   mirror.editable = false
   mirror.cursorVisible = false
   let policies = newHBox(spacing = 6)
-  let readOnly = newCheckButton("Read-only editor")
+  let readOnly = newCheckButton("Read-only editor default")
   let caret = newCheckButton("Show editor caret")
   caret.active = editor.cursorVisible
   let overwrite = newCheckButton("Overwrite typed text")
@@ -261,7 +261,9 @@ proc main() =
     # ignores the result if its buffer was replaced while waiting for the owner.
     editor.focus()
     discard editor.pasteClipboard(clipboard))
-  markSaved.onClicked(proc () = buffer.modified = false)
+  markClean.onClicked(proc () =
+    buffer.modified = false # Dirty-state notification only, not persistence or undo.
+    status.text = "Marked clean; no file was saved and no text was rolled back")
   refresh()
   window.run()
 

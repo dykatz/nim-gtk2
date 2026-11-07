@@ -8,14 +8,35 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextBuffer flag/public-state audit
+## Next proposed batch: Raw GtkTextBTree private entry-point audit
 
-- [ ] Remove the private modified-bit helpers/masks without aliases; use public
-      modified state/notifications and audit native instance/class ABI.
-- [ ] Verify public modified/selection/cursor state, signal/lifetime semantics and
-      checked mutation pins; no undo/history/reset or private BTree state substitutes.
-- [ ] Extend compile/ABI guards, docs and existing text example, with hidden ARC/ORC,
-      cross-target and opt-in isolated tests. Private BTree APIs remain a separate audit.
+- [ ] Inventory private _gtk_text_btree bindings in raw textbuffer fragments against
+      GTK2.24 public buffer/iterator/view APIs and actual SDK usage.
+- [ ] Remove unsupported private entry points without aliases, tree recovery/reset,
+      guessed runtime access or replacement bookkeeping; preserve needed ABI pointer
+      storage, with private type/segment/layout audits separately scoped as needed.
+- [ ] Extend compile/source/ABI guards, migration docs and text example where relevant,
+      with hidden ARC/ORC/cross-target and isolated public-path regressions.
+
+## Completed batch: Raw GtkTextBuffer flag/public-state audit
+
+- [x] Removed both modified-bit helpers and two constants without aliases; retained
+      public gboolean get/set_modified. Opaque flag allocation now uses native guint;
+      corrected missing paste_done class slot/five true reserved slots, sizes intact.
+- [x] Audited dirty/cursor/selection properties, synchronous native signals and actual
+      deleteSelection return (nonempty selection, not deletion success). No modified
+      GObject property, synthetic final-state observer, undo/history/reset or BTree fix.
+- [x] Pinned basic text/insert/delete/dirty/selection operations and removeAllTags;
+      user actions retain/pin original target, balance nested/exceptional/reassigned
+      lifetimes and preserve immediate native changes, never rollback transactions.
+- [x] Added sixteen signature checks, full native instance/class offsets and signed
+      insert/mark/paste callback probes plus compile/source removal/storage guards.
+- [x] Added unrealized dirty/order/Unicode/metadata/permissions/alias-drop/action/purity
+      regressions and opt-in shared-view selection/paint/readonly return tests; updated
+      docs and text example's explicit clean-not-save and readonly-default controls.
+- [x] Validated new hidden/mapped ARC/ORC/fatal-warning tests, full hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386 and macOS amd64 semantic
+      checks, every example, generator/package/diff and all isolated tasks/guard.
 
 ## Completed batch: Raw GtkTextTagTable private-hook/traversal audit
 
@@ -397,7 +418,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; TextBuffer flag/public-state audit is next (Entry/TextView/Mark/Attributes/Tag/Table complete).
+      corresponding policies; TextBTree private entry-point audit is next (Entry/TextView/Mark/Attributes/Tag/Table/Buffer complete).
 
 ### Clipboard and drag-and-drop
 
@@ -450,6 +471,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Raw buffer flag removal/native class/storage fixes, public state/return semantics
+      and pinned mutation/user-action lifetime coverage (above).
 - [x] Raw table private-hook removal, public ownership/traversal contracts and native
       shared-buffer finalization/table-wide removal coverage (above).
 - [x] Raw tag flag removal, native property/priority/membership audit and pinned

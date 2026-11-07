@@ -125,7 +125,8 @@ proc removeTag*(b: TextBuffer, tag: TextTag, first, last: int) =
   withTagTable(tag): rawGtk.remove_tag(owner, p, addr r.first, addr r.last)
 proc removeAllTags*(b: TextBuffer, first, last: int) =
   var r = bufferRange(b, first, last)
-  rawGtk.remove_all_tags(b.raw, addr r.first, addr r.last)
+  pinTextBuffer(b, p)
+  rawGtk.remove_all_tags(p, addr r.first, addr r.last)
 proc hasTag*(b: TextBuffer, tag: TextTag, offset: int): bool =
   checkTag(b, tag)
   var it = bufferIter(b, offset)

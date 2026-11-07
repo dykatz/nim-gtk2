@@ -32,6 +32,18 @@ proc removedTable(table: gtk.PTextTagTable, tag: gtk.PTextTag) {.cdecl.} =
 proc visitTable(tag: gtk.PTextTag, data: pointer) {.cdecl.} =
   doAssert cast[uint](tag) == 0xc2 and cast[uint](data) == 0xc3
   tableCallbackMask = tableCallbackMask or 8
+proc bufferStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_buffer_storage_abi".}
+proc bufferApi(klass: gtk.PTextBufferClass): g.gboolean {.cdecl, importc: "nim_gtk2_buffer_api_abi".}
+var bufferCallbackMask: int
+proc bufferInsert(buffer: gtk.PTextBuffer, it: gtk.PTextIter, text: cstring, length: g.gint) {.cdecl.} =
+  doAssert cast[uint](buffer) == 0xe1 and cast[uint](it) == 0xe2 and $text == "x" and length == -99
+  bufferCallbackMask = bufferCallbackMask or 1
+proc bufferMark(buffer: gtk.PTextBuffer, it: gtk.PTextIter, mark: gtk.PTextMark) {.cdecl.} =
+  doAssert cast[uint](buffer) == 0xe1 and cast[uint](it) == 0xe2 and cast[uint](mark) == 0xe3
+  bufferCallbackMask = bufferCallbackMask or 2
+proc bufferPaste(buffer: gtk.PTextBuffer, clipboard: gtk.PClipboard) {.cdecl.} =
+  doAssert cast[uint](buffer) == 0xe1 and cast[uint](clipboard) == 0xe4
+  bufferCallbackMask = bufferCallbackMask or 4
 type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
 proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
 proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
@@ -282,6 +294,28 @@ suite "new raw binding native header ABI":
     tableCallbackMask = 0
     check g.toBool(tagTableApi(addr klass, visitTable))
     check tableCallbackMask == 15
+
+  test "TextBuffer storage/class slots, native state and signed insert/paste callbacks":
+    let layout = [sizeof(gtk.TTextBuffer), offsetOf(gtk.TTextBuffer, tag_table),
+      offsetOf(gtk.TTextBuffer, btree), offsetOf(gtk.TTextBuffer, clipboard_contents_buffers),
+      offsetOf(gtk.TTextBuffer, selection_clipboards), offsetOf(gtk.TTextBuffer, log_attr_cache),
+      offsetOf(gtk.TTextBuffer, user_action_count), offsetOf(gtk.TTextBuffer, TextBuffer_flag0),
+      sizeof(gtk.TTextBufferClass), offsetOf(gtk.TTextBufferClass, insert_text),
+      offsetOf(gtk.TTextBufferClass, insert_pixbuf), offsetOf(gtk.TTextBufferClass, insert_child_anchor),
+      offsetOf(gtk.TTextBufferClass, delete_range), offsetOf(gtk.TTextBufferClass, changed),
+      offsetOf(gtk.TTextBufferClass, modified_changed), offsetOf(gtk.TTextBufferClass, mark_set),
+      offsetOf(gtk.TTextBufferClass, mark_deleted), offsetOf(gtk.TTextBufferClass, apply_tag),
+      offsetOf(gtk.TTextBufferClass, remove_tag), offsetOf(gtk.TTextBufferClass, begin_user_action),
+      offsetOf(gtk.TTextBufferClass, end_user_action), offsetOf(gtk.TTextBufferClass, paste_done)]
+    for i, expected in layout: check bufferStorage(g.guint(i)).int == expected
+    check sizeof(default(gtk.TTextBuffer).TextBuffer_flag0) == sizeof(g.guint)
+    var klass: gtk.TTextBufferClass
+    klass.insert_text = bufferInsert
+    klass.mark_set = bufferMark
+    klass.paste_done = bufferPaste
+    bufferCallbackMask = 0
+    check g.toBool(bufferApi(addr klass))
+    check bufferCallbackMask == 7
 
   test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
     let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),

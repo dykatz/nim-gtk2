@@ -9,6 +9,11 @@ type
 proc raw*(b: TextBuffer): rawGtk.PTextBuffer = cast[rawGtk.PTextBuffer](nativePointer(b))
 proc raw*(w: TextView): rawGtk.PTextView = cast[rawGtk.PTextView](raw(Widget(w)))
 
+template pinTextBuffer(b: TextBuffer, p: untyped) =
+  let p = b.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+
 proc newTextBuffer*(text = ""): TextBuffer =
   let value = checkedUtf8Text(text)
   result.state = adoptObject(rawGtk.text_buffer_new(nil), cache = true,
@@ -21,7 +26,9 @@ proc ownedTextBuffer(p: rawGtk.PTextBuffer): TextBuffer =
 proc characterCount*(b: TextBuffer): int = rawGtk.get_char_count(b.raw).int
 proc lineCount*(b: TextBuffer): int = rawGtk.get_line_count(b.raw).int
 proc modified*(b: TextBuffer): bool = g.toBool(rawGtk.get_modified(b.raw))
-proc `modified=`*(b: TextBuffer, value: bool) = rawGtk.set_modified(b.raw, g.gbool(value))
+proc `modified=`*(b: TextBuffer, value: bool) =
+  pinTextBuffer(b, p)
+  rawGtk.set_modified(p, g.gbool(value))
 
 proc bufferIter(b: TextBuffer, offset: int): rawGtk.TTextIter =
   let position = checkedInt(offset)
@@ -43,21 +50,25 @@ proc text*(b: TextBuffer): string =
   copyBufferText(b, first, last, true)
 proc `text=`*(b: TextBuffer, text: string) =
   let value = checkedUtf8Text(text)
-  rawGtk.set_text(b.raw, value, g.gint(text.len))
+  pinTextBuffer(b, p)
+  rawGtk.set_text(p, value, g.gint(text.len))
 proc textRange*(b: TextBuffer, first, last: int, includeHidden = true): string =
   var bounds = bufferRange(b, first, last)
   copyBufferText(b, bounds.first, bounds.last, includeHidden)
 proc insertText*(b: TextBuffer, offset: int, text: string) =
   let value = checkedUtf8Text(text)
   var iter = bufferIter(b, offset)
-  rawGtk.insert(b.raw, addr iter, value, g.gint(text.len))
+  pinTextBuffer(b, p)
+  rawGtk.insert(p, addr iter, value, g.gint(text.len))
 proc appendText*(b: TextBuffer, text: string) = b.insertText(b.characterCount, text)
 proc insertAtCursor*(b: TextBuffer, text: string) =
   let value = checkedUtf8Text(text)
-  rawGtk.insert_at_cursor(b.raw, value, g.gint(text.len))
+  pinTextBuffer(b, p)
+  rawGtk.insert_at_cursor(p, value, g.gint(text.len))
 proc deleteRange*(b: TextBuffer, first, last: int) =
   var bounds = bufferRange(b, first, last)
-  rawGtk.delete(b.raw, addr bounds.first, addr bounds.last)
+  pinTextBuffer(b, p)
+  rawGtk.delete(p, addr bounds.first, addr bounds.last)
 proc cursorOffset*(b: TextBuffer): int =
   let p = b.raw
   var iter: rawGtk.TTextIter
@@ -65,11 +76,13 @@ proc cursorOffset*(b: TextBuffer): int =
   rawGtk.get_offset(addr iter).int
 proc `cursorOffset=`*(b: TextBuffer, offset: int) =
   var iter = bufferIter(b, offset)
-  rawGtk.place_cursor(b.raw, addr iter)
+  pinTextBuffer(b, p)
+  rawGtk.place_cursor(p, addr iter)
 proc selectRange*(b: TextBuffer, anchor, cursor: int) =
   var first = bufferIter(b, anchor)
   var last = bufferIter(b, cursor)
-  rawGtk.select_range(b.raw, addr last, addr first)
+  pinTextBuffer(b, p)
+  rawGtk.select_range(p, addr last, addr first)
 proc hasSelection*(b: TextBuffer): bool = g.toBool(rawGtk.get_has_selection(b.raw))
 proc selectionBounds*(b: TextBuffer): TextSelection =
   var first, last: rawGtk.TTextIter
@@ -80,13 +93,16 @@ proc selectedText*(b: TextBuffer): string =
   let bounds = b.selectionBounds
   if bounds.hasSelection: b.textRange(bounds.first, bounds.last) else: ""
 proc deleteSelection*(b: TextBuffer, interactive = false, defaultEditable = true): bool =
-  g.toBool(rawGtk.delete_selection(b.raw, g.gbool(interactive), g.gbool(defaultEditable)))
+  ## Native return reports a nonempty selection, not successful deletion of text.
+  pinTextBuffer(b, p)
+  g.toBool(rawGtk.delete_selection(p, g.gbool(interactive), g.gbool(defaultEditable)))
 
 template withUserAction*(buffer: TextBuffer, body: untyped) =
   ## Groups native user-action notifications; GTK2 itself has no undo stack.
   block:
     let owner = buffer
-    rawGtk.begin_user_action(owner.raw)
+    pinTextBuffer(owner, p)
+    rawGtk.begin_user_action(p)
     try: body
     finally: rawGtk.end_user_action(owner.raw)
 

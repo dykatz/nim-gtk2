@@ -139,6 +139,25 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextBuffer flag/public-state audit
+
+Removed private modified-bit getter/unsigned setter and two constants, preserving
+public gboolean state APIs. Opaque storage now uses guint; the class names paste_done
+before five actual reserved slots. Sixteen signature checks, full instance/class
+offsets and signed insert/mark/paste callback probes verify native ABI.
+
+Public dirty/cursor/selection signals remain synchronous/native, not transactions;
+modified has no GObject property. deleteSelection reports nonempty selection, even
+when interactive permissions prevent edits. Native buffer pins protect basic
+mutations/removeAllTags and original-target user action lifetime; groups balance
+on exceptions but do not defer/rollback edits or provide undo. No private BTree
+cache/history/registration repair, implicit realization or warning suppression.
+
+Unrealized ARC/ORC state, Unicode, permissions/returns, alias-drop, nesting/purity
+and removal guards accompany isolated shared-view selection/pixel coverage. The
+text example distinguishes mark-clean from saving and readonly view defaults from
+immutable buffers. See [raw migration](raw-widgets.md#gtktextbuffer-raw-migration-public-state-and-signal-lifetimes).
+
 ### Raw GtkTextTagTable private-hook/traversal audit
 
 Removed both private buffer registration bindings without aliases. Public native

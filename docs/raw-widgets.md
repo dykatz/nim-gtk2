@@ -9,6 +9,65 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextBuffer raw migration: public state and signal lifetimes
+
+Removed the private modified getter/unsigned setter and both mask/shift constants,
+without aliases. Keep public get_modified/set_modified(PTextBuffer, gboolean);
+GTK normalizes nonzero gboolean inputs. The old private OR-write could not clear
+state and bypassed native notification. Opaque flag storage now uses native guint
+instead of guint16; instance/class size and field offsets are checked. The class
+now names the missing paste_done(buffer, clipboard) callback, followed by five true
+reserved slots rather than six. This preserves native class size/order; it does
+not add an SDK subclass or paste-completion observer API.
+
+modified is native dirty state, not an undo/save/security policy. Its setter emits
+modified-changed only on transitions and does not change text, selection, tags,
+history or files. There is **no modified GObject property/notify::modified**.
+SDK onChanged runs after the default changed handler sets the flag; observers are
+synchronous, not coalesced or end-of-transaction snapshots. Native bulk replacement
+can report deletion and insertion separately. Mark/tag/style/selection-only changes
+do not inherently dirty the buffer. Constructor text starts clean by SDK policy;
+marking clean after a real successful save is an explicit application decision.
+
+Public cursor-position and has-selection properties are read-only. SDK cursorOffset
+and selectRange use native place_cursor/select_range, not separate mark moves or
+private cached fields. Offsets are code points, not bytes/graphemes; direction is
+preserved and bounds are ordered. Cursor placement collapses selection. Invalid
+coordinates/UTF-8 reject before mutations. onCursorMoved is synchronous native
+notify::cursor-position: it may fire during edits or even when a select_range call
+keeps the insert offset unchanged; it is not a generic final selection observer.
+Raw bound-only mark movement need not notify cursor-position. No IME/edit/history
+transaction is synthesized. Normal tests use buffers without views; realized views
+can register selection clipboards/claim PRIMARY even when unmapped, so those tests
+require an isolated display and explicit GTK2_TEST_VIRTUAL_DISPLAY=1.
+
+**deleteSelection returns whether a nonempty selection existed**, not whether any
+text was deleted. Interactive mode honors native tag/default editability and can
+return true without altering readonly text, or delete only permitted portions.
+Non-interactive mode is explicit programmatic deletion and does not enforce those
+permissions. Readonly view defaults can themselves be overridden by tags; neither
+dirty flags, selection pixels nor native presentation is authorization.
+
+Basic text/insert/delete/selection/dirty-state mutations and removeAllTags pin their
+native buffer during synchronous callbacks, including observers dropping last public
+aliases. withUserAction retains/pins its original target, balances native begin/end
+on exception/reassignment, and preserves nested outermost-only signals. It groups
+notifications, not edits: changes are immediate, are not rolled back on failure and
+GTK2 supplies no undo stack. Existing callback disconnect/capture-cycle policies
+remain; pins do not permit destructive BTree reentrancy, nested event pumping or
+iterator-invalidating edits from native traversal observers. No warning suppression,
+implicit realization, private cache repair or buffer rebinding was added. Private
+BTree entry points/guessed internals remain a separate removal audit.
+
+Sixteen native signature/class checks and full instance/class offsets plus signed
+insert/mark/paste callback probes cover ABI. Unrealized tests/tgtk2textbufferaudit.nim
+covers dirty/signal ordering, Unicode/selection/invalidity, permissions/return value,
+alias-drop pins, nested/exceptional original-target actions and purity guards.
+Isolated testMappedTextBufferState verifies actual shared-view selection/paint,
+dirty-only no-content-change and explicit readonly programmatic/native-interactive
+behavior without synthetic input. The text example labels its clean flag action as
+not a save/undo and its readonly control as a view default.
+
 ## GtkTextTagTable raw migration: public construction and traversal
 
 Removed table_add_buffer/table_remove_buffer, formerly bound to the private

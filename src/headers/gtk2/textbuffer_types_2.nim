@@ -7,7 +7,7 @@ type
     selection_clipboards*: PGSList
     log_attr_cache*: PTextLogAttrCache
     user_action_count*: guint
-    TextBuffer_flag0*: guint16
+    TextBuffer_flag0*: guint # Native guint bitfield allocation; opaque ABI storage.
 
   PTextBuffer* = ptr TTextBuffer
   TTextBufferClass* = object of TGObjectClass
@@ -30,11 +30,11 @@ type
                        start_char: PTextIter, end_char: PTextIter){.cdecl.}
     begin_user_action*: proc (buffer: PTextBuffer){.cdecl.}
     end_user_action*: proc (buffer: PTextBuffer){.cdecl.}
+    paste_done*: proc (buffer: PTextBuffer, clipboard: PClipboard){.cdecl.}
     reserved1: proc (){.cdecl.}
     reserved2: proc (){.cdecl.}
     reserved3: proc (){.cdecl.}
     reserved4: proc (){.cdecl.}
     reserved5: proc (){.cdecl.}
-    reserved6: proc (){.cdecl.}
 
   PTextBufferClass* = ptr TTextBufferClass

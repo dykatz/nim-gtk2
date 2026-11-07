@@ -4,19 +4,12 @@ proc release_mark_segment*(tree: PTextBTree,
     dynlib: lib, importc: "_gtk_text_btree_release_mark_segment".}
 proc notify_will_remove_tag*(tree: PTextBTree, tag: PTextTag){.cdecl,
     dynlib: lib, importc: "_gtk_text_btree_notify_will_remove_tag".}
-const
-  bm_TGtkTextBuffer_modified* = 0x0001'u16
-const
-  bp_TGtkTextBuffer_modified* = 0'u16
-
 proc TYPE_TEXT_BUFFER*(): GType
 proc TEXT_BUFFER*(obj: pointer): PTextBuffer
 proc TEXT_BUFFER_CLASS*(klass: pointer): PTextBufferClass
 proc IS_TEXT_BUFFER*(obj: pointer): bool
 proc IS_TEXT_BUFFER_CLASS*(klass: pointer): bool
 proc TEXT_BUFFER_GET_CLASS*(obj: pointer): PTextBufferClass
-proc modified*(a: PTextBuffer): guint
-proc set_modified*(a: PTextBuffer, `modified`: guint)
 proc text_buffer_get_type*(): GType{.cdecl, dynlib: lib,
                                      importc: "gtk_text_buffer_get_type".}
 proc text_buffer_new*(table: PTextTagTable): PTextBuffer{.cdecl, dynlib: lib,

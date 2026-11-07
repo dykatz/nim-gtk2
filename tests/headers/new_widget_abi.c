@@ -3,6 +3,56 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_buffer_storage_abi(guint index) {
+  static const size_t layout[] = { sizeof(GtkTextBuffer), offsetof(GtkTextBuffer, tag_table),
+    offsetof(GtkTextBuffer, btree), offsetof(GtkTextBuffer, clipboard_contents_buffers),
+    offsetof(GtkTextBuffer, selection_clipboards), offsetof(GtkTextBuffer, log_attr_cache),
+    offsetof(GtkTextBuffer, user_action_count), offsetof(GtkTextBuffer, user_action_count) + sizeof(guint),
+    sizeof(GtkTextBufferClass), offsetof(GtkTextBufferClass, insert_text),
+    offsetof(GtkTextBufferClass, insert_pixbuf), offsetof(GtkTextBufferClass, insert_child_anchor),
+    offsetof(GtkTextBufferClass, delete_range), offsetof(GtkTextBufferClass, changed),
+    offsetof(GtkTextBufferClass, modified_changed), offsetof(GtkTextBufferClass, mark_set),
+    offsetof(GtkTextBufferClass, mark_deleted), offsetof(GtkTextBufferClass, apply_tag),
+    offsetof(GtkTextBufferClass, remove_tag), offsetof(GtkTextBufferClass, begin_user_action),
+    offsetof(GtkTextBufferClass, end_user_action), offsetof(GtkTextBufferClass, paste_done) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_buffer_api_abi(GtkTextBufferClass *klass) {
+  typedef gboolean (*Get)(GtkTextBuffer *);
+  typedef void (*Set)(GtkTextBuffer *, gboolean);
+  typedef void (*Cursor)(GtkTextBuffer *, const GtkTextIter *);
+  typedef void (*Select)(GtkTextBuffer *, const GtkTextIter *, const GtkTextIter *);
+  typedef gboolean (*Bounds)(GtkTextBuffer *, GtkTextIter *, GtkTextIter *);
+  typedef void (*Action)(GtkTextBuffer *);
+  typedef void (*Text)(GtkTextBuffer *, const gchar *, gint);
+  typedef void (*Insert)(GtkTextBuffer *, GtkTextIter *, const gchar *, gint);
+  typedef void (*Delete)(GtkTextBuffer *, GtkTextIter *, GtkTextIter *);
+  typedef gboolean (*DeleteSelection)(GtkTextBuffer *, gboolean, gboolean);
+  typedef void (*MarkSet)(GtkTextBuffer *, const GtkTextIter *, GtkTextMark *);
+  typedef void (*PasteDone)(GtkTextBuffer *, GtkClipboard *);
+#define BUFFER_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { BUFFER_AUDIT(Get, &gtk_text_buffer_get_modified); }
+  { BUFFER_AUDIT(Set, &gtk_text_buffer_set_modified); }
+  { BUFFER_AUDIT(Get, &gtk_text_buffer_get_has_selection); }
+  { BUFFER_AUDIT(Cursor, &gtk_text_buffer_place_cursor); }
+  { BUFFER_AUDIT(Select, &gtk_text_buffer_select_range); }
+  { BUFFER_AUDIT(Bounds, &gtk_text_buffer_get_selection_bounds); }
+  { BUFFER_AUDIT(Action, &gtk_text_buffer_begin_user_action); }
+  { BUFFER_AUDIT(Action, &gtk_text_buffer_end_user_action); }
+  { BUFFER_AUDIT(Text, &gtk_text_buffer_set_text); }
+  { BUFFER_AUDIT(Text, &gtk_text_buffer_insert_at_cursor); }
+  { BUFFER_AUDIT(Insert, &gtk_text_buffer_insert); }
+  { BUFFER_AUDIT(Insert, klass->insert_text); }
+  { BUFFER_AUDIT(Delete, &gtk_text_buffer_delete); }
+  { BUFFER_AUDIT(DeleteSelection, &gtk_text_buffer_delete_selection); }
+  { BUFFER_AUDIT(MarkSet, klass->mark_set); }
+  { BUFFER_AUDIT(PasteDone, klass->paste_done); }
+#undef BUFFER_AUDIT
+  klass->insert_text((GtkTextBuffer *)(guintptr)0xe1, (GtkTextIter *)(guintptr)0xe2, "x", -99);
+  klass->mark_set((GtkTextBuffer *)(guintptr)0xe1, (GtkTextIter *)(guintptr)0xe2, (GtkTextMark *)(guintptr)0xe3);
+  klass->paste_done((GtkTextBuffer *)(guintptr)0xe1, (GtkClipboard *)(guintptr)0xe4);
+  return TRUE;
+}
 size_t nim_gtk2_tag_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextTag), offsetof(GtkTextTag, table),
     offsetof(GtkTextTag, name), offsetof(GtkTextTag, priority), offsetof(GtkTextTag, values),
