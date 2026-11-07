@@ -3,6 +3,38 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_entry_storage_abi(guint index) {
+  static const size_t layout[] = {
+    sizeof(GtkEntry), offsetof(GtkEntry, text_area), offsetof(GtkEntry, current_pos),
+    offsetof(GtkEntry, cached_layout), offsetof(GtkEntry, button),
+    offsetof(GtkEntry, invisible_char), offsetof(GtkEntry, width_chars),
+    sizeof(GtkEntryClass), offsetof(GtkEntryClass, populate_popup),
+    offsetof(GtkEntryClass, backspace), offsetof(GtkEntryClass, cut_clipboard),
+    offsetof(GtkEntryClass, copy_clipboard), offsetof(GtkEntryClass, paste_clipboard),
+    offsetof(GtkEntryClass, toggle_overwrite), offsetof(GtkEntryClass, get_text_area_size)
+  };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_entry_public_bool_abi(void (*area)(GtkEntry *, gint *, gint *, gint *, gint *)) {
+  typedef void (*EditableSet)(GtkEditable *, gboolean);
+  typedef gboolean (*EditableGet)(GtkEditable *);
+  typedef void (*EntrySet)(GtkEntry *, gboolean);
+  typedef gboolean (*EntryGet)(GtkEntry *);
+  typedef void (*EntryAction)(GtkEntry *);
+  typedef void (*EntryArea)(GtkEntry *, gint *, gint *, gint *, gint *);
+#define ENTRY_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { ENTRY_AUDIT(EditableSet, &gtk_editable_set_editable); }
+  { ENTRY_AUDIT(EditableGet, &gtk_editable_get_editable); }
+  { ENTRY_AUDIT(EntrySet, &gtk_entry_set_visibility); }
+  { ENTRY_AUDIT(EntryGet, &gtk_entry_get_visibility); }
+  { ENTRY_AUDIT(EntryAction, ((GtkEntryClass *)0)->backspace); }
+  { ENTRY_AUDIT(EntryAction, ((GtkEntryClass *)0)->cut_clipboard); }
+  { ENTRY_AUDIT(EntryArea, ((GtkEntryClass *)0)->get_text_area_size); }
+#undef ENTRY_AUDIT
+  gint x = 0, y = 0, width = 0, height = 0;
+  area((GtkEntry *)(guintptr)0xf1, &x, &y, &width, &height);
+  return x == -123 && y == 17 && width == 300 && height == 40;
+}
 gboolean nim_gtk2_entry_progress_abi(gdouble (*value)(GtkEntry *, gdouble), void (*pulse)(GtkEntry *)) {
   typedef void (*Set)(GtkEntry *, gdouble);
   typedef gdouble (*Get)(GtkEntry *);

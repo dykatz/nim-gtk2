@@ -9,6 +9,58 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkEntry raw migration: no private bitfield helpers
+
+The remaining **20 GtkEntry bitfield getter/setter helpers** and **26 Entry mask/
+shift constants** have been removed without aliases. Constants formerly placed in
+`menu_2.nim` were Entry implementation details, not menu APIs or ABI storage.
+`entry_types.nim` storage is unchanged: retained fields describe native layout,
+not permission to read/change private state as an application transaction.
+
+| Removed Entry helper pair | Supported public replacement |
+| --- | --- |
+| `editable` / `set_editable(PEntry,guint)` | `get_editable` / `set_editable(cast[PEditable](entry),gboolean)` (GtkEditable interface) |
+| `visible` / `set_visible(PEntry,guint)` | `get_visibility` / `set_visibility(PEntry,gboolean)` (text concealment, **not** widget show/hide) |
+| `editing_canceled` / `set_editing_canceled` | GtkCellEditable's public boolean `editing-canceled` GObject property, only in its native editing-session contract |
+| `in_drag`, `cache_includes_preedit`, `need_im_reset`, `cursor_visible`, `in_click`, `is_cell_renderer`, `mouse_cursor_obscured` and corresponding `set_` helpers | No equivalent public flag API; do not invent replacements or inspect private state |
+| Previously removed `overwrite_mode`, `has_frame`, `activates_default` unsigned helpers | Native `get_...` / `set_...(PEntry,gboolean)` APIs |
+
+Native setters perform synchronization and can clear a policy. Old helpers ORed
+bits into private words, bypassed GTK behavior and could not reliably clear them.
+Use actual gboolean arguments (not unsigned masks) and explicit interface casts.
+For ergonomic code use Entry.editable, textVisible, overwriteMode, hasFrame and
+activatesDefault via `import gtk2`. Editable's checked setter now also pins the
+native entry across property notification, like the other checked Entry policies.
+
+`editing-canceled` is **not** an undo command, general cancel operation, or proof
+that a renderer session exists. Raw property users must use public GParamSpec/
+GValue metadata and observe GtkCellEditable's actual lifecycle. The SDK's copied
+renderer edit/commit API remains the application-level path. No new ergonomic
+property/reflection/subclassing API is introduced here.
+
+Public IM-context reset/filter actions, layout/preedit index conversions, DnD
+signals and cursor/selection APIs are not substitutes for writing/querying these
+private flags. This audit does not synthesize an IME reset, cancel a drag, hide a
+caret, forge renderer identity or detach/rebind native models. Generic widget
+visibility, TextView cursor visibility and GtkEntry password concealment differ.
+
+The related native record audit also corrected **GtkEntryClass slot names**:
+`backspace` now precedes clipboard callbacks, `toggle_overwrite` is at its proper
+slot, and `get_text_area_size` replaces incorrectly named padding. Two real reserved
+slots remain, with total class size unchanged. No raw subclass implementation is
+provided. Entry instance size/selected offsets and class size/slot offsets are
+checked against GTK2 headers; callback/prototype probes verify gboolean interface
+signatures and signed gint*/cdecl text-area arguments. These developer probes do
+not turn private fields into a supported runtime API.
+
+`tests/tgtk2entryrawaudit.nim` rejects all removed helper pairs/constants at compile
+time, exercises real boolean clearing and typed public property access on
+**unrealized** widgets, and checks combo/SpinButton and editable-notify lifetime.
+Header-layout tests reject reintroduced Entry masks/private accesses. Existing
+isolated `testMappedEntryEditing` covers native readonly keyboard behavior; no new
+mapped test is needed for removal-only helpers. Normal tests never map/realize
+entries, own PRIMARY, request selections or manipulate desktop input.
+
 ## Newly covered widgets
 
 | Widget handle type | Constructor / primary API prefix |

@@ -4160,6 +4160,25 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### Raw Entry private-flag migration
+
+Raw GtkEntry bitfield helpers and mask/shift constants are removed without shims.
+Use the public GtkEditable boolean methods for editability and GtkEntry visibility
+methods for text concealment, not widget show/hide. Ergonomic editable/textVisible
+already use those methods; editable mutations now pin native lifetime through raw
+notify callbacks too. Inputs demonstrates public read-only control without changing
+stored text. GtkCellEditable's public editing-canceled property is scoped to native
+cell-editor sessions, not a general undo/cancel API. Other removed private drag,
+IME/cache/click/caret/renderer flags have no direct public replacement. No guessed
+state, synthetic reset, model rebinding or deeper IME API was added.
+
+The raw GtkEntryClass backspace/clipboard/toggle/text-area slots were corrected
+without changing class size; instance ABI storage is unchanged. Native layout and
+signature probes cover those declarations, while unrealized
+`tests/tgtk2entryrawaudit.nim` rejects old helper pairs/constants and tests boolean
+clearing, public property typing and setter pins. See the complete inventory and
+migration table in [raw widgets](raw-widgets.md#gtkentry-raw-migration-no-private-bitfield-helpers).
+
 ### Entry progress feedback
 
 Entry has progressFraction and progressPulseStep float64 properties, plus
@@ -4813,7 +4832,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,

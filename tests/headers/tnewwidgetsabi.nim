@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type EntryArea = proc (entry: gtk.PEntry, x, y, width, height: g.Pgint) {.cdecl.}
+proc entryStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_entry_storage_abi".}
+proc entryPublicBool(area: EntryArea): g.gboolean {.cdecl, importc: "nim_gtk2_entry_public_bool_abi".}
 type
   EntryProgressValue = proc (entry: gtk.PEntry, value: g.gdouble): g.gdouble {.cdecl.}
   EntryProgressPulse = proc (entry: gtk.PEntry) {.cdecl.}
@@ -225,6 +228,26 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry storage, corrected class slots and public boolean/interface prototypes":
+    let layout = [sizeof(gtk.TEntry), offsetOf(gtk.TEntry, text_area),
+      offsetOf(gtk.TEntry, current_pos), offsetOf(gtk.TEntry, cached_layout),
+      offsetOf(gtk.TEntry, button), offsetOf(gtk.TEntry, invisible_char),
+      offsetOf(gtk.TEntry, width_chars), sizeof(gtk.TEntryClass),
+      offsetOf(gtk.TEntryClass, populate_popup), offsetOf(gtk.TEntryClass, backspace),
+      offsetOf(gtk.TEntryClass, cut_clipboard), offsetOf(gtk.TEntryClass, copy_clipboard),
+      offsetOf(gtk.TEntryClass, paste_clipboard), offsetOf(gtk.TEntryClass, toggle_overwrite),
+      offsetOf(gtk.TEntryClass, get_text_area_size)]
+    for i, expected in layout: check entryStorage(g.guint(i)).int == expected
+    proc area(entry: gtk.PEntry, x, y, width, height: g.Pgint) {.cdecl.} =
+      doAssert cast[uint](entry) == 0xf1
+      x[] = -123
+      y[] = 17
+      width[] = 300
+      height[] = 40
+    var klass: gtk.TEntryClass
+    klass.get_text_area_size = area
+    check g.toBool(entryPublicBool(klass.get_text_area_size))
+
   test "Entry progress native prototypes, pointer and gdouble/pulse callback ABI":
     var pulses {.global.} = 0
     proc value(entry: gtk.PEntry, input: g.gdouble): g.gdouble {.cdecl.} =

@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Raw GtkEntry private-bitfield helpers/constants are removed without shims; public
+boolean/property replacements and non-replaceable internal state are documented in
+the [raw migration guide](docs/raw-widgets.md#gtkentry-raw-migration-no-private-bitfield-helpers).
+Native Entry class slots now match GTK2 headers, with layout/signature regression probes.
 Entry progress now has checked native double-precision fraction/pulse-step controls
 and an explicit pulse operation—no timer or private activity state. See
 [Entry progress feedback](docs/gtk2.md#entry-progress-feedback), the inputs controls

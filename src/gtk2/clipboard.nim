@@ -134,7 +134,11 @@ proc requestText*(c: Clipboard, owner: Widget,
   requestClipboardText(c, owner, fn)
 
 proc editable*(w: Entry): bool = g.toBool(rawGtk.get_editable(cast[rawGtk.PEditable](w.raw)))
-proc `editable=`*(w: Entry, value: bool) = rawGtk.set_editable(cast[rawGtk.PEditable](w.raw), g.gbool(value))
+proc `editable=`*(w: Entry, value: bool) =
+  let p = w.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_editable(cast[rawGtk.PEditable](p), g.gbool(value))
 proc textVisible*(w: Entry): bool = g.toBool(rawGtk.get_visibility(w.raw))
 proc `textVisible=`*(w: Entry, value: bool) =
   let p = w.raw

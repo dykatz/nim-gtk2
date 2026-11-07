@@ -38,6 +38,14 @@ class HeaderLayout(unittest.TestCase):
                 self.assertTrue(fragments)
                 self.assertTrue(fragments <= seen, 'orphaned header fragments')
 
+    def test_entry_private_bitfield_helpers_do_not_return(self):
+        for fragment in (HEADERS / 'gtk2').glob('*.nim'):
+            text = fragment.read_text()
+            with self.subTest(fragment=fragment.name):
+                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtkEntry_')
+                if fragment.name.startswith('entry') and '_types' not in fragment.name:
+                    self.assertNotRegex(text, r'(?i)\.(?:Entry_?flag0|flag1)\b')
+
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):
             if module.stem != 'gtk2': # src/gtk2.nim is now the ergonomic public API.

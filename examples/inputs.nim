@@ -62,6 +62,10 @@ proc main() =
   frame.active = name.entry.hasFrame
   editingRow.packStart(overwrite, packShrink)
   editingRow.packStart(frame, packShrink)
+  let readOnly = newCheckButton("Read-only input")
+  editingRow.packStart(readOnly, packShrink)
+  # Public GtkEditable policy; never write Entry flags or private IME state.
+  readOnly.onToggled(proc () = name.entry.editable = not readOnly.active)
   layout.packStart(editingRow, packShrink)
   overwrite.onToggled(proc () = name.entry.overwriteMode = overwrite.active)
   frame.onToggled(proc () = name.entry.hasFrame = frame.active)

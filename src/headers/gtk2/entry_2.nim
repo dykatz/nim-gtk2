@@ -5,26 +5,6 @@ proc ENTRY_CLASS*(klass: pointer): PEntryClass
 proc IS_ENTRY*(obj: pointer): bool
 proc IS_ENTRY_CLASS*(klass: pointer): bool
 proc ENTRY_GET_CLASS*(obj: pointer): PEntryClass
-proc editable*(a: PEntry): guint
-proc set_editable*(a: PEntry, `editable`: guint)
-proc visible*(a: PEntry): guint
-proc set_visible*(a: PEntry, `visible`: guint)
-proc in_drag*(a: PEntry): guint
-proc set_in_drag*(a: PEntry, `in_drag`: guint)
-proc cache_includes_preedit*(a: PEntry): guint
-proc set_cache_includes_preedit*(a: PEntry, `cache_includes_preedit`: guint)
-proc need_im_reset*(a: PEntry): guint
-proc set_need_im_reset*(a: PEntry, `need_im_reset`: guint)
-proc cursor_visible*(a: PEntry): guint
-proc set_cursor_visible*(a: PEntry, `cursor_visible`: guint)
-proc in_click*(a: PEntry): guint
-proc set_in_click*(a: PEntry, `in_click`: guint)
-proc is_cell_renderer*(a: PEntry): guint
-proc set_is_cell_renderer*(a: PEntry, `is_cell_renderer`: guint)
-proc editing_canceled*(a: PEntry): guint
-proc set_editing_canceled*(a: PEntry, `editing_canceled`: guint)
-proc mouse_cursor_obscured*(a: PEntry): guint
-proc set_mouse_cursor_obscured*(a: PEntry, `mouse_cursor_obscured`: guint)
 proc entry_get_type*(): TType{.cdecl, dynlib: lib, importc: "gtk_entry_get_type".}
 proc entry_new*(): PEntry{.cdecl, dynlib: lib, importc: "gtk_entry_new".}
 proc set_visibility*(entry: PEntry, visible: gboolean){.cdecl,

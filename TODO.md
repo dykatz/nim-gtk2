@@ -8,14 +8,29 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Remaining raw GtkEntry bitfield audit
+## Next proposed batch: Raw GtkTextView bitfield/public-policy audit
 
-- [ ] Inventory remaining legacy raw GtkEntry bitfield helpers against public GTK2.24
-      APIs; remove unsafe private-field helpers without compatibility aliases.
-- [ ] Keep ABI-required storage/layout, and document public replacements only where
-      real native APIs exist; do not invent getters for private editing/IME state.
-- [ ] Add compile-rejection/public-prototype tests and update raw migration docs,
-      ergonomic examples where relevant, and full hidden/cross-target regressions.
+- [ ] Inventory legacy raw GtkTextView bitfield helpers against public GTK2.24
+      APIs/properties; remove unsafe private helpers and unused masks without shims.
+- [ ] Preserve ABI storage, audit related class slots against native headers and
+      document only actual public replacements, not guessed IME/cache/drag state.
+- [ ] Extend compile-rejection/layout/prototype tests, raw migration docs, existing
+      text example where relevant and hidden/cross-target/isolated regressions.
+
+## Completed batch: Remaining raw GtkEntry bitfield audit
+
+- [x] Removed all 20 remaining Entry bitfield helpers and 26 Entry mask/shift constants
+      (including earlier overwrite/frame/default masks misplaced in menu_2.nim).
+      No aliases; Entry instance storage unchanged. Source guards prevent regression.
+- [x] Audited public GtkEditable boolean and Entry text-visibility replacements;
+      editing-canceled remains a typed public GtkCellEditable property only within
+      its lifecycle. No invented private-state getter/reset, undo or model rebinding.
+- [x] Fixed existing GtkEntryClass backspace/clipboard/toggle/text-area slot names,
+      keeping class size/two native reserved slots. Added native instance/class
+      size/offset, boolean prototype and cdecl signed text-area callback probes.
+- [x] Pinned ergonomic editable setter through raw notify, expanded inputs readonly
+      control/docs and unrealized ARC/ORC compile-rejection/public clearing/property/
+      lifetime/combo/SpinButton tests. Existing mapped editing covers readonly input.
 
 ## Completed batch: Entry progress feedback
 
@@ -297,8 +312,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
-- [ ] Audit/remove remaining legacy raw GtkEntry bitfield helpers (next proposed batch)
-      before exposing corresponding policies; new SDK policies must use public native APIs.
+- [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
+      corresponding policies; GtkTextView is the next proposed batch (Entry complete).
 
 ### Clipboard and drag-and-drop
 
@@ -351,6 +366,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Removed remaining raw Entry private-bitfield helpers/masks, corrected native
+      class slots, documented public replacements and added ABI/compile guards (above).
 - [x] Native Entry progress fraction/step and explicit pulse, no shadow mode/timer,
       notification/lifetime/atomicity and isolated native rendering coverage (above).
 - [x] Native Entry overwrite/frame and checked mask/default policies, pinned visibility,

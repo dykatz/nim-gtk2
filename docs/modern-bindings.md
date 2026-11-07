@@ -139,6 +139,22 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkEntry private-flag audit
+
+All remaining 20 raw Entry bitfield helpers and 26 mask/shift constants are removed,
+without compatibility aliases. Instance ABI storage remains; public GtkEditable
+boolean methods and Entry text-visibility APIs are the supported policy path.
+GtkCellEditable editing-canceled is a public typed property, not a generic undo or
+cancel operation. Private drag/cache/IME/click/caret/renderer flags have no equivalent
+public getter/setter; no shadow state, reset simulation or model rebinding is added.
+
+Native-header probes also exposed/fixed misnamed GtkEntryClass backspace/clipboard/
+toggle/text-area slots with class size unchanged. Size/offset/prototype/cdecl probes,
+compile rejection for every removed helper/constant, static source guards and
+unrealized ARC/ORC migration/lifetime tests cover the change. Entry.editable now pins
+native lifetime through raw notify; inputs demonstrates readonly policy. See the
+[raw migration inventory](raw-widgets.md#gtkentry-raw-migration-no-private-bitfield-helpers).
+
 ### Entry progress feedback
 
 Checked progressFraction/progressPulseStep float64 properties and progressPulse()
