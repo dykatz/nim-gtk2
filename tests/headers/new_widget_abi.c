@@ -3,6 +3,29 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_textmark_storage_abi(guint index) {
+  static const size_t layout[] = { sizeof(GtkTextMark), offsetof(GtkTextMark, segment), sizeof(GtkTextMarkClass) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_textmark_api_abi(GtkTextMark *(*make)(const gchar *, gboolean)) {
+  typedef GtkTextMark *(*New)(const gchar *, gboolean);
+  typedef void (*Add)(GtkTextBuffer *, GtkTextMark *, const GtkTextIter *);
+  typedef void (*Visible)(GtkTextMark *, gboolean);
+  typedef gboolean (*BoolGet)(GtkTextMark *);
+  typedef const gchar *(*Name)(GtkTextMark *);
+  typedef GtkTextBuffer *(*Buffer)(GtkTextMark *);
+#define MARK_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { MARK_AUDIT(New, &gtk_text_mark_new); }
+  { MARK_AUDIT(Add, &gtk_text_buffer_add_mark); }
+  { MARK_AUDIT(Visible, &gtk_text_mark_set_visible); }
+  { MARK_AUDIT(BoolGet, &gtk_text_mark_get_visible); }
+  { MARK_AUDIT(BoolGet, &gtk_text_mark_get_deleted); }
+  { MARK_AUDIT(BoolGet, &gtk_text_mark_get_left_gravity); }
+  { MARK_AUDIT(Name, &gtk_text_mark_get_name); }
+  { MARK_AUDIT(Buffer, &gtk_text_mark_get_buffer); }
+#undef MARK_AUDIT
+  return make("mark-abi", -123) == (GtkTextMark *)(guintptr)0xf3;
+}
 size_t nim_gtk2_textview_storage_abi(guint index) {
   static const size_t layout[] = {
     sizeof(GtkTextView), offsetof(GtkTextView, buffer), offsetof(GtkTextView, tabs),

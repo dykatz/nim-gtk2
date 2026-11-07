@@ -19,16 +19,7 @@ proc get_buffer*(mark: PTextMark): PTextBuffer{.cdecl, dynlib: lib,
     importc: "gtk_text_mark_get_buffer".}
 proc get_left_gravity*(mark: PTextMark): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_text_mark_get_left_gravity".}
-const
-  bm_TGtkTextMarkBody_visible* = 0x0001'u16
-const
-  bp_TGtkTextMarkBody_visible* = 0'u16
-const
-  bm_TGtkTextMarkBody_not_deleteable* = 0x0002'u16
-const
-  bp_TGtkTextMarkBody_not_deleteable* = 1'u16
-
-proc visible*(a: PTextMarkBody): guint
-proc set_visible*(a: PTextMarkBody, `visible`: guint)
-proc not_deleteable*(a: PTextMarkBody): guint
-proc set_not_deleteable*(a: PTextMarkBody, `not_deleteable`: guint)
+proc text_mark_new*(name: cstring, left_gravity: gboolean): PTextMark {.cdecl,
+    dynlib: lib, importc: "gtk_text_mark_new".}
+proc add_mark*(buffer: PTextBuffer, mark: PTextMark, where: PTextIter) {.cdecl,
+    dynlib: lib, importc: "gtk_text_buffer_add_mark".}

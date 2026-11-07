@@ -42,7 +42,10 @@ class HeaderLayout(unittest.TestCase):
         for fragment in [HEADERS / 'gtk2.nim', *(HEADERS / 'gtk2').glob('*.nim')]:
             text = fragment.read_text()
             with self.subTest(fragment=fragment.name):
-                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView)_')
+                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView|TextMarkBody)_')
+                self.assertNotRegex(text, r'\b[PT]TextMarkBody\b')
+                if fragment.name.startswith('textmark'):
+                    self.assertNotRegex(text, r'\.segment\b|\.flag0\b')
                 if '_types' not in fragment.name:
                     if fragment.name.startswith('entry'):
                         self.assertNotRegex(text, r'(?i)\.(?:Entry_?flag0|flag1)\b')

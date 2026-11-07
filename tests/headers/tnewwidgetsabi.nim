@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type TextMarkNew = proc (name: cstring, leftGravity: g.gboolean): gtk.PTextMark {.cdecl.}
+proc textMarkStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_textmark_storage_abi".}
+proc textMarkApi(make: TextMarkNew): g.gboolean {.cdecl, importc: "nim_gtk2_textmark_api_abi".}
 type TextViewFocus = proc (view: gtk.PTextView, direction: gtk.TDirectionType) {.cdecl.}
 proc textViewStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_textview_storage_abi".}
 proc textViewPolicy(focus: TextViewFocus): g.gboolean {.cdecl, importc: "nim_gtk2_textview_policy_abi".}
@@ -231,6 +234,15 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "TextMark public storage, eight prototypes and pointer/gboolean/cstring ABI":
+    check textMarkStorage(0).int == sizeof(gtk.TTextMark)
+    check textMarkStorage(1).int == offsetOf(gtk.TTextMark, segment)
+    check textMarkStorage(2).int == sizeof(gtk.TTextMarkClass)
+    proc make(name: cstring, leftGravity: g.gboolean): gtk.PTextMark {.cdecl.} =
+      doAssert $name == "mark-abi" and g.gint(leftGravity) == -123
+      cast[gtk.PTextMark](0xf3)
+    check g.toBool(textMarkApi(make))
+
   test "TextView storage, corrected class slots and native boolean/direction ABI":
     let layout = [sizeof(gtk.TTextView), offsetOf(gtk.TTextView, buffer),
       offsetOf(gtk.TTextView, tabs), offsetOf(gtk.TTextView, text_window),

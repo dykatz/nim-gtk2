@@ -9,6 +9,57 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextMark raw migration: no guessed private body
+
+Removed four mark-body helpers (visible/set_visible and not_deleteable/
+set_not_deleteable), four mask/shift constants and both guessed TTextMarkBody/
+PTextMarkBody declarations, without aliases. Those private BTree/segment details
+are not GTK2 public types. The public GtkTextMark instance retains its opaque
+segment pointer ABI slot; GtkTextMarkClass retains its four reserved slots. Native
+size/offset checks cover these real header records, not invented private bodies.
+
+| Old private-body access | Public GTK2.24 path |
+| --- | --- |
+| visible / set_visible(PTextMarkBody,guint) | get_visible / set_visible(PTextMark,gboolean) |
+| name/tree/line body reads | get_name, get_buffer, GtkTextBuffer get_iter_at_mark |
+| gravity inferred from segment/class | get_left_gravity; choose immutable gravity when creating a mark |
+| not_deleteable flag | No general public flag getter/setter; do not forge deletion permission |
+| guessed body tree-null/deletion tests | get_deleted and nullable get_buffer |
+
+Native mark creation/addition APIs text_mark_new and add_mark are now bound.
+Constructed marks are non-floating, transfer-full GObjects; on add_mark the buffer
+takes its own reference to the mark. A mark itself does **not** keep its buffer alive.
+Raw public add_mark supports detached marks under GTK's membership/name rules;
+no new ergonomic reinsertion or mutable-gravity protocol is introduced.
+
+Ergonomic createMark now owns text_mark_new **before** insertion, rather than
+adopting the convenience create_mark's borrowed return. A synchronous native
+mark-set handler may delete the mark before that borrowed return reaches the
+caller. Owned-before-add keeps the returned handle valid; it can already be deleted.
+Creation/move/delete/visibility operations pin relevant native objects through
+callbacks. These pins prevent premature final release, not arbitrary destructive
+reentrancy inside GTK's BTree/layout traversal; raw callbacks still obey native
+rules and must not pump nested events or invalidate active native traversal.
+
+TextMark.buffer explicitly returns an owning TextBuffer handle and raises on a
+deleted mark. That returned handle may retain the buffer; the mark alone does not.
+Deleted marks can retain readable name/gravity/visibility, but checked offset,
+move/delete/scroll and buffer access reject lost/mismatched membership. Visibility
+on a detached mark is native policy, not reinsertion. Built-in insert/selection
+marks are protected by public buffer mark identity checks, not a guessed flag.
+Deleting a mark is not deleting document text or an undo command. Visible mark
+cursors do not change buffer text, selection, readonly rights or clipboard policy.
+
+Eight prototype/cdecl pointer/boolean checks plus public instance/class layout
+probes cover ABI. tests/tgtk2textmarkrawaudit.nim rejects private types/helpers/
+constants and tests clearing, gravity, wrong buffer/protected marks, immediate
+native deletion, dropped aliases, buffer lifetime and purity on unrealized views.
+Opt-in testMappedTextMarks requires GTK2_TEST_VIRTUAL_DISPLAY=1 and an isolated
+display for native cursor visibility/movement/deletion pixels and shared-view
+gravity checks. Normal tests never map/realize, own PRIMARY, request selections or
+simulate input. The text example can explicitly show its bookmark cursor and
+retains that policy across its explicit document replacement.
+
 ## GtkTextView raw migration: public policy, not private flags
 
 All **16 TextView bitfield helpers** and **16 mask/shift constants** are removed

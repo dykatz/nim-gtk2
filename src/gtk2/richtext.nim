@@ -133,8 +133,14 @@ proc createMark*(b: TextBuffer, offset: int, name = "", leftGravity = true): Tex
   var it = bufferIter(b, offset)
   if name.len > 0 and rawGtk.get_mark(b.raw, text) != nil:
     raise newException(ValueError, "text mark name already exists")
-  let p = rawGtk.create_mark(b.raw, if name.len == 0: nil else: text, addr it, g.gbool(leftGravity))
-  result.state = adoptObject(p, borrowed = true, cache = true, hasDestroySignal = false)
+  let owner = b.raw
+  discard g.g_object_ref(owner)
+  defer: g.g_object_unref(owner)
+  # Own before mark-set: a native listener may delete the mark during insertion.
+  # The borrowed convenience create_mark return can then already be dangling.
+  result.state = adoptObject(rawGtk.text_mark_new(if name.len == 0: nil else: text,
+    g.gbool(leftGravity)), cache = true, hasDestroySignal = false, sink = false)
+  rawGtk.add_mark(owner, result.raw, addr it)
 proc mark*(b: TextBuffer, name: string): TextMark =
   let p = rawGtk.get_mark(b.raw, checkedUtf8Text(name))
   if p == nil: raise newException(ValueError, "text mark was not found")
@@ -143,7 +149,19 @@ proc deleted*(m: TextMark): bool = g.toBool(rawGtk.get_deleted(m.raw))
 proc name*(m: TextMark): string = $rawGtk.get_name(m.raw)
 proc leftGravity*(m: TextMark): bool = g.toBool(rawGtk.get_left_gravity(m.raw))
 proc visible*(m: TextMark): bool = g.toBool(rawGtk.get_visible(m.raw))
-proc `visible=`*(m: TextMark, value: bool) = rawGtk.set_visible(m.raw, g.gbool(value))
+proc `visible=`*(m: TextMark, value: bool) =
+  let p = m.raw
+  let owner = rawGtk.get_buffer(p)
+  discard g.g_object_ref(p)
+  if owner != nil: discard g.g_object_ref(owner)
+  defer:
+    if owner != nil: g.g_object_unref(owner)
+    g.g_object_unref(p)
+  rawGtk.set_visible(p, g.gbool(value))
+proc buffer*(m: TextMark): TextBuffer =
+  let p = rawGtk.get_buffer(m.raw)
+  if p == nil: raise newException(ValueError, "text mark is deleted")
+  ownedTextBuffer(p)
 proc checkMark(b: TextBuffer, m: TextMark) =
   if rawGtk.get_buffer(m.raw) != b.raw:
     raise newException(ValueError, "text mark is deleted or belongs to another buffer")
@@ -156,12 +174,26 @@ proc offset*(m: TextMark): int =
 proc moveMark*(b: TextBuffer, m: TextMark, offset: int) =
   checkMark(b, m)
   var it = bufferIter(b, offset)
-  rawGtk.move_mark(b.raw, m.raw, addr it)
+  let owner = b.raw
+  let p = m.raw
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
+  rawGtk.move_mark(owner, p, addr it)
 proc deleteMark*(b: TextBuffer, m: TextMark) =
   checkMark(b, m)
   if m.raw == rawGtk.get_insert(b.raw) or m.raw == rawGtk.get_selection_bound(b.raw):
     raise newException(ValueError, "GTK's cursor and selection marks cannot be deleted")
-  rawGtk.delete_mark(b.raw, m.raw)
+  let owner = b.raw
+  let p = m.raw
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
+  rawGtk.delete_mark(owner, p)
 proc scrollToMark*(w: TextView, m: TextMark) =
   checkMark(w.buffer, m)
   rawGtk.scroll_to_mark(w.raw, m.raw, 0, g.gbool(false), 0, 0)

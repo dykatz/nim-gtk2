@@ -17,24 +17,6 @@ proc IS_TEXT_MARK_CLASS*(klass: pointer): bool =
 proc TEXT_MARK_GET_CLASS*(obj: pointer): PTextMarkClass =
   result = cast[PTextMarkClass](G_TYPE_INSTANCE_GET_CLASS(obj, TYPE_TEXT_MARK()))
 
-proc visible*(a: PTextMarkBody): guint =
-  result = (a.flag0 and bm_TGtkTextMarkBody_visible) shr
-      bp_TGtkTextMarkBody_visible
-
-proc set_visible*(a: PTextMarkBody, `visible`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`visible` shl bp_TGtkTextMarkBody_visible) and
-      bm_TGtkTextMarkBody_visible)
-
-proc not_deleteable*(a: PTextMarkBody): guint =
-  result = (a.flag0 and bm_TGtkTextMarkBody_not_deleteable) shr
-      bp_TGtkTextMarkBody_not_deleteable
-
-proc set_not_deleteable*(a: PTextMarkBody, `not_deleteable`: guint) =
-  a.flag0 = a.flag0 or
-      (uint16(`not_deleteable` shl bp_TGtkTextMarkBody_not_deleteable) and
-      bm_TGtkTextMarkBody_not_deleteable)
-
 proc TYPE_TEXT_CHILD_ANCHOR*(): GType =
   result = text_child_anchor_get_type()
 

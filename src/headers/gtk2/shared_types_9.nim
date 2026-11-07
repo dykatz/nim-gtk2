@@ -37,14 +37,6 @@ type
     segments*: PTextLineSegment
     views*: PTextLineData
 
-  TTextMarkBody*{.final, pure.} = object
-    obj*: PTextMark
-    name*: cstring
-    tree*: PTextBTree
-    line*: PTextLine
-    flag0*: guint16
-
-  PTextMarkBody* = ptr TTextMarkBody
   PTextChildBody* = ptr TTextChildBody
   PTextSegSplitFunc* = ptr TTextSegSplitFunc
   PTextSegCleanupFunc* = ptr TTextSegCleanupFunc

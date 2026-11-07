@@ -139,6 +139,23 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextMark private-body/ownership audit
+
+Removed four body helpers/four masks and guessed TTextMarkBody/PTextMarkBody types
+without shims. Public mark visibility/name/gravity/deletion/buffer APIs replace
+private reads; not_deleteable has no general public flag replacement. Native public
+instance/class storage is unchanged and checked against headers, with eight
+prototype and cdecl pointer/boolean probes. Compile/source guards reject regression.
+
+createMark owns a non-floating text_mark_new before add_mark: a raw mark-set
+listener may delete the mark before a borrowed convenience return arrives. Native
+lifetime pins cover creation/move/delete/visibility. Mark handles do not retain
+buffers; explicit TextMark.buffer returns an owning buffer handle or raises if
+deleted. No private state, reinsertion/gravity mutation, fake deletion or undo is
+introduced. Unrealized ARC/ORC tests cover synchronous deletion/dropped aliases,
+gravity/public policies/guards; isolated pixel/shared-view tests cover rendering.
+See [raw migration](raw-widgets.md#gtktextmark-raw-migration-no-guessed-private-body).
+
 ### Raw GtkTextView public-policy audit
 
 Removed 16 raw private-bitfield helpers/16 constants without aliases, including

@@ -29,6 +29,9 @@ proc main() =
   emphasis.underline = true
   emphasis.setForeground(rgba16(5000, 12000, 50000))
   var bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
+  let showBookmark = newCheckButton("Show bookmark cursor (not document text)")
+  showBookmark.onToggled(proc () = bookmark.visible = showBookmark.active)
+  layout.packStart(showBookmark, packShrink)
   let tools = newHBox(spacing = 6)
   let query = newEntry("λ")
   let find = newButton("Find next")
@@ -130,6 +133,7 @@ proc main() =
     buffer = loaded
     emphasis = imported
     bookmark = mark
+    bookmark.visible = showBookmark.active
     watchBuffer()
     buffer.modified = false
     refresh()

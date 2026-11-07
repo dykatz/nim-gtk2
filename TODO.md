@@ -8,14 +8,30 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextMark private-body audit
+## Next proposed batch: Raw GtkTextAttributes bitfield/ownership audit
 
-- [ ] Inventory raw mark/private-body helpers and masks against public GTK2.24
-      visibility/gravity/deletion/buffer APIs; remove unsafe helpers without shims.
-- [ ] Audit native instance/class/opaque storage and ownership; do not expose guessed
-      segment/body layouts or fabricate mark deletion/gravity/lifetime state.
-- [ ] Extend ABI/compile guards, raw migration docs and existing text example where
-      relevant, with hidden ARC/ORC/cross-target and isolated native regressions.
+- [ ] Inventory legacy attribute bitfield helpers/masks against GTK2.24 public
+      attributes construction/copy/ref/unref and effective-style APIs.
+- [ ] Remove unsafe helpers without shims; audit public storage/ABI and document
+      actual public paths without inventing private style/cache state.
+- [ ] Extend ABI/compile guards, migration docs and existing text example where
+      relevant, with hidden ARC/ORC/cross-target and isolated regressions.
+
+## Completed batch: Raw GtkTextMark private-body audit
+
+- [x] Removed four helpers/four mask constants and guessed TTextMarkBody/PTextMarkBody
+      types; no aliases. Public mark opaque segment/class storage unchanged and
+      native ABI checked. No not_deleteable flag replacement invented.
+- [x] Bound text_mark_new/add_mark and fixed createMark ownership before insertion:
+      synchronous native mark-set deletion can no longer leave an adopted dangling
+      convenience return. Creation/move/delete/visibility pin native lifetimes.
+- [x] Added explicit owning TextMark.buffer getter; marks alone do not retain buffers.
+      Native deletion/gravity/visibility preserved, protected builtins checked through
+      public identities; no reinsertion, mutable gravity, fake deletion or undo.
+- [x] Expanded text example bookmark visibility/docs, unrealized ARC/ORC removal/
+      clearing/gravity/ownership/purity/immediate-deletion/dropped-alias tests, eight
+      native prototypes/cdecl/layout probes and isolated cursor-pixel/shared-view
+      gravity regressions with opt-in guard.
 
 ## Completed batch: Raw GtkTextView bitfield/public-policy audit
 
@@ -330,7 +346,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; GtkTextMark is next (Entry/TextView complete).
+      corresponding policies; GtkTextAttributes is next (Entry/TextView/Mark complete).
 
 ### Clipboard and drag-and-drop
 
@@ -383,6 +399,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Raw mark private-body removal, own-before-insert creation, explicit buffer
+      ownership and native lifetime/gravity/cursor rendering coverage (above).
 - [x] Raw TextView flag cleanup, native class-slot/boolean audit, pinned view policy,
       unrealized overwrite precondition and isolated edit/focus coverage (above).
 - [x] Removed remaining raw Entry private-bitfield helpers/masks, corrected native
