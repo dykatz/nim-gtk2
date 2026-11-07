@@ -18,6 +18,18 @@ type
     first*, last*, cursor*: int # Current native Unicode character offsets.
   CompletionInlineConnection* = object
     binding: RecentBinding[CompletionInlineState]
+  CompletionAction* = object
+    index*: int # Action-list index, never a suggestion/filtered popup index.
+    text*, key*: string # Literal action label and entry text at native emission.
+  CompletionActionState = ref object
+    active: bool
+    fn: proc (value: CompletionAction) {.closure.}
+  CompletionActionConnection* = object
+    state: CompletionActionState
+  PendingCompletionAction = object
+    value: CompletionAction
+    generation: uint64
+    listeners: seq[CompletionActionState]
   CompletionMatchInput* = object
     key*, text*: string # Native normalized/casefolded key; literal suggestion text.
     index*: int # Source suggestion index, not the filtered popup position.
@@ -45,6 +57,12 @@ type
     inlineObservers: seq[RecentBinding[CompletionInlineState]]
     active, applying, matchingUpdate: bool
     matcher: CompletionMatchSlot
+    actions: seq[string]
+    actionsUpdating: bool
+    actionGeneration: uint64
+    actionIdle: g.guint
+    actionPending: seq[PendingCompletionAction]
+    actionObservers: seq[CompletionActionState]
     generation: uint64
     idle: g.guint
     pending: CompletionSelection
@@ -53,6 +71,14 @@ type
 const completionKey = "nim-gtk2-text-completion"
 proc clearCompletionBridge(d: CompletionData, detachNative: bool)
 proc resetCompletionMatch(d: CompletionData)
+proc installCompletionActions(d: CompletionData, labels: openArray[string])
+proc completionActionSignal(instance: pointer, index: g.gint, data: pointer) {.cdecl, gcsafe.}
+proc cancelCompletionActions(d: CompletionData) =
+  inc d.actionGeneration
+  let idle = d.actionIdle
+  d.actionIdle = 0
+  if idle != 0: discard g.g_source_remove(idle)
+  d.actionPending = @[]
 proc cancelCompletionInline(d: CompletionData) =
   let idle = d.inlineIdle
   d.inlineIdle = 0
@@ -77,6 +103,7 @@ proc syncCompletionInline(d: CompletionData) =
       d.deferredParent = parent
       g.set_data(cast[g.PGObject](parent), completionDeferredKey, flag)
 proc cancelCompletionCommit(d: CompletionData) =
+  cancelCompletionActions(d)
   inc d.generation
   let idle = d.idle
   d.idle = 0
@@ -100,8 +127,19 @@ proc disconnect*(c: CompletionInlineConnection) =
   requireOutsideModelFunction()
   if c.connected: releaseRecentBinding[CompletionInlineState](cast[pointer](c.binding), nil)
 proc clearCompletionBridge(d: CompletionData, detachNative: bool) =
+  # Observer capture destructors can drop the final public alias before native
+  # detach. Keep the emitter alive through disconnect and inline-policy cleanup.
+  # Native qdata finalization uses detachNative=false: never ref a finalized p.
+  let native = if detachNative: d.p else: nil
+  if native != nil: discard g.g_object_ref(native)
+  defer:
+    if native != nil: g.g_object_unref(native)
   cancelCompletionCommit(d)
   cancelCompletionInline(d)
+  let actionObservers = move(d.actionObservers)
+  for observer in actionObservers:
+    observer.active = false
+    observer.fn = nil
   let inlineObservers = move(d.inlineObservers)
   for binding in inlineObservers:
     if binding.active: releaseRecentBinding[CompletionInlineState](cast[pointer](binding), nil)
@@ -130,7 +168,8 @@ proc completionData(c: EntryCompletion): CompletionData =
   let p = c.raw
   result = cast[CompletionData](g.get_data(cast[g.PGObject](p), completionKey))
   if result == nil or not result.active: raise newException(ValueError, "not an active SDK text completion")
-  if result.matchingUpdate: raise newException(ValueError, "completion access during matcher replacement is forbidden")
+  if result.matchingUpdate or result.actionsUpdating:
+    raise newException(ValueError, "completion access during callback/action replacement is forbidden")
   if result.matcher != nil and not result.matcher.nativeAlive:
     raise newException(ValueError, "completion match function was changed through raw GTK")
   if rawGtk.entry_completion_get_entry(p) != cast[rawGtk.PWidget](result.entry):
@@ -152,7 +191,8 @@ proc close*(c: EntryCompletion) =
   GC_ref(state) # Clearing a self-capturing matcher may drop the final public alias.
   defer: GC_unref(state)
   let d = cast[CompletionData](g.get_data(cast[g.PGObject](state.p), completionKey))
-  if d.matchingUpdate: raise newException(ValueError, "completion close during matcher replacement is forbidden")
+  if d.matchingUpdate or d.actionsUpdating:
+    raise newException(ValueError, "completion close during callback/action replacement is forbidden")
   d.active = false
   clearCompletionBridge(d, true)
   resetCompletionMatch(d)
@@ -255,6 +295,7 @@ proc completionSelected(instance: pointer, model: rawGtk.PTreeModel,
     try:
       let d = cast[CompletionData](data)
       if not d.active or d.entry == nil or model != d.model.raw: return g.gbool(true)
+      cancelCompletionActions(d)
       cancelCompletionInline(d)
       let path = rawGtk.get_path(model, iter)
       defer: rawGtk.free(path)
@@ -341,8 +382,10 @@ proc completionCursorSignal(instance: pointer, model: rawGtk.PTreeModel,
       return g.gbool(false) # Native preview and Escape/Left/Right/Tab behavior.
     except Exception as error: reportSignalError(error)
     g.gbool(true)
-proc newEntryCompletion*(items: openArray[string] = []): EntryCompletion =
+proc newEntryCompletion*(items: openArray[string] = [], actions: openArray[string] = []): EntryCompletion =
   requireOutsideModelFunction()
+  discard checkedInt(actions.len)
+  for label in actions: discard checkedUtf8Text(label)
   let model = completionModel(items)
   let p = rawGtk.entry_completion_new()
   result.state = adoptObject(p, cache = true, hasDestroySignal = false, sink = false)
@@ -357,6 +400,9 @@ proc newEntryCompletion*(items: openArray[string] = []): EntryCompletion =
     cast[pointer](d), nil, g.TGConnectFlags(0))
   discard g.g_signal_connect_data(p, "cursor-on-match", cast[g.TGCallback](completionCursorSignal),
     cast[pointer](d), nil, g.TGConnectFlags(0))
+  discard g.g_signal_connect_data(p, "action-activated", cast[g.TGCallback](completionActionSignal),
+    cast[pointer](d), nil, g.TGConnectFlags(0))
+  installCompletionActions(d, actions)
 proc items*(c: EntryCompletion): seq[string] =
   let d = completionData(c)
   for i in 0..<d.model.rowCount: result.add(d.model.value(i, 0).stringValue)
@@ -429,26 +475,31 @@ proc minimumKeyLength*(c: EntryCompletion): int =
   discard completionData(c)
   rawGtk.entry_completion_get_minimum_key_length(c.raw).int
 proc `minimumKeyLength=`*(c: EntryCompletion, value: int) =
-  discard completionData(c)
-  rawGtk.entry_completion_set_minimum_key_length(c.raw, checkedInt(value))
+  let d = completionData(c)
+  let length = checkedInt(value)
+  cancelCompletionActions(d)
+  rawGtk.entry_completion_set_minimum_key_length(d.p, length)
 proc popupCompletion*(c: EntryCompletion): bool =
   discard completionData(c)
   g.toBool(rawGtk.entry_completion_get_popup_completion(c.raw))
 proc `popupCompletion=`*(c: EntryCompletion, value: bool) =
-  discard completionData(c)
-  rawGtk.entry_completion_set_popup_completion(c.raw, g.gbool(value))
+  let d = completionData(c)
+  cancelCompletionActions(d)
+  rawGtk.entry_completion_set_popup_completion(d.p, g.gbool(value))
 proc popupSingleMatch*(c: EntryCompletion): bool =
   discard completionData(c)
   g.toBool(rawGtk.entry_completion_get_popup_single_match(c.raw))
 proc `popupSingleMatch=`*(c: EntryCompletion, value: bool) =
-  discard completionData(c)
-  rawGtk.entry_completion_set_popup_single_match(c.raw, g.gbool(value))
+  let d = completionData(c)
+  cancelCompletionActions(d)
+  rawGtk.entry_completion_set_popup_single_match(d.p, g.gbool(value))
 proc popupSetWidth*(c: EntryCompletion): bool =
   discard completionData(c)
   g.toBool(rawGtk.entry_completion_get_popup_set_width(c.raw))
 proc `popupSetWidth=`*(c: EntryCompletion, value: bool) =
-  discard completionData(c)
-  rawGtk.entry_completion_set_popup_set_width(c.raw, g.gbool(value))
+  let d = completionData(c)
+  cancelCompletionActions(d)
+  rawGtk.entry_completion_set_popup_set_width(d.p, g.gbool(value))
 proc refilter*(c: EntryCompletion) =
   let d = completionData(c)
   if d.entry == nil: raise newException(ValueError, "completion must be attached before refiltering")

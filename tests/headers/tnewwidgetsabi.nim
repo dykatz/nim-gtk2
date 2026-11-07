@@ -13,6 +13,8 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type CompletionActionSignal = proc (completion: gtk.PEntryCompletion, index: g.gint, data: pointer) {.cdecl.}
+proc invokeCompletionAction(fn: CompletionActionSignal) {.cdecl, importc: "nim_gtk2_completion_action_abi".}
 proc invokeCompletionMatch(fn: gtk.TEntryCompletionMatchFunc, destroy: g.TGDestroyNotify): g.gboolean
   {.cdecl, importc: "nim_gtk2_completion_match_abi".}
 type
@@ -203,6 +205,12 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "completion action signed index, data and native insert/delete prototypes":
+    proc action(completion: gtk.PEntryCompletion, index: g.gint, data: pointer) {.cdecl.} =
+      doAssert cast[uint](completion) == 0x61 and cast[uint](data) == 0x62
+      doAssert index == low(int32)
+    invokeCompletionAction(action)
+
   test "completion predicate key/iter/data, destroy notifier and gboolean ABI":
     proc match(completion: gtk.PEntryCompletion, key: cstring, iter: gtk.PTreeIter,
         data: pointer): g.gboolean {.cdecl.} =

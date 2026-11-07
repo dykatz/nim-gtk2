@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 720, 470)
+  let window = newWindow("gtk2 measurement inputs and completion", 760, 510)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -13,10 +13,13 @@ proc main() =
   let name = newComboBoxText(["Length", "Width", "Height"], editable = true)
   name.activeIndex = 0
   layout.packStart(name, packShrink)
-  let suggestions = newEntryCompletion(["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"])
+  let suggestions = newEntryCompletion(
+    ["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"],
+    actions = ["Use current label (free text)", "Reset measurement to Length"])
   defer: suggestions.close()
   name.entry.completion = suggestions
   layout.packStart(newLabel("Type a prefix; Down previews, Escape restores, Return selects. Free text is allowed."), packShrink)
+  layout.packStart(newLabel("Down past suggestions (or Up) selects actions; actions never auto-insert their labels."), packShrink)
   let policies = newHBox(spacing = 6)
   let inline = newCheckButton("Inline common prefix")
   let preview = newCheckButton("Inline popup preview")
@@ -58,6 +61,12 @@ proc main() =
   layout.packStart(selected, packShrink)
   suggestions.onSelected(proc (value: CompletionSelection) =
     selected.text = "Suggestion " & $value.index & ": " & value.text)
+  suggestions.onActionActivated(proc (value: CompletionAction) =
+    # Deferred past native keyboard/mouse traversal. Explicit application policy:
+    selected.text = "Action " & $value.index & ": " & value.text & " (key: " & value.key & ")"
+    if value.index == 1:
+      name.entryText = "Length"
+      amount.value = 25.4)
 
   let provisional = newLabel("No inline change")
   layout.packStart(provisional, packShrink)

@@ -7,6 +7,10 @@ type
 proc entry_completion_set_match_func*(completion: PEntryCompletion,
     fn: TEntryCompletionMatchFunc, data: gpointer, destroy: TGDestroyNotify)
   {.cdecl, dynlib: lib, importc: "gtk_entry_completion_set_match_func".}
+proc entry_completion_insert_action_text*(completion: PEntryCompletion, index: gint, text: cstring)
+  {.cdecl, dynlib: lib, importc: "gtk_entry_completion_insert_action_text".}
+proc entry_completion_delete_action*(completion: PEntryCompletion, index: gint)
+  {.cdecl, dynlib: lib, importc: "gtk_entry_completion_delete_action".}
 proc entry_completion_get_type*(): GType {.cdecl, dynlib: lib, importc: "gtk_entry_completion_get_type".}
 proc entry_completion_new*(): PEntryCompletion {.cdecl, dynlib: lib, importc: "gtk_entry_completion_new".}
 proc entry_set_completion*(entry: PEntry, completion: PEntryCompletion) {.cdecl, dynlib: lib, importc: "gtk_entry_set_completion".}

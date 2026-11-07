@@ -3346,8 +3346,9 @@ native popup policy. refilter() requires an attached entry and updates matching;
 it is not a public force-popup method. Normal user editing triggers GTK's popup
 timeout. gtk_entry_set_text (and entryText=) intentionally suppresses automatic
 popup scheduling in GTK2; do not confuse programmatic replacement with typing.
-Inline completion/selection are opt-in policies described below. Custom match predicates are covered below. Arbitrary model columns, action rows,
-markup providers and deeper IME integration remain raw/separate work.
+Inline completion/selection are opt-in policies described below. Custom match
+predicates and literal action rows are covered below. Arbitrary model columns,
+markup providers and deeper IME integration remain separate work.
 
 ```nim
 let suggestions = newEntryCompletion(["Length", "Length unit", "Width"])
@@ -3501,6 +3502,87 @@ ABI. testMappedCompletionMatch requires an explicitly isolated display and
 GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 XTEST verifies non-prefix popup choices, source
 indices after model changes, exact native default reset and safe observer teardown.
 Normal tests never map popups or manipulate desktop selection state.
+
+### Completion action rows
+
+Configure owned literal UTF-8 action labels independently of suggestions:
+
+```nim
+let completion = newEntryCompletion(["alpha", "alpine"],
+  actions = ["Search current text", "Create new item"])
+entry.completion = completion
+let connection = completion.onActionActivated(proc (value: CompletionAction) =
+  echo value.index, ": ", value.text, " — entry: ", value.key)
+```
+
+CompletionAction contains copied index in the **action list**, text (literal label)
+and key (entry text at native emission). It never contains a filtered popup or
+suggestion index. key is not the matcher’s normalized key or a promised original
+query: GTK keyboard navigation restores its historical prefix on entering actions,
+whereas clicking an action may leave a previously previewed entry value. The SDK
+reports native text and does not invent a restoration. Labels, including markup-like
+strings, are text, not Pango markup. Empty/duplicate labels are permitted; indices
+disambiguate them. actions() returns an owned list. The inputs example configures
+free-text/reset actions and performs any entry changes explicitly in application code.
+
+setActions replaces the list, clearActions empties it. Both validate/copy before
+native mutation and are **detached-only**, even if an attached popup appears closed.
+GTK caches a combined suggestion/action navigation index, with no public reset or
+popup-state query. GTK delete_action also uses an unchecked nth-child result: the
+SDK only deletes its own known in-range rows, in descending order. Native mutation
+is pinned/guarded, and the SDK never inspects private structures, fakes navigation,
+rebinds the suggestion model or silently detaches to reset native state.
+
+Prefer configuring once before attachment. If application policy requires a new
+list, explicitly detach(), setActions(...), then attach and reconnect observation
+listeners as a new session. Native detachment cancels completion sources and pops
+down its popup through the public GTK API. The next native popup initializes its
+navigation index normally; historical prefix state is not artificially reset.
+Raw insertion/deletion of actions on an SDK completion is unsupported and cannot
+be reliably detected through public GTK getters. Use the SDK exclusively for rows.
+
+onActionActivated returns a non-owning CompletionActionConnection with connected
+and idempotent disconnect. The signal handler only checks/copies payloads and queues
+work. Application callbacks run at UI idle **after** the native key handler frees
+its prefix or the mouse handler pops down its popup. No action label is inserted
+into the entry and onSelected is not emitted. App code decides whether to edit the
+entry, open a dialog, detach, replace actions, close the completion or destroy its
+window. Exceptions are contained independently for each callback.
+
+Delivery preserves each valid native emission in order; it is not coalesced. Only
+listeners active at emission are included. A later subscription does not receive
+old queued activations. Before each listener, the dispatcher rechecks generation,
+attachment, visibility, editability and exact emission-time entry text. Edits,
+read-only/password changes, suggestion replacement/selection, refiltering, match,
+inline or popup/minimum-length policy setters, detach/close/destruction cancel stale
+queued actions. If the
+first callback changes text or closes/detaches, later listeners/emissions are
+suppressed. Disconnect releases that listener's captures promptly, including while
+work remains queued; self-disconnection is safe. Matching predicates cannot access
+actions/configuration or disconnect action observers inside the synchronous guard.
+
+Dropping a token does not disconnect. Native entry ownership can retain the
+completion/listeners after public aliases disappear. Actions themselves belong to
+the controller and survive detach; action **listeners** belong to the attachment
+observation session and disconnect on detach, password hiding, owner destruction
+or close. Native finalization releases captures. Self-capturing listeners can form
+cycles; explicitly disconnect/close before abandoning them. Temporary native pins
+also protect detach cleanup if a capture destructor drops the last public alias.
+
+Action rows are not matched by setMatch: custom predicates filter suggestions only.
+Actions may open an action-only popup even with no suggestion matches; popup policy
+and native minimum-key-length still apply. Native arrow/page/Enter/mouse navigation
+and inline previews are preserved. Actions are presentation, not authorization:
+validate permissions/current state in application policy, not by assuming a row was
+hidden. Arbitrary renderers, markup actions and deeper IME/provider work are separate.
+
+Hidden tests/tgtk2completionactions.nim cover atomic labels, detached replacement,
+copied emissions, cancellation, per-listener staleness, disconnect/capture lifetime,
+exception/reentrancy and synchronous matcher guards without mapping windows. C probes
+check signed gint/cdecl/data and insertion/deletion prototypes. The isolated opt-in
+testMappedCompletionActions uses XTEST keyboard/mouse input for action-only popups,
+inline suggestion-to-action navigation, rejected live mutation, explicit new sessions
+and safe teardown beyond both native emitters. It requires GTK2_TEST_VIRTUAL_DISPLAY=1.
 
 ### Inline common prefix and popup selection
 
@@ -4246,7 +4328,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4285,7 +4367,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

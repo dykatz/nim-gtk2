@@ -485,6 +485,7 @@ include gtk2/builder
 include gtk2/uimanager
 include gtk2/completion
 include gtk2/completionmatch
+include gtk2/completionactions
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors

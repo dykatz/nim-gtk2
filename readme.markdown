@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+EntryCompletion also supports owned literal action rows with copied deferred
+activation payloads and explicit detached-only replacement. See the
+[action-row guide](docs/gtk2.md#completion-action-rows) and expanded inputs example.
+`testMappedCompletionActions` requires an explicitly opted-in isolated display.
 EntryCompletion now supports pure custom matching from copied key/text/index
 inputs, non-owning connections, explicit refiltering and an exact native-default
 reset. See [examples/inputs.nim](examples/inputs.nim) and the

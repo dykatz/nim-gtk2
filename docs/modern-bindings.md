@@ -139,6 +139,27 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Completion action rows
+
+Native insert_action_text/delete_action and action-activated use native signed gint,
+pointer and cdecl ABI. The ergonomic wrapper owns literal labels, only deletes known
+in-range rows, and rejects structural changes while attached: GTK's combined popup
+navigation index has no public reset/query. It never accesses private popup fields,
+rebinds models or implicitly detaches to fake a reset.
+
+Action payloads copy action-list index/label and emission-time entry text. A separate
+pinned idle bridge delivers each emission only to then-existing active listeners,
+rechecking staleness before each callback. Native mouse popdown and keyboard prefix
+cleanup finish before application code can edit/close/destroy. Edits/policy/model/
+attachment changes cancel stale work; disconnect promptly releases captures.
+
+Configuration survives detach; listeners do not. Close/native finalization release
+captures, and detach pins the native completion against capture destructors dropping
+its final public alias. Matching predicates filter suggestions, not action rows.
+Hidden ARC/ORC tests, signed callback/prototype C probes and isolated XTEST mouse/key
+regressions accompany the expanded inputs example. See docs/gtk2.md for the detached
+replacement/session policy and unchanged native prefix/history behavior.
+
 ### Custom completion predicates
 
 The public raw GtkEntryCompletionMatchFunc/set_match_func declarations use native
@@ -158,7 +179,7 @@ the callback's retained fixed model before native filtering. Close/finalization
 invalidates tokens; checked access notices raw replacement. Inline prefix/preview
 algorithms are unchanged, and filtering is not authorization. Expanded inputs,
 hidden ARC/ORC lifecycle/purity tests, C probes and isolated real-popup tests cover
-the contract; see docs/gtk2.md and TODO.md for remaining action/provider work.
+the contract; see docs/gtk2.md and TODO.md for remaining provider/model/IME work.
 
 ### Entry completion and editable text input
 

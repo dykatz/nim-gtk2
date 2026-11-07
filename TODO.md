@@ -8,17 +8,37 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: EntryCompletion action rows
+## Next proposed batch: Entry Unicode cursor and selection
 
-- [ ] Audit native action insertion/deletion/activation timing and row ownership,
-      especially changes while a popup/key emitter is still using indices.
-- [ ] Add checked owned literal-text actions and copied deferred activation payloads,
-      independently of suggestion indices and existing match/inline observations.
-- [ ] Define replacement, stale activation cancellation, close/detach behavior and
-      native preview interaction without private popup fields or fake input resets.
-- [ ] Expand inputs example and hidden ARC/ORC/ABI/isolated action-keyboard tests.
+- [ ] Audit public GtkEditable cursor/selection semantics and PRIMARY ownership,
+      including ordinary Entry and protected editable ComboBoxText children.
+- [ ] Add checked Unicode cursor/selection snapshots and explicit selection helpers,
+      with atomic bounds validation and password/read-only policy.
+- [ ] Define native completion preview interaction without fake key input/history
+      resets, and ensure normal unrealized tests never claim desktop selections.
+- [ ] Expand inputs example, hidden ARC/ORC/ABI and isolated keyboard/selection tests.
 
-Markup/providers, arbitrary models/renderers and deeper IME integration remain separate.
+Completion markup/providers, arbitrary models/renderers and deeper IME integration
+remain separate, as do undo/redo and richer text-buffer insertion/transfer work.
+
+## Completed batch: EntryCompletion action rows
+
+- [x] Audited native action model ownership, unchecked deletion, combined cached
+      navigation indices and post-signal keyboard/mouse traversal.
+- [x] Owned UTF-8 literal labels with separate action-list indices and atomic checked
+      configuration. Structural replacement is detached-only; no implicit restart,
+      private popup fields, model rebinding or fake-input navigation resets.
+- [x] Copied per-emission deferred activation payloads and non-owning/disconnectable
+      listeners, independent of suggestion commits and inline observations.
+- [x] Staleness checked before each listener; edits, model/match/inline changes,
+      readonly/password, detach/close/destruction cancel queued actions. Late
+      subscriptions do not receive earlier activations; exceptions are contained.
+- [x] Configuration survives detach while listeners end with their attachment
+      session; prompt capture release and native/idle pins protect final cleanup,
+      including destructors dropping the final public completion alias on detach.
+- [x] Expanded inputs/docs and hidden ARC/ORC lifecycle/purity/reentrancy tests,
+      signed callback/native prototype ABI and isolated action-only mouse/keyboard,
+      inline-to-action and explicit replacement-session regressions.
 
 ## Completed batch: custom EntryCompletion matching
 
@@ -173,7 +193,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Completion action rows (next proposed batch above).
+- [ ] Entry Unicode cursor/selection helpers (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
@@ -229,6 +249,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Literal EntryCompletion action rows, detached configuration and copied deferred
+      native activations with independent session/cancellation ownership (above).
 - [x] Pure copied-input custom EntryCompletion predicates, guarded replacement,
       explicit default reset/refilter and independent callback ownership (above).
 - [x] Native inline EntryCompletion prefix/preview policy, safe deferred entry/combo

@@ -3,6 +3,17 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef void (*NimCompletionActionSignal)(GtkEntryCompletion *, gint, gpointer);
+void nim_gtk2_completion_action_abi(NimCompletionActionSignal fn) {
+  typedef void (*Insert)(GtkEntryCompletion *, gint, const gchar *);
+  typedef void (*Delete)(GtkEntryCompletion *, gint);
+  typedef char insert_signature[__builtin_types_compatible_p(Insert,
+    __typeof__(&gtk_entry_completion_insert_action_text)) ? 1 : -1];
+  typedef char delete_signature[__builtin_types_compatible_p(Delete,
+    __typeof__(&gtk_entry_completion_delete_action)) ? 1 : -1];
+  (void)sizeof(insert_signature); (void)sizeof(delete_signature);
+  fn((GtkEntryCompletion *)(guintptr)0x61, G_MININT, (gpointer)(guintptr)0x62);
+}
 typedef void (*NimCompletionSetMatch)(GtkEntryCompletion *, GtkEntryCompletionMatchFunc,
   gpointer, GDestroyNotify);
 gboolean nim_gtk2_completion_match_abi(GtkEntryCompletionMatchFunc fn, GDestroyNotify destroy) {
