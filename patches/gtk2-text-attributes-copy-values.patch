@@ -1,0 +1,25 @@
+From: nim-gtk2 native ownership audit
+Subject: [PATCH] text attributes: free destination tabs and paragraph color on copy
+
+GTK2.24.33 gtk_text_attributes_copy_values frees destination font/stipple resources
+but overwrites its tabs/pg_bg_color without freeing them. Release those owned
+resources after the existing self-copy/realized checks and before assignment.
+
+Optional GTK SOURCE patch only, audited/dry-run against 2.24.33. Not installed or
+validated as a rebuilt GTK binary by the SDK. No runtime workaround is provided.
+
+--- a/gtk/gtktexttag.c
++++ b/gtk/gtktexttag.c
+@@ -2050,6 +2050,12 @@
+   if (dest->font)
+     pango_font_description_free (dest->font);
+   
++  if (dest->tabs)
++    pango_tab_array_free (dest->tabs);
++
++  if (dest->pg_bg_color)
++    gdk_color_free (dest->pg_bg_color);
++
+   /* Copy */
+   orig_refcount = dest->refcount;
+ 

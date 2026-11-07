@@ -4160,6 +4160,30 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### Raw text attributes and effective style
+
+TextAttributes/Appearance flag helpers and masks are removed without aliases.
+Public native layout remains, and reference(PTextAttributes) now returns the actual
+native pointer. These are boxed, explicitly refcounted values, never ObjectHandles
+or GObjects. Native new/copy/get_default_attributes results are owned and need
+unref; reference and GLib boxed copy alias the same value, while explicit copy
+creates an independent snapshot. See [attribute migration/ownership](raw-widgets.md#gtktextattributesappearance-raw-migration-and-ownership).
+
+Effective style inspection starts with a view-default copy and overlays iterator
+tag attributes. The native boolean reports tag contribution, not visibility,
+editability, authorization or snapshot validity. Snapshots do not update live tags
+or track later changes; the example's underline checkbox changes the actual emphasis
+tag property. False is an explicit property value, not necessarily removal of its
+override. No ergonomic generic style/snapshot wrapper was added in this raw audit.
+
+Native copy_values preserves destination refs but GTK2.24.33 source leaks old tabs/
+paragraph color on populated destinations. Prefer independent copies; the optional
+source-only patch is not applied or validated as rebuilt GTK. No private resource
+repair, realized-bit override or warning suppression is used. Unrealized ARC/ORC,
+compile/layout/prototype tests cover ownership/default overlays; isolated
+`testMappedTextAttributes` covers native pixels and snapshots after tag/view changes.
+Normal tests never realize, request selections or manipulate desktop input.
+
 ### TextMark public lifetime and raw migration
 
 TextMark uses native visibility/name/gravity/deletion/buffer APIs, never a guessed
@@ -4888,7 +4912,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4927,7 +4951,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

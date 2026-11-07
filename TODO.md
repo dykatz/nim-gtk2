@@ -8,14 +8,29 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextAttributes bitfield/ownership audit
+## Next proposed batch: Raw GtkTextTag flag/public-property audit
 
-- [ ] Inventory legacy attribute bitfield helpers/masks against GTK2.24 public
-      attributes construction/copy/ref/unref and effective-style APIs.
-- [ ] Remove unsafe helpers without shims; audit public storage/ABI and document
-      actual public paths without inventing private style/cache state.
-- [ ] Extend ABI/compile guards, migration docs and existing text example where
-      relevant, with hidden ARC/ORC/cross-target and isolated regressions.
+- [ ] Inventory legacy raw tag *_set/padding bitfield helpers and masks against
+      actual GTK2.24 public properties, priority and tag-table membership APIs.
+- [ ] Remove unsafe helpers without aliases, audit native instance/class layout and
+      public-property lifetimes; do not invent tag/cache state or authorization.
+- [ ] Extend compile/ABI guards, migration docs and text example where relevant,
+      with hidden ARC/ORC/cross-target and isolated regressions.
+
+## Completed batch: Raw GtkTextAttributes bitfield/ownership audit
+
+- [x] Removed 33 TextAttributes/Appearance helpers and 34 masks without aliases;
+      preserved native storage/layout. No render/padding/realized-state substitutes.
+- [x] Corrected text_attributes_ref/reference return to native PTextAttributes.
+      Audited boxed aliasing vs explicit deep copies, native unref/default snapshot
+      ownership and ref-preserving/self copy_values behavior.
+- [x] Documented default-plus-tag style overlays versus live tag mutation; snapshots
+      are not authorization or live state. Expanded example public underline control.
+- [x] Recorded native 2.24.33 copy_values destination tabs/paragraph-color leak from
+      source audit; optional patch dry-run only, no runtime repair/installed change.
+- [x] Added eight prototype/pointer-return/layout checks, compile/source guards,
+      unrealized ARC/ORC copy/ref/default/property tests and isolated native pixels/
+      snapshot-lifetime coverage with opt-in guard.
 
 ## Completed batch: Raw GtkTextMark private-body audit
 
@@ -346,7 +361,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; GtkTextAttributes is next (Entry/TextView/Mark complete).
+      corresponding policies; GtkTextTag is next (Entry/TextView/Mark/Attributes complete).
 
 ### Clipboard and drag-and-drop
 
@@ -399,6 +414,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Attributes/Appearance helper removal, ref-return ABI and boxed/style ownership
+      audit with native snapshot rendering and source-only leak patch (above).
 - [x] Raw mark private-body removal, own-before-insert creation, explicit buffer
       ownership and native lifetime/gravity/cursor rendering coverage (above).
 - [x] Raw TextView flag cleanup, native class-slot/boolean audit, pinned view policy,

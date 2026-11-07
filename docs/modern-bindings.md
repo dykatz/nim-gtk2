@@ -139,6 +139,23 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextAttributes/Appearance audit
+
+Removed 33 helpers/34 masks without aliases, preserving native storage. Corrected
+reference(PTextAttributes) to return its native pointer. Attributes are refcounted
+boxed values, not GObjects; new/copy/view-default copies require unref, refs/boxed
+copies alias, explicit copies isolate owned font/tabs. Defaults plus iterator tag
+overlays inspect style; returned gboolean means tag contribution, not permission.
+Detached snapshots do not mutate or track a live view/document.
+
+Eight prototype/pointer-return and layout probes, compile/source guards and
+unrealized ARC/ORC tests cover ownership/self-copy/default overlays. Isolated native
+pixels verify tag changes versus detached values and survival after view teardown.
+The text example uses a real tag underline property, not attribute bit edits.
+Native 2.24.33 copy_values source leaks old destination tabs/paragraph color; optional
+source-only patch is separate, not installed or validated as a rebuilt library.
+See [raw ownership guide](raw-widgets.md#gtktextattributesappearance-raw-migration-and-ownership).
+
 ### Raw GtkTextMark private-body/ownership audit
 
 Removed four body helpers/four masks and guessed TTextMarkBody/PTextMarkBody types

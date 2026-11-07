@@ -9,6 +9,67 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextAttributes/Appearance raw migration and ownership
+
+Removed **33 unsafe helpers and 34 mask/shift constants** across TextAttributes and
+its embedded TextAppearance, without aliases. These include OR-only style setters,
+render-only inside_selection/is_text state, realized state and padding manipulation.
+Native public instance storage remains and is checked with sizeof/offsetof probes;
+retained flag words/padding are not supported portable bitfield accessors.
+
+Native `reference(PTextAttributes)` now correctly **returns PTextAttributes**, matching
+GtkTextAttributes* gtk_text_attributes_ref(...). Capture or explicitly discard that
+return; each successful ref adds ownership even when returning the same pointer.
+Attributes are reference-counted **boxed values, not GObjects**: never use g_object_ref,
+g_object_unref or the SDK ObjectHandle machinery on them. new/copy and
+get_default_attributes return owned values; balance them with native unref. The
+view-default getter returns a copy, not a borrowed view-owned pointer. Ref returns
+an alias. GLib g_boxed_copy for this registered type also refs the same value, while
+explicit gtk_text_attributes_copy makes an independent value, copying font/tabs and
+referencing stipples appropriately. Language data follows native interned ownership.
+Do not memcpy snapshots, manually edit their reference count or shallow-share owned
+resource pointers. Direct public font/tab assignments require native allocation and
+ownership discipline (including releasing any previous resource), not borrowed pointers.
+
+copy_values copies source into an existing **unrealized** destination and preserves
+the destination's native reference count. Self-copy is a native no-op. Realized here
+is attribute color/resource state, not widget realization: never forge the bit to
+bypass native checks. Raw owners should normally prefer new independent copies.
+
+**Native ownership caveat:** source audit of GTK2.24.33 found that copy_values frees
+destination font/stipples but overwrites existing tabs/paragraph-background color
+without freeing them. Replacing already populated destinations can leak. The SDK
+does not silently free private resources or patch the library. Optional source-only
+patch: patches/gtk2-text-attributes-copy-values.patch (audited/dry-run, not validated
+as a rebuilt GTK library). Tests use fresh tabs/paragraph-color destinations and
+normal public copy/unref lifetimes; no installed GTK/settings are modified.
+
+For style inspection, obtain an owned get_default_attributes(view), then apply
+get_attributes(iter, values) for tag overrides at that iterator. Its gboolean tells
+whether tags contributed attributes, **not** whether the resulting values exist,
+whether text is visible/editable/selected, or whether an operation is authorized.
+Unspecified fields retain the supplied defaults. A new attributes object alone is
+not a view's font/theme defaults. These detached snapshots do not retain a live
+view/buffer or track subsequent tags/theme/selection changes. Mutating an owned
+snapshot does not update the document or view.
+
+For application style changes, use public GtkTextTag properties/apply/remove APIs
+(ergonomic tag.underline/invisible/editable, etc.). False clears a boolean value but
+can remain an explicit override; it is not the same as removing a tag or unsetting
+its property. Use native iterator editability/visibility APIs where needed, not
+attribute bit guesses. Padding, allocated-color and render-only state have no new
+SDK flag replacement. No shadow cache, palette realization, reflection/snapshot
+wrapper or generic style authorization layer is introduced by this raw audit.
+
+Eight native prototypes, pointer-return/cdecl checks and public layout probes plus
+source/compile guards cover migration. Unrealized ARC/ORC ownership tests cover ref,
+boxed aliasing, independent font/tab copies, self-copy/ref-preserving copy_values,
+view-default/tag overlays and public tag clearing. Isolated testMappedTextAttributes
+requires GTK2_TEST_VIRTUAL_DISPLAY=1 for native style pixels and detached snapshot
+survival through tag changes/view destruction. The text example toggles the live
+emphasis tag's underline property, not a copied attributes object. Normal tests
+never realize/map, claim PRIMARY, request selections or simulate input.
+
 ## GtkTextMark raw migration: no guessed private body
 
 Removed four mark-body helpers (visible/set_visible and not_deleteable/

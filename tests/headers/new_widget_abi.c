@@ -3,6 +3,34 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_attributes_storage_abi(guint index) {
+  static const size_t layout[] = { sizeof(GtkTextAppearance), offsetof(GtkTextAppearance, rise),
+    offsetof(GtkTextAppearance, padding1), sizeof(GtkTextAttributes),
+    offsetof(GtkTextAttributes, appearance), offsetof(GtkTextAttributes, font),
+    offsetof(GtkTextAttributes, font_scale), offsetof(GtkTextAttributes, tabs),
+    offsetof(GtkTextAttributes, language), offsetof(GtkTextAttributes, pg_bg_color) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_attributes_api_abi(GtkTextAttributes *(*ref)(GtkTextAttributes *)) {
+  typedef GtkTextAttributes *(*New)(void);
+  typedef GType (*Type)(void) G_GNUC_CONST;
+  typedef GtkTextAttributes *(*CopyRef)(GtkTextAttributes *);
+  typedef void (*CopyValues)(GtkTextAttributes *, GtkTextAttributes *);
+  typedef void (*Unref)(GtkTextAttributes *);
+  typedef gboolean (*Iter)(const GtkTextIter *, GtkTextAttributes *);
+  typedef GtkTextAttributes *(*Defaults)(GtkTextView *);
+#define ATTR_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { ATTR_AUDIT(New, &gtk_text_attributes_new); }
+  { ATTR_AUDIT(Type, &gtk_text_attributes_get_type); }
+  { ATTR_AUDIT(CopyRef, &gtk_text_attributes_copy); }
+  { ATTR_AUDIT(CopyRef, &gtk_text_attributes_ref); }
+  { ATTR_AUDIT(CopyValues, &gtk_text_attributes_copy_values); }
+  { ATTR_AUDIT(Unref, &gtk_text_attributes_unref); }
+  { ATTR_AUDIT(Iter, &gtk_text_iter_get_attributes); }
+  { ATTR_AUDIT(Defaults, &gtk_text_view_get_default_attributes); }
+#undef ATTR_AUDIT
+  return ref((GtkTextAttributes *)(guintptr)0xf4) == (GtkTextAttributes *)(guintptr)0xf4;
+}
 size_t nim_gtk2_textmark_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextMark), offsetof(GtkTextMark, segment), sizeof(GtkTextMarkClass) };
   return index < G_N_ELEMENTS(layout) ? layout[index] : 0;

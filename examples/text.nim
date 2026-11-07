@@ -28,6 +28,10 @@ proc main() =
   emphasis.bold = true
   emphasis.underline = true
   emphasis.setForeground(rgba16(5000, 12000, 50000))
+  let underlineEmphasis = newCheckButton("Underline emphasis tag (not an attribute snapshot)")
+  underlineEmphasis.active = emphasis.underline
+  underlineEmphasis.onToggled(proc () = emphasis.underline = underlineEmphasis.active)
+  layout.packStart(underlineEmphasis, packShrink)
   var bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
   let showBookmark = newCheckButton("Show bookmark cursor (not document text)")
   showBookmark.onToggled(proc () = bookmark.visible = showBookmark.active)
@@ -132,6 +136,7 @@ proc main() =
     mirror.buffer = loaded
     buffer = loaded
     emphasis = imported
+    underlineEmphasis.active = emphasis.underline
     bookmark = mark
     bookmark.visible = showBookmark.active
     watchBuffer()

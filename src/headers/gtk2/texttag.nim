@@ -25,7 +25,7 @@ proc copy_values*(src: PTextAttributes, dest: PTextAttributes){.
     cdecl, dynlib: lib, importc: "gtk_text_attributes_copy_values".}
 proc unref*(values: PTextAttributes){.cdecl, dynlib: lib,
     importc: "gtk_text_attributes_unref".}
-proc reference*(values: PTextAttributes){.cdecl, dynlib: lib,
+proc reference*(values: PTextAttributes): PTextAttributes {.cdecl, dynlib: lib,
     importc: "gtk_text_attributes_ref".}
 proc text_attributes_get_type*(): GType{.cdecl, dynlib: lib,
     importc: "gtk_text_attributes_get_type".}
@@ -177,106 +177,3 @@ proc pad2*(a: PTextTag): guint
 proc set_pad2*(a: PTextTag, `pad2`: guint)
 proc pad3*(a: PTextTag): guint
 proc set_pad3*(a: PTextTag, `pad3`: guint)
-const
-  bm_TGtkTextAppearance_underline* = 0x000F'u16
-const
-  bp_TGtkTextAppearance_underline* = 0'u16
-const
-  bm_TGtkTextAppearance_strikethrough* = 0x0010'u16
-const
-  bp_TGtkTextAppearance_strikethrough* = 4'u16
-const
-  bm_TGtkTextAppearance_draw_bg* = 0x0020'u16
-const
-  bp_TGtkTextAppearance_draw_bg* = 5'u16
-const
-  bm_TGtkTextAppearance_inside_selection* = 0x0040'u16
-const
-  bp_TGtkTextAppearance_inside_selection* = 6'u16
-const
-  bm_TGtkTextAppearance_is_text* = 0x0080'u16
-const
-  bp_TGtkTextAppearance_is_text* = 7'u16
-const
-  bm_TGtkTextAppearance_pad1* = 0x0100'u16
-const
-  bp_TGtkTextAppearance_pad1* = 8'u16
-const
-  bm_TGtkTextAppearance_pad2* = 0x0200'u16
-const
-  bp_TGtkTextAppearance_pad2* = 9'u16
-const
-  bm_TGtkTextAppearance_pad3* = 0x0400'u16
-const
-  bp_TGtkTextAppearance_pad3* = 10'u16
-const
-  bm_TGtkTextAppearance_pad4* = 0x0800'u16
-const
-  bp_TGtkTextAppearance_pad4* = 11'u16
-
-proc underline*(a: PTextAppearance): guint
-proc set_underline*(a: PTextAppearance, `underline`: guint)
-proc strikethrough*(a: PTextAppearance): guint
-proc set_strikethrough*(a: PTextAppearance, `strikethrough`: guint)
-proc draw_bg*(a: PTextAppearance): guint
-proc set_draw_bg*(a: PTextAppearance, `draw_bg`: guint)
-proc inside_selection*(a: PTextAppearance): guint
-proc set_inside_selection*(a: PTextAppearance, `inside_selection`: guint)
-proc set_is_text*(a: PTextAppearance, `is_text`: guint)
-proc pad1*(a: PTextAppearance): guint
-proc set_pad1*(a: PTextAppearance, `pad1`: guint)
-proc pad2*(a: PTextAppearance): guint
-proc set_pad2*(a: PTextAppearance, `pad2`: guint)
-proc pad3*(a: PTextAppearance): guint
-proc set_pad3*(a: PTextAppearance, `pad3`: guint)
-proc pad4*(a: PTextAppearance): guint
-proc set_pad4*(a: PTextAppearance, `pad4`: guint)
-const
-  bm_TGtkTextAttributes_invisible* = 0x0001'u16
-const
-  bp_TGtkTextAttributes_invisible* = 0'u16
-const
-  bm_TGtkTextAttributes_bg_full_height* = 0x0002'u16
-const
-  bp_TGtkTextAttributes_bg_full_height* = 1'u16
-const
-  bm_TGtkTextAttributes_editable* = 0x0004'u16
-const
-  bp_TGtkTextAttributes_editable* = 2'u16
-const
-  bm_TGtkTextAttributes_realized* = 0x0008'u16
-const
-  bp_TGtkTextAttributes_realized* = 3'u16
-const
-  bm_TGtkTextAttributes_pad1* = 0x0010'u16
-const
-  bp_TGtkTextAttributes_pad1* = 4'u16
-const
-  bm_TGtkTextAttributes_pad2* = 0x0020'u16
-const
-  bp_TGtkTextAttributes_pad2* = 5'u16
-const
-  bm_TGtkTextAttributes_pad3* = 0x0040'u16
-const
-  bp_TGtkTextAttributes_pad3* = 6'u16
-const
-  bm_TGtkTextAttributes_pad4* = 0x0080'u16
-const
-  bp_TGtkTextAttributes_pad4* = 7'u16
-
-proc invisible*(a: PTextAttributes): guint
-proc set_invisible*(a: PTextAttributes, `invisible`: guint)
-proc bg_full_height*(a: PTextAttributes): guint
-proc set_bg_full_height*(a: PTextAttributes, `bg_full_height`: guint)
-proc editable*(a: PTextAttributes): guint
-proc set_editable*(a: PTextAttributes, `editable`: guint)
-proc realized*(a: PTextAttributes): guint
-proc set_realized*(a: PTextAttributes, `realized`: guint)
-proc pad1*(a: PTextAttributes): guint
-proc set_pad1*(a: PTextAttributes, `pad1`: guint)
-proc pad2*(a: PTextAttributes): guint
-proc set_pad2*(a: PTextAttributes, `pad2`: guint)
-proc pad3*(a: PTextAttributes): guint
-proc set_pad3*(a: PTextAttributes, `pad3`: guint)
-proc pad4*(a: PTextAttributes): guint
-proc set_pad4*(a: PTextAttributes, `pad4`: guint)

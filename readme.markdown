@@ -139,6 +139,9 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+TextAttributes/Appearance unsafe helpers/masks are removed and native ref-return
+ABI is corrected. See [boxed ownership/effective style](docs/raw-widgets.md#gtktextattributesappearance-raw-migration-and-ownership)
+for alias-vs-copy semantics and the source-only copy_values leak patch.
 Raw GtkTextMark guessed body types/helpers/masks are removed; createMark now owns
 before native insertion, making synchronous deletion safe. See
 [mark ownership/migration](docs/raw-widgets.md#gtktextmark-raw-migration-no-guessed-private-body)

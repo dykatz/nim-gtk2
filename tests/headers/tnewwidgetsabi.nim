@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
+proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
+proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
 type TextMarkNew = proc (name: cstring, leftGravity: g.gboolean): gtk.PTextMark {.cdecl.}
 proc textMarkStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_textmark_storage_abi".}
 proc textMarkApi(make: TextMarkNew): g.gboolean {.cdecl, importc: "nim_gtk2_textmark_api_abi".}
@@ -234,6 +237,18 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
+    let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),
+      offsetOf(gtk.TTextAppearance, padding1), sizeof(gtk.TTextAttributes),
+      offsetOf(gtk.TTextAttributes, appearance), offsetOf(gtk.TTextAttributes, font),
+      offsetOf(gtk.TTextAttributes, font_scale), offsetOf(gtk.TTextAttributes, tabs),
+      offsetOf(gtk.TTextAttributes, language), offsetOf(gtk.TTextAttributes, padding1)]
+    for i, expected in layout: check attributesStorage(g.guint(i)).int == expected
+    proc reference(values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.} =
+      doAssert cast[uint](values) == 0xf4
+      values
+    check g.toBool(attributesApi(reference))
+
   test "TextMark public storage, eight prototypes and pointer/gboolean/cstring ABI":
     check textMarkStorage(0).int == sizeof(gtk.TTextMark)
     check textMarkStorage(1).int == offsetOf(gtk.TTextMark, segment)
