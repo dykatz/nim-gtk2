@@ -136,7 +136,11 @@ proc requestText*(c: Clipboard, owner: Widget,
 proc editable*(w: Entry): bool = g.toBool(rawGtk.get_editable(cast[rawGtk.PEditable](w.raw)))
 proc `editable=`*(w: Entry, value: bool) = rawGtk.set_editable(cast[rawGtk.PEditable](w.raw), g.gbool(value))
 proc textVisible*(w: Entry): bool = g.toBool(rawGtk.get_visibility(w.raw))
-proc `textVisible=`*(w: Entry, value: bool) = rawGtk.set_visibility(w.raw, g.gbool(value))
+proc `textVisible=`*(w: Entry, value: bool) =
+  let p = w.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_visibility(p, g.gbool(value))
 proc copySelection*(w: Entry, clipboard = getClipboard()): bool =
   let p = cast[rawGtk.PEditable](w.raw)
   if not w.textVisible: return false # Match native password-entry copy protection.

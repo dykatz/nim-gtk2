@@ -9,16 +9,12 @@ proc editable*(a: PEntry): guint
 proc set_editable*(a: PEntry, `editable`: guint)
 proc visible*(a: PEntry): guint
 proc set_visible*(a: PEntry, `visible`: guint)
-proc overwrite_mode*(a: PEntry): guint
-proc set_overwrite_mode*(a: PEntry, `overwrite_mode`: guint)
 proc in_drag*(a: PEntry): guint
 proc set_in_drag*(a: PEntry, `in_drag`: guint)
 proc cache_includes_preedit*(a: PEntry): guint
 proc set_cache_includes_preedit*(a: PEntry, `cache_includes_preedit`: guint)
 proc need_im_reset*(a: PEntry): guint
 proc set_need_im_reset*(a: PEntry, `need_im_reset`: guint)
-proc has_frame*(a: PEntry): guint
-proc set_has_frame*(a: PEntry, `has_frame`: guint)
 proc cursor_visible*(a: PEntry): guint
 proc set_cursor_visible*(a: PEntry, `cursor_visible`: guint)
 proc in_click*(a: PEntry): guint
@@ -39,6 +35,12 @@ proc set_invisible_char*(entry: PEntry, ch: gunichar){.cdecl, dynlib: lib,
     importc: "gtk_entry_set_invisible_char".}
 proc get_invisible_char*(entry: PEntry): gunichar{.cdecl, dynlib: lib,
     importc: "gtk_entry_get_invisible_char".}
+proc unset_invisible_char*(entry: PEntry) {.cdecl, dynlib: lib,
+    importc: "gtk_entry_unset_invisible_char".}
+proc set_overwrite_mode*(entry: PEntry, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_entry_set_overwrite_mode".}
+proc get_overwrite_mode*(entry: PEntry): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_entry_get_overwrite_mode".}
 proc set_has_frame*(entry: PEntry, setting: gboolean){.cdecl, dynlib: lib,
     importc: "gtk_entry_set_has_frame".}
 proc get_has_frame*(entry: PEntry): gboolean{.cdecl, dynlib: lib,

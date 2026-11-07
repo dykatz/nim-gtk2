@@ -14,6 +14,8 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type EntryMaskPolicy = proc (entry: gtk.PEntry, value: g.gunichar): g.gunichar {.cdecl.}
+proc invokeEntryEditing(mask: EntryMaskPolicy): g.gboolean {.cdecl, importc: "nim_gtk2_entry_editing_abi".}
 type EntryIconSignal = proc (entry: gtk.PEntry, position: gtk.TEntryIconPosition,
   event: gd.PEvent, data: pointer) {.cdecl.}
 proc invokeEntryIcon(fn: EntryIconSignal): g.gboolean {.cdecl, importc: "nim_gtk2_entry_icon_abi".}
@@ -219,6 +221,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry overwrite/frame/visibility/mask prototypes and 32-bit Unicode scalar ABI":
+    proc mask(entry: gtk.PEntry, value: g.gunichar): g.gunichar {.cdecl.} =
+      doAssert cast[uint](entry) == 0xb1 and value == 0x1f512
+      g.gunichar(0x10ffff)
+    check sizeof(g.gunichar) == 4
+    check g.toBool(invokeEntryEditing(mask))
+
   test "Entry icon enum, native prototypes and borrowed GdkEvent pointer ABI":
     proc icon(entry: gtk.PEntry, position: gtk.TEntryIconPosition,
         event: gd.PEvent, data: pointer) {.cdecl.} =

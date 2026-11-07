@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Entry now exposes native overwrite/frame and checked Unicode mask/default policies,
+with password-copy safeguards and native Insert/PRIMARY semantics documented.
+See [editing and concealed text](docs/gtk2.md#entry-editing-and-concealed-text-presentation),
+expanded inputs and opt-in isolated `testMappedEntryEditing`.
 Entry now supports owned pixbuf/named icons, plain tooltips and per-icon policy,
 with copied deferred native press/release observations (not synthesized clicks).
 See the [icon guide](docs/gtk2.md#entry-icons-and-deferred-icon-events), expanded

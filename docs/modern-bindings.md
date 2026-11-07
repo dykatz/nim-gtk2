@@ -139,6 +139,27 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry editing/concealed-text presentation
+
+Native overwriteMode/hasFrame bool controls and invisibleChar uint32 scalar policy
+use public GTK getters/setters. Zero deliberately means explicit blank feedback;
+surrogates/out-of-range scalars reject atomically. invisibleCharSet uses the public
+GObject property and unsetInvisibleChar restores GTK's font-selected default. All
+mutations, including existing textVisible, pin the native object across callbacks.
+Obsolete unsigned overwrite/frame bitfield helpers are removed without shims;
+ABI storage remains, with nine prototype and 32-bit gunichar checks.
+
+Typed overwrite/Insert/IME behavior stays native; programmatic insertText remains
+GtkEditable insertion. No key simulation, private flags, undo/numeric transaction,
+secret storage transformation or implicit completion-history reset is added. Hidden
+ARC/ORC unrealized tests and isolated keyboard/PRIMARY regressions cover combo and
+inherited SpinButton behavior, guards, atomicity, visibility and notification lifetime.
+
+Password mask is presentation, not a security/clipboard boundary. Native PRIMARY
+can return displayed glyphs/spaces and GTK password-hint characters; no global hint
+settings or ownership behavior is suppressed. SDK selectedText/copy/cut safeguards
+remain unchanged. Inputs has a separate non-secret mask-policy sample.
+
 ### Entry icons and copied button observations
 
 Raw GtkEntryIconPosition is a C-width enum; icon getters/setters retain native

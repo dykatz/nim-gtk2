@@ -31,15 +31,6 @@ proc set_visible*(a: PEntry, `visible`: guint) =
   a.Entryflag0 = a.Entryflag0 or
       (uint16(`visible` shl bp_TGtkEntry_visible) and bm_TGtkEntry_visible)
 
-proc overwrite_mode*(a: PEntry): guint =
-  result = (a.Entryflag0 and bm_TGtkEntry_overwrite_mode) shr
-      bp_TGtkEntry_overwrite_mode
-
-proc set_overwrite_mode*(a: PEntry, `overwrite_mode`: guint) =
-  a.Entryflag0 = a.Entryflag0 or
-      (uint16(`overwrite_mode` shl bp_TGtkEntry_overwrite_mode) and
-      bm_TGtkEntry_overwrite_mode)
-
 proc in_drag*(a: PEntry): guint =
   result = (a.Entryflag0 and bm_TGtkEntry_in_drag) shr bp_TGtkEntry_in_drag
 
@@ -64,14 +55,6 @@ proc set_need_im_reset*(a: PEntry, `need_im_reset`: guint) =
   a.flag1 = a.flag1 or
       (uint16(`need_im_reset` shl bp_TGtkEntry_need_im_reset) and
       bm_TGtkEntry_need_im_reset)
-
-proc has_frame*(a: PEntry): guint =
-  result = (a.flag1 and bm_TGtkEntry_has_frame) shr bp_TGtkEntry_has_frame
-
-proc set_has_frame*(a: PEntry, `has_frame`: guint) =
-  a.flag1 = a.flag1 or
-      (uint16(`has_frame` shl bp_TGtkEntry_has_frame) and
-      bm_TGtkEntry_has_frame)
 
 proc cursor_visible*(a: PEntry): guint =
   result = (a.flag1 and bm_TGtkEntry_cursor_visible) shr

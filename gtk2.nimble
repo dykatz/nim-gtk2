@@ -66,6 +66,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2entryobservations.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2entrypolicy.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2entryicons.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2entryediting.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modelfunctions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2iconselection.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textanchors.nim"
@@ -116,6 +117,9 @@ task testMappedRichClipboard, "Test rich clipboard negotiation and foreign owner
 
 task testMappedInlineCompletion, "Test native inline completion/preview keys (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1; X11 needs XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedinlinecompletion.nim"
+
+task testMappedEntryEditing, "Test native Entry editing/mask policy (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1; X11 needs XTEST)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedentryediting.nim"
 
 task testMappedEntryIcons, "Test Entry icons (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1; X11 needs XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedentryicons.nim"

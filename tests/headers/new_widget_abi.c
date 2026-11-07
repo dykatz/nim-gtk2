@@ -3,6 +3,26 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gunichar (*NimEntryMaskPolicy)(GtkEntry *, gunichar);
+gboolean nim_gtk2_entry_editing_abi(NimEntryMaskPolicy mask) {
+  typedef void (*BoolSet)(GtkEntry *, gboolean);
+  typedef gboolean (*BoolGet)(GtkEntry *);
+  typedef void (*MaskSet)(GtkEntry *, gunichar);
+  typedef gunichar (*MaskGet)(GtkEntry *);
+  typedef void (*Unset)(GtkEntry *);
+#define EDIT_PROTO(TYPE, FN) typedef char FN##_signature[__builtin_types_compatible_p(TYPE, __typeof__(&FN)) ? 1 : -1]; (void)sizeof(FN##_signature)
+  EDIT_PROTO(BoolSet, gtk_entry_set_overwrite_mode);
+  EDIT_PROTO(BoolGet, gtk_entry_get_overwrite_mode);
+  EDIT_PROTO(BoolSet, gtk_entry_set_has_frame);
+  EDIT_PROTO(BoolGet, gtk_entry_get_has_frame);
+  EDIT_PROTO(MaskSet, gtk_entry_set_invisible_char);
+  EDIT_PROTO(MaskGet, gtk_entry_get_invisible_char);
+  EDIT_PROTO(Unset, gtk_entry_unset_invisible_char);
+  EDIT_PROTO(BoolSet, gtk_entry_set_visibility);
+  EDIT_PROTO(BoolGet, gtk_entry_get_visibility);
+#undef EDIT_PROTO
+  return sizeof(gunichar) == 4 && mask((GtkEntry *)(guintptr)0xb1, 0x1f512) == 0x10ffff;
+}
 typedef void (*NimEntryIconSignal)(GtkEntry *, GtkEntryIconPosition, GdkEvent *, gpointer);
 gboolean nim_gtk2_entry_icon_abi(NimEntryIconSignal fn) {
   typedef void (*PixbufSet)(GtkEntry *, GtkEntryIconPosition, GdkPixbuf *);

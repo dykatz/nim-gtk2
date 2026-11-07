@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 880, 660)
+  let window = newWindow("gtk2 measurement inputs and completion", 960, 740)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -40,6 +40,15 @@ proc main() =
   let activateDefault = newCheckButton("Activate host default on Return (this window has no implicit default)")
   activateDefault.onToggled(proc () = name.entry.activatesDefault = activateDefault.active)
   layout.packStart(activateDefault, packShrink)
+  let editingRow = newHBox(spacing = 6)
+  let overwrite = newCheckButton("Overwrite typed input (Insert also toggles natively)")
+  let frame = newCheckButton("Entry frame (not combo outer frame)")
+  frame.active = name.entry.hasFrame
+  editingRow.packStart(overwrite, packShrink)
+  editingRow.packStart(frame, packShrink)
+  layout.packStart(editingRow, packShrink)
+  overwrite.onToggled(proc () = name.entry.overwriteMode = overwrite.active)
+  frame.onToggled(proc () = name.entry.hasFrame = frame.active)
   let suggestions = newEntryCompletion(
     ["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"],
     actions = ["Use current label (free text)", "Reset measurement to Length"])
@@ -140,6 +149,25 @@ proc main() =
     name.entry.clearSelection()
     inspectSelection())
   inspect.onClicked(proc () = inspectSelection())
+  let concealedRow = newHBox(spacing = 6)
+  let concealed = newEntry("Sample λ🙂 — not a real secret")
+  concealed.textVisible = false
+  let mask = newComboBoxText(["Native mask", "Asterisk", "Bullet", "No visual feedback"])
+  mask.activeIndex = 0
+  let reveal = newCheckButton("Show sample")
+  concealedRow.packStart(concealed)
+  concealedRow.packStart(mask, packShrink)
+  concealedRow.packStart(reveal, packShrink)
+  layout.packStart(concealedRow, packShrink)
+  mask.onChanged(proc () =
+    case mask.activeIndex
+    of 0: concealed.unsetInvisibleChar()
+    of 1: concealed.invisibleChar = 0x2a
+    of 2: concealed.invisibleChar = 0x2022
+    of 3: concealed.invisibleChar = 0
+    else: discard)
+  reveal.onToggled(proc () = concealed.textVisible = reveal.active)
+  # Masking is presentation, not encrypted storage or a clipboard security boundary.
   window.onDestroy(proc () = suggestions.close())
 
   proc refresh() =

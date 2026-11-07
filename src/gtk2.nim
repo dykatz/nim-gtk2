@@ -482,6 +482,7 @@ include gtk2/entryselection
 include gtk2/entryobservations
 include gtk2/entrypolicy
 include gtk2/entryicons
+include gtk2/entryediting
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors

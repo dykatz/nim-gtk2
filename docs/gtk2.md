@@ -3773,7 +3773,8 @@ Read-only entries may move/select/copy visible selected text without editing it.
 Password entries allow coordinate snapshots and movement, but selectedText raises
 ValueError even for an empty selection: this API never silently copies selected
 password plaintext. It is not a security sandbox (explicit entry.text still exists).
-Native password PRIMARY replies use GTK's displayed/masked text, not this getter.
+Native password PRIMARY replies use GTK's display text, not this getter; see the
+concealed-text section for blank-mask and password-hint privacy limitations.
 
 **Realized selections can own PRIMARY, even when the widget/window is unmapped.**
 GTK returns before clipboard work only when the entry is unrealized. Selecting an
@@ -4079,6 +4080,85 @@ Unix X11 XTEST verifies both real icon windows, inert flags, no implicit text ch
 press-time replacement and release-time combo teardown. Hidden tests do not map,
 claim PRIMARY, issue selection requests or manipulate desktop input. Stock/GIcon
 providers, icon DnD, markup tooltips and custom renderers remain separate work.
+
+### Entry editing and concealed-text presentation
+
+Entry exposes native overwriteMode and hasFrame boolean policies, plus a checked
+Unicode invisibleChar, invisibleCharSet and unsetInvisibleChar(). They also work
+on protected editable ComboBoxText entries and inherited SpinButton text.
+
+```nim
+entry.overwriteMode = true
+entry.hasFrame = false
+entry.textVisible = false
+entry.invisibleChar = 0x2022'u32 # Explicit bullet scalar; not a string/byte.
+assert entry.invisibleCharSet
+entry.unsetInvisibleChar()      # Restore GTK's font-selected default, not '*'.
+```
+
+Bool setters call public native APIs with gboolean; they do not write GtkEntry
+flags. All setters/unset pin the native entry through notification/recompute, and
+the existing textVisible setter now does too. Raw unsigned overwrite_mode/
+set_overwrite_mode and has_frame/set_has_frame bitfield helpers are removed without
+shims. Native get_overwrite_mode/set_overwrite_mode(PEntry,gboolean), get_has_frame/
+set_has_frame(PEntry,gboolean), and unset_invisible_char are the supported path;
+ABI storage remains unchanged. Corresponding native scalar/prototype probes cover
+signed C boolean and 32-bit gunichar conventions.
+
+Overwrite changes GTK's **typed/IME commit path**, including its native Insert-key
+toggle. Native selection replacement takes precedence over deleting a following
+character; grapheme/IME/password cursor behavior remains GTK/Pango policy, not a
+byte overwrite invented by the SDK. Programmatic text= and insertText still use
+their existing native buffer/GtkEditable semantics: insertText does not synthesize
+typing and does not become an overwrite operation merely because this flag is true.
+Read-only entries remain non-editable to user typing. No key event, fake delete,
+undo transaction, numeric validation or text sanitization is introduced.
+
+hasFrame changes the GtkEntry frame, not a combo's outer border, parent layout,
+focus authorization or theme resource. Native style may render borders/focus rings
+differently. These presentation/editing setters do not mutate stored text, cursor
+coordinates or combo activeIndex and do not implicitly cancel queued completion/icon
+observations or reset native preview/history. Ordinary selection observers remain
+coordinate-only. Explicit textVisible=false still detaches SDK completion through
+its existing visibility hook; mask glyph choice alone does not hide text or detach
+completion. Raw/nested callbacks must still obey native traversal rules.
+
+invisibleChar is the effective native uint32 glyph value; the setter accepts Unicode
+scalars 0..0x10FFFF excluding surrogates. Zero is intentionally valid: GTK's explicit
+**no visual feedback** setting. Negative values are not this API's unsigned type,
+and invalid/out-of-range/surrogate values raise before mutation. Noncharacters are
+scalars; GTK/font fallback still governs actual rendering. invisibleCharSet reads
+GTK's public boolean property, not private storage. Setting even the current glyph
+makes the policy explicit; unsetInvisibleChar restores font-selected policy and
+clears that flag. The default glyph can change with font/theme; zero in a getter
+alone does not tell you whether explicit blank mode or native default is selected.
+
+Mask configuration applies only while textVisible=false. It does not erase, encrypt,
+rewrite or shorten the underlying text, prevent explicit entry.text access, or
+change programmatic editing rights. selectedText and SDK copy/cut safeguards still
+refuse password extraction even with a blank/default glyph. The inputs example
+uses a **separate non-secret sample entry** with show/native/asterisk/bullet/blank
+controls; it never copies a real password into a status label.
+
+**Native PRIMARY is not a security boundary.** Realized selection can still own it.
+GTK's PRIMARY callback uses display text dynamically: programmatically selected
+password text can return repeated mask glyphs, and explicit zero returns repeated
+spaces, not necessarily an empty reply. GTK's optional password-hint policy can also
+leave a recently typed character visible in display-text replies. The SDK does not
+authenticate selection owners, suppress ownership, replace native masking or alter
+global hint settings. Do not assume any mask choice guarantees clipboard privacy.
+The isolated regression uses programmatic text without a typing hint and checks
+bullet/asterisk/space/native-default replies, without patching GTK or its settings.
+
+Hidden tests/tgtk2entryediting.nim keep entries unrealized: boolean roundtrips,
+scalar/default/blank policies, atomic invalid values, no text/coordinate mutation,
+programmatic insertion, read-only/password, combo/SpinButton, completion visibility,
+purity guards and setter/unset/visibility pins when raw notify drops the last alias.
+The native ABI probe checks nine prototypes and gunichar argument/return width.
+The opt-in isolated testMappedEntryEditing requires GTK2_TEST_VIRTUAL_DISPLAY=1;
+Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior and
+native PRIMARY display under each programmatic mask policy. Normal tests never
+realize widgets, claim ownership, request selections or fake input.
 
 ## Synchronous model functions and cell presentation
 
@@ -4679,7 +4759,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4718,7 +4798,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

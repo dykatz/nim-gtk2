@@ -8,18 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry editing and concealed-text presentation
+## Next proposed batch: Entry progress feedback
 
-- [ ] Audit native overwrite/frame and invisible-character/default-mask policies,
-      including keyboard editing, password PRIMARY display and combo/SpinButton.
-- [ ] Add checked native boolean/Unicode scalar controls and remove corresponding
-      obsolete raw bitfield helpers rather than using guessed private storage.
-- [ ] Preserve native insert/overwrite/IME behavior and password extraction safeguards;
-      do not synthesize key input, mask text or editing/undo transactions in the SDK.
-- [ ] Expand inputs with hidden ARC/ORC/ABI and isolated keyboard/password regressions.
+- [ ] Audit public fraction/pulse-step/pulse behavior, native activity mode and
+      interaction with text, selection, icon geometry and widget lifetime.
+- [ ] Add finite checked native gdouble policy/helpers; pulse is an explicit UI-thread
+      operation, not an implicit timer, event pump, animation loop or job runner.
+- [ ] Preserve native determinate/activity transitions and readonly/password/combo/
+      SpinButton behavior; do not rebind models or simulate progress through text.
+- [ ] Expand inputs, hidden ARC/ORC/ABI and isolated native rendering regressions.
 
-Entry progress, icon drag sources/providers, custom renderers, undo and deeper IME
-work remain separate.
+Icon drag sources/providers, custom renderers, undo and deeper IME remain separate.
+
+## Completed batch: Entry editing and concealed-text presentation
+
+- [x] Audited native typing overwrite/Insert/selection, frame, explicit/default/blank
+      glyph policies and dynamic password PRIMARY display (including hint caveat).
+- [x] Checked overwriteMode/hasFrame and uint32 invisibleChar scalars, public-property
+      invisibleCharSet and native unset; removed corresponding raw uint bitfield
+      helpers without shims, preserving ABI storage. No private flag workaround.
+- [x] Native pins cover setters/unset and existing visibility setter, including raw
+      notifications dropping final aliases. Invalid scalars are atomic; policies do
+      not pretend to mutate storage, validate numbers, reset history or synthesize typing.
+- [x] Programmatic insertion/readonly/password safeguards, protected combo and inherited
+      SpinButton behavior retained. Masking is not clipboard security: native blank
+      PRIMARY uses spaces and password hints may reveal a recently typed character.
+- [x] Expanded inputs/docs with non-secret sample, hidden unrealized ARC/ORC lifetime/
+      scalar/purity tests, nine native prototypes/gunichar ABI and isolated native
+      overwrite/Insert-key/selection and programmatic password PRIMARY regressions.
 
 ## Completed batch: Entry icons and icon activation
 
@@ -265,8 +281,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry editing/concealed-text presentation (next proposed batch above).
-- [ ] Entry progress feedback.
+- [ ] Entry progress feedback (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
@@ -324,6 +339,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Native Entry overwrite/frame and checked mask/default policies, pinned visibility,
+      native keyboard/PRIMARY behavior and password-security caveats (above).
 - [x] Native Entry icons, owning image/tooltips and deferred copied pointer events,
       independent per-position policy/cancellation and isolated pointer tests (above).
 - [x] Checked Entry native length/width/alignment/default policies, pinned/deferred
