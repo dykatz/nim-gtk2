@@ -9,6 +9,64 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextView raw migration: public policy, not private flags
+
+All **16 TextView bitfield helpers** and **16 mask/shift constants** are removed
+without aliases. Instance storage/layout is retained for ABI, not public state
+manipulation. The old OR-only setters could not reliably clear policy and bypassed
+GTK synchronization. Worse, obsolete just_selected_element/disable_scroll_on_focus
+masks correspond to accepts_tab/width_changed positions in GTK2.24, not the states
+their names claimed. Do not translate those masks into a different private write.
+
+| Removed helper pair | Real public replacement |
+| --- | --- |
+| editable / set_editable(PTextView,guint) | get_editable / set_editable(PTextView,gboolean) |
+| cursor_visible / set_cursor_visible(PTextView,guint) | get_cursor_visible / set_cursor_visible(PTextView,gboolean) |
+| overwrite_mode / set_overwrite_mode(PTextView,guint) | get_overwrite / set_overwrite(PTextView,gboolean), now bound explicitly |
+| need_im_reset, just_selected_element, disable_scroll_on_focus, onscreen_validated, mouse_cursor_obscured and setters | No equivalent public flag getter/setter |
+
+Use existing public accepts-tab policy for actual Tab behavior, not an obsolete
+selection bit. IM reset actions, focus/scroll APIs and redraw requests are not
+private-state flag replacements. No fabricated state query, cache validation,
+scroll suppression, drag reset, model/buffer rebinding or key simulation is added.
+
+Ergonomic TextView editable/cursorVisible/acceptsTab and new overwriteMode use native
+boolean methods and pin the native view through notification. Policies are per view:
+shared buffer identity/text/selection/modified state is not rewritten. Readonly does
+not forbid explicit TextBuffer edits. Hiding the caret neither hides text nor forbids
+editing. Native overwrite/IME/selection replacement and Insert binding remain GTK
+behavior; programmatic buffer insertion is still insertion, not synthesized typing.
+
+**Stock GTK2 overwrite caveat:** changing overwrite on an unrealized TextView can
+invalidate a NULL layout/GdkWindow (even a public geometry query does not establish
+all windows). The checked setter rejects a changing policy before realization with
+ValueError; assigning the unchanged policy is safe. It never realizes/maps a view,
+examines private fields or suppresses warnings. Raw set_overwrite remains the native
+API with native behavior. Configure changed overwrite after normal realization,
+not by realizing an editor in a normal hidden test: realization/selection can affect
+PRIMARY. The conservative precondition remains even on externally patched GTK.
+
+Optional native reproducer: tests/headers/textview_overwrite.c, run with
+G_DEBUG=fatal-warnings (stock 2.24.33 fails). Optional GTK SOURCE patch:
+patches/gtk2-textview-overwrite-layout.patch gates cursor invalidation on realization.
+It was audited/dry-run against GTK2.24.33 source, not installed or tested as a rebuilt
+GTK library. The SDK never applies it or changes installed libraries/settings.
+
+GtkTextViewClass also lacked backspace before clipboard methods. The slot now has
+its native name, following clipboard/toggle/move_focus offsets are corrected, and
+seven true reserved slots remain with total class size unchanged. Native probes
+check instance/class sizes/selected offsets, eight boolean prototypes and action/
+focus callback signatures/cdecl direction arguments. This is not an ergonomic
+subclass API, nor a license for runtime access to retained private fields.
+
+Hidden tests/tgtk2textviewrawaudit.nim reject every removed helper/constant, test
+unrealized-safe bool clearing, shared-buffer isolation, notification pins, purity
+and destroyed handles, plus explicit unrealized overwrite rejection. Source guards
+cover both fragments and the umbrella. Isolated testMappedTextViewPolicy requires
+GTK2_TEST_VIRTUAL_DISPLAY=1 and Unix X11 XTEST for actual overwrite/Insert/selection,
+readonly, hidden-caret Tab insertion and focus traversal. Normal tests do not
+realize/map, own PRIMARY, request selections or fake input.
+
 ## GtkEntry raw migration: no private bitfield helpers
 
 The remaining **20 GtkEntry bitfield getter/setter helpers** and **26 Entry mask/

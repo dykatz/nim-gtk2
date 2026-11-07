@@ -76,6 +76,20 @@ proc main() =
   editor.acceptsTab = false
   mirror.editable = false
   mirror.cursorVisible = false
+  let policies = newHBox(spacing = 6)
+  let readOnly = newCheckButton("Read-only editor")
+  let caret = newCheckButton("Show editor caret")
+  caret.active = editor.cursorVisible
+  let overwrite = newCheckButton("Overwrite typed text")
+  let tabs = newCheckButton("Tab inserts a character")
+  for control in [readOnly, caret, overwrite, tabs]: policies.packStart(control, packShrink)
+  layout.packStart(policies, packShrink)
+  # Real public view policy; never edit private flags or replace the shared buffer.
+  readOnly.onToggled(proc () = editor.editable = not readOnly.active)
+  caret.onToggled(proc () = editor.cursorVisible = caret.active)
+  overwrite.onToggled(proc () = editor.overwriteMode = overwrite.active)
+  tabs.onToggled(proc () = editor.acceptsTab = tabs.active)
+  # Insert can toggle overwrite independently; this is a manual setting, not a binding.
   editor.leftMargin = 8
   mirror.leftMargin = 8
   let left = newScrolledWindow()

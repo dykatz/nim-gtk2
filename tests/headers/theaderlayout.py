@@ -38,13 +38,16 @@ class HeaderLayout(unittest.TestCase):
                 self.assertTrue(fragments)
                 self.assertTrue(fragments <= seen, 'orphaned header fragments')
 
-    def test_entry_private_bitfield_helpers_do_not_return(self):
-        for fragment in (HEADERS / 'gtk2').glob('*.nim'):
+    def test_audited_private_bitfield_helpers_do_not_return(self):
+        for fragment in [HEADERS / 'gtk2.nim', *(HEADERS / 'gtk2').glob('*.nim')]:
             text = fragment.read_text()
             with self.subTest(fragment=fragment.name):
-                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtkEntry_')
-                if fragment.name.startswith('entry') and '_types' not in fragment.name:
-                    self.assertNotRegex(text, r'(?i)\.(?:Entry_?flag0|flag1)\b')
+                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView)_')
+                if '_types' not in fragment.name:
+                    if fragment.name.startswith('entry'):
+                        self.assertNotRegex(text, r'(?i)\.(?:Entry_?flag0|flag1)\b')
+                    if fragment.name.startswith('textview'):
+                        self.assertNotRegex(text, r'(?i)\.TextView_?flag0\b')
 
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):

@@ -62,12 +62,12 @@ type
     insert_at_cursor*: proc (text_view: PTextView, str: cstring){.cdecl.}
     delete_from_cursor*: proc (text_view: PTextView, thetype: TDeleteType,
                                count: gint){.cdecl.}
+    backspace*: proc (text_view: PTextView){.cdecl.}
     cut_clipboard*: proc (text_view: PTextView){.cdecl.}
     copy_clipboard*: proc (text_view: PTextView){.cdecl.}
     paste_clipboard*: proc (text_view: PTextView){.cdecl.}
     toggle_overwrite*: proc (text_view: PTextView){.cdecl.}
     move_focus*: proc (text_view: PTextView, direction: TDirectionType){.cdecl.}
-    reserved711: proc (){.cdecl.}
     reserved712: proc (){.cdecl.}
     reserved713: proc (){.cdecl.}
     reserved714: proc (){.cdecl.}

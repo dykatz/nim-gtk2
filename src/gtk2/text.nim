@@ -121,11 +121,34 @@ proc `buffer=`*(w: TextView, buffer: TextBuffer) = rawGtk.set_buffer(w.raw, buff
 proc text*(w: TextView): string = w.buffer.text
 proc `text=`*(w: TextView, text: string) = w.buffer.text = text
 proc editable*(w: TextView): bool = g.toBool(rawGtk.get_editable(w.raw))
-proc `editable=`*(w: TextView, value: bool) = rawGtk.set_editable(w.raw, g.gbool(value))
+proc `editable=`*(w: TextView, value: bool) =
+  let p = w.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_editable(p, g.gbool(value))
 proc cursorVisible*(w: TextView): bool = g.toBool(rawGtk.get_cursor_visible(w.raw))
-proc `cursorVisible=`*(w: TextView, value: bool) = rawGtk.set_cursor_visible(w.raw, g.gbool(value))
+proc `cursorVisible=`*(w: TextView, value: bool) =
+  let p = w.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_cursor_visible(p, g.gbool(value))
 proc acceptsTab*(w: TextView): bool = g.toBool(rawGtk.get_accepts_tab(w.raw))
-proc `acceptsTab=`*(w: TextView, value: bool) = rawGtk.set_accepts_tab(w.raw, g.gbool(value))
+proc `acceptsTab=`*(w: TextView, value: bool) =
+  let p = w.raw
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_accepts_tab(p, g.gbool(value))
+proc overwriteMode*(w: TextView): bool = g.toBool(rawGtk.get_overwrite(w.raw))
+proc `overwriteMode=`*(w: TextView, value: bool) =
+  let p = w.raw
+  # Stock GTK2 invalidates missing layout/windows before realization. Reject a
+  # changing policy rather than realize, suppress warnings or inspect private state.
+  if not g.toBool(rawGtk.get_realized(cast[rawGtk.PWidget](p))) and
+      g.toBool(rawGtk.get_overwrite(p)) != value:
+    raise newException(ValueError, "TextView overwrite changes require a realized view")
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
+  rawGtk.set_overwrite(p, g.gbool(value))
 proc wrapMode*(w: TextView): TextWrapMode = TextWrapMode(rawGtk.get_wrap_mode(w.raw))
 proc `wrapMode=`*(w: TextView, mode: TextWrapMode) = rawGtk.set_wrap_mode(w.raw, rawGtk.TWrapMode(ord(mode)))
 

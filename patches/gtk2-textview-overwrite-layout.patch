@@ -1,0 +1,34 @@
+From: nim-gtk2 native audit
+Subject: [PATCH] textview: invalidate overwrite cursors only on realized windows
+
+GTK 2.24.33 can invalidate block cursors with a NULL layout and/or NULL GdkWindow
+when overwrite changes on an unrealized TextView. Gate both invalidations on
+realization; normal realization creates the layout/windows using the existing
+native path and applies overwrite mode. No state is synthesized or realized early.
+
+Optional GTK SOURCE patch only; the SDK never applies this or changes installed
+libraries. Rebuild GTK separately if desired. Reproducer:
+tests/headers/textview_overwrite.c with G_DEBUG=fatal-warnings.
+
+--- a/gtk/gtktextview.c
++++ b/gtk/gtktextview.c
+@@ -5864,7 +5864,8 @@
+ static void
+ gtk_text_view_toggle_overwrite (GtkTextView *text_view)
+ {
+-  if (text_view->text_window)
++  if (text_view->text_window &&
++      gtk_widget_get_realized (GTK_WIDGET (text_view)))
+     text_window_invalidate_cursors (text_view->text_window);
+ 
+   text_view->overwrite_mode = !text_view->overwrite_mode;
+@@ -5873,7 +5874,8 @@
+     gtk_text_layout_set_overwrite_mode (text_view->layout,
+ 					text_view->overwrite_mode && text_view->editable);
+ 
+-  if (text_view->text_window)
++  if (text_view->text_window &&
++      gtk_widget_get_realized (GTK_WIDGET (text_view)))
+     text_window_invalidate_cursors (text_view->text_window);
+ 
+   gtk_text_view_pend_cursor_blink (text_view);

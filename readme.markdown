@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Raw GtkTextView private-bitfield helpers/masks are removed; native class slots and
+public boolean policies are audited, with pinned setters and native overwrite.
+See [TextView migration](docs/raw-widgets.md#gtktextview-raw-migration-public-policy-not-private-flags)
+for its unrealized-overwrite precondition, source-only patch and isolated tests.
 Raw GtkEntry private-bitfield helpers/constants are removed without shims; public
 boolean/property replacements and non-replaceable internal state are documented in
 the [raw migration guide](docs/raw-widgets.md#gtkentry-raw-migration-no-private-bitfield-helpers).

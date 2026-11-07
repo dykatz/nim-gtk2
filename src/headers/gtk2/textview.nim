@@ -5,23 +5,10 @@ proc TEXT_VIEW_CLASS*(klass: pointer): PTextViewClass
 proc IS_TEXT_VIEW*(obj: pointer): bool
 proc IS_TEXT_VIEW_CLASS*(klass: pointer): bool
 proc TEXT_VIEW_GET_CLASS*(obj: pointer): PTextViewClass
-proc editable*(a: PTextView): guint
-proc set_editable*(a: PTextView, `editable`: guint)
-proc overwrite_mode*(a: PTextView): guint
-proc set_overwrite_mode*(a: PTextView, `overwrite_mode`: guint)
-proc cursor_visible*(a: PTextView): guint
-proc set_cursor_visible*(a: PTextView, `cursor_visible`: guint)
-proc need_im_reset*(a: PTextView): guint
-proc set_need_im_reset*(a: PTextView, `need_im_reset`: guint)
-proc just_selected_element*(a: PTextView): guint
-proc set_just_selected_element*(a: PTextView, `just_selected_element`: guint)
-proc disable_scroll_on_focus*(a: PTextView): guint
-proc set_disable_scroll_on_focus*(a: PTextView,
-                                  `disable_scroll_on_focus`: guint)
-proc onscreen_validated*(a: PTextView): guint
-proc set_onscreen_validated*(a: PTextView, `onscreen_validated`: guint)
-proc mouse_cursor_obscured*(a: PTextView): guint
-proc set_mouse_cursor_obscured*(a: PTextView, `mouse_cursor_obscured`: guint)
+proc set_overwrite*(view: PTextView, value: gboolean) {.cdecl, dynlib: lib,
+    importc: "gtk_text_view_set_overwrite".}
+proc get_overwrite*(view: PTextView): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_text_view_get_overwrite".}
 proc set_accepts_tab*(view: PTextView, value: gboolean) {.cdecl, dynlib: lib,
     importc: "gtk_text_view_set_accepts_tab".}
 proc get_accepts_tab*(view: PTextView): gboolean {.cdecl, dynlib: lib,

@@ -4160,6 +4160,34 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### TextView public policy and raw migration
+
+TextView editable, cursorVisible and acceptsTab use public gboolean APIs; new
+TextView.overwriteMode uses native get_overwrite/set_overwrite. All four mutations
+pin the native view across notifications. These are per-view policies, not edits to
+a shared buffer or overrides of tag-level permissions. Readonly still permits
+explicit buffer edits; hiding the caret does not conceal text or prohibit typing.
+Native typed overwrite, Insert, IME and selection replacement remain GTK policy;
+programmatic buffer insertion is not simulated typing. The text example now has
+manual editor readonly/caret/overwrite/Tab controls without rebinding its document.
+
+Stock GTK2 can warn when changing overwrite before realization because native
+cursor invalidation uses missing layout/windows. The checked setter therefore
+rejects a changed value on an unrealized view with ValueError (same-value no-op is
+allowed). Configure it after normal realization, never force realization in a normal
+hidden test. No private inspection, automatic realization, warning suppression or
+runtime repair is added. A native diagnostic and optional source-only patch are
+provided, not applied; see [raw TextView migration](raw-widgets.md#gtktextview-raw-migration-public-policy-not-private-flags).
+
+The audit removed 16 unsafe raw helpers/16 masks, including stale masks whose names
+no longer match GTK2.24 bits. Real public methods are the only replacements; private
+IME/cache/focus flags have no equivalent getter/setter. GtkTextViewClass backspace/
+clipboard/toggle/move_focus slots now match GTK2, keeping instance storage/class
+size and seven real reserved slots. Native layout/prototype/cdecl probes and
+unrealized ARC/ORC tests cover migration/pins/guards. Opt-in
+`testMappedTextViewPolicy` covers native overwrite, selection, readonly, caret and
+Tab/focus with XTEST on an isolated display; normal tests never realize or fake input.
+
 ### Raw Entry private-flag migration
 
 Raw GtkEntry bitfield helpers and mask/shift constants are removed without shims.
@@ -4832,7 +4860,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4871,7 +4899,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

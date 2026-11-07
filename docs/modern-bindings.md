@@ -139,6 +139,24 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextView public-policy audit
+
+Removed 16 raw private-bitfield helpers/16 constants without aliases, including
+obsolete masks whose names do not match GTK2.24 fields. Public gboolean methods
+replace editable/caret/overwrite helpers; private IME/cache/focus flags have no
+invented replacement. Instance storage remains, and native class backspace plus
+clipboard/toggle/move_focus offsets are corrected with seven true reserved slots.
+Native size/offset/prototype/cdecl probes and source/compile guards cover ABI/removal.
+
+Existing TextView editable/cursorVisible/acceptsTab and new overwriteMode pin native
+lifetime. Shared buffer text/identity/selection is not changed by view policy. A
+changing overwrite setting requires realization: stock GTK invalidates missing
+layout/windows before that. No implicit realization, private/runtime repair or
+warning suppression is used; optional source patch and native diagnostic are
+separate. Unrealized ARC/ORC tests reject that precondition and cover safe bools,
+pins and guards; isolated XTEST covers actual editing, Insert, caret and Tab/focus.
+See [raw migration](raw-widgets.md#gtktextview-raw-migration-public-policy-not-private-flags).
+
 ### Raw GtkEntry private-flag audit
 
 All remaining 20 raw Entry bitfield helpers and 26 mask/shift constants are removed,

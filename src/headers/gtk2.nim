@@ -396,24 +396,6 @@ include "gtk2/textbuffer_7"
 include "gtk2/textlayout_2"
 include "gtk2/textbuffer_8"
 include "gtk2/textlayout_3"
-const                         # GTK_TEXT_VIEW_PRIORITY_VALIDATE* = GDK_PRIORITY_REDRAW + 5
-  bm_TGtkTextView_editable* = 0x0001'u16
-  bp_TGtkTextView_editable* = 0'u16
-  bm_TGtkTextView_overwrite_mode* = 0x0002'u16
-  bp_TGtkTextView_overwrite_mode* = 1'u16
-  bm_TGtkTextView_cursor_visible* = 0x0004'u16
-  bp_TGtkTextView_cursor_visible* = 2'u16
-  bm_TGtkTextView_need_im_reset* = 0x0008'u16
-  bp_TGtkTextView_need_im_reset* = 3'u16
-  bm_TGtkTextView_just_selected_element* = 0x0010'u16
-  bp_TGtkTextView_just_selected_element* = 4'u16
-  bm_TGtkTextView_disable_scroll_on_focus* = 0x0020'u16
-  bp_TGtkTextView_disable_scroll_on_focus* = 5'u16
-  bm_TGtkTextView_onscreen_validated* = 0x0040'u16
-  bp_TGtkTextView_onscreen_validated* = 6'u16
-  bm_TGtkTextView_mouse_cursor_obscured* = 0x0080'u16
-  bp_TGtkTextView_mouse_cursor_obscured* = 7'u16
-
 include "gtk2/textview"
 include "gtk2/toolbar"
 include "gtk2/treednd"

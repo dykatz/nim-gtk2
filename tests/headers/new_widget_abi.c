@@ -3,6 +3,39 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_textview_storage_abi(guint index) {
+  static const size_t layout[] = {
+    sizeof(GtkTextView), offsetof(GtkTextView, buffer), offsetof(GtkTextView, tabs),
+    offsetof(GtkTextView, text_window), offsetof(GtkTextView, hadjustment),
+    offsetof(GtkTextView, im_context), offsetof(GtkTextView, pending_place_cursor_button),
+    sizeof(GtkTextViewClass), offsetof(GtkTextViewClass, set_scroll_adjustments),
+    offsetof(GtkTextViewClass, backspace), offsetof(GtkTextViewClass, cut_clipboard),
+    offsetof(GtkTextViewClass, copy_clipboard), offsetof(GtkTextViewClass, paste_clipboard),
+    offsetof(GtkTextViewClass, toggle_overwrite), offsetof(GtkTextViewClass, move_focus)
+  };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_textview_policy_abi(void (*focus)(GtkTextView *, GtkDirectionType)) {
+  typedef void (*Set)(GtkTextView *, gboolean);
+  typedef gboolean (*Get)(GtkTextView *);
+  typedef void (*Action)(GtkTextView *);
+  typedef void (*Focus)(GtkTextView *, GtkDirectionType);
+#define VIEW_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { VIEW_AUDIT(Set, &gtk_text_view_set_editable); }
+  { VIEW_AUDIT(Get, &gtk_text_view_get_editable); }
+  { VIEW_AUDIT(Set, &gtk_text_view_set_cursor_visible); }
+  { VIEW_AUDIT(Get, &gtk_text_view_get_cursor_visible); }
+  { VIEW_AUDIT(Set, &gtk_text_view_set_accepts_tab); }
+  { VIEW_AUDIT(Get, &gtk_text_view_get_accepts_tab); }
+  { VIEW_AUDIT(Set, &gtk_text_view_set_overwrite); }
+  { VIEW_AUDIT(Get, &gtk_text_view_get_overwrite); }
+  { VIEW_AUDIT(Action, ((GtkTextViewClass *)0)->backspace); }
+  { VIEW_AUDIT(Action, ((GtkTextViewClass *)0)->cut_clipboard); }
+  { VIEW_AUDIT(Focus, ((GtkTextViewClass *)0)->move_focus); }
+#undef VIEW_AUDIT
+  focus((GtkTextView *)(guintptr)0xf2, GTK_DIR_LEFT);
+  return sizeof(GtkDirectionType) == sizeof(gint);
+}
 size_t nim_gtk2_entry_storage_abi(guint index) {
   static const size_t layout[] = {
     sizeof(GtkEntry), offsetof(GtkEntry, text_area), offsetof(GtkEntry, current_pos),

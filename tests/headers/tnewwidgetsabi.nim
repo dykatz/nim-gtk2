@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type TextViewFocus = proc (view: gtk.PTextView, direction: gtk.TDirectionType) {.cdecl.}
+proc textViewStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_textview_storage_abi".}
+proc textViewPolicy(focus: TextViewFocus): g.gboolean {.cdecl, importc: "nim_gtk2_textview_policy_abi".}
 type EntryArea = proc (entry: gtk.PEntry, x, y, width, height: g.Pgint) {.cdecl.}
 proc entryStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_entry_storage_abi".}
 proc entryPublicBool(area: EntryArea): g.gboolean {.cdecl, importc: "nim_gtk2_entry_public_bool_abi".}
@@ -228,6 +231,24 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "TextView storage, corrected class slots and native boolean/direction ABI":
+    let layout = [sizeof(gtk.TTextView), offsetOf(gtk.TTextView, buffer),
+      offsetOf(gtk.TTextView, tabs), offsetOf(gtk.TTextView, text_window),
+      offsetOf(gtk.TTextView, hadjustment), offsetOf(gtk.TTextView, im_context),
+      offsetOf(gtk.TTextView, pending_place_cursor_button), sizeof(gtk.TTextViewClass),
+      offsetOf(gtk.TTextViewClass, set_scroll_adjustments), offsetOf(gtk.TTextViewClass, backspace),
+      offsetOf(gtk.TTextViewClass, cut_clipboard), offsetOf(gtk.TTextViewClass, copy_clipboard),
+      offsetOf(gtk.TTextViewClass, paste_clipboard), offsetOf(gtk.TTextViewClass, toggle_overwrite),
+      offsetOf(gtk.TTextViewClass, move_focus)]
+    for i, expected in layout: check textViewStorage(g.guint(i)).int == expected
+    var called {.global.} = false
+    proc focus(view: gtk.PTextView, direction: gtk.TDirectionType) {.cdecl.} =
+      doAssert cast[uint](view) == 0xf2 and direction == gtk.DIR_LEFT
+      called = true
+    var klass: gtk.TTextViewClass
+    klass.move_focus = focus
+    check g.toBool(textViewPolicy(klass.move_focus)) and called
+
   test "Entry storage, corrected class slots and public boolean/interface prototypes":
     let layout = [sizeof(gtk.TEntry), offsetOf(gtk.TEntry, text_area),
       offsetOf(gtk.TEntry, current_pos), offsetOf(gtk.TEntry, cached_layout),

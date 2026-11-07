@@ -8,14 +8,31 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextView bitfield/public-policy audit
+## Next proposed batch: Raw GtkTextMark private-body audit
 
-- [ ] Inventory legacy raw GtkTextView bitfield helpers against public GTK2.24
-      APIs/properties; remove unsafe private helpers and unused masks without shims.
-- [ ] Preserve ABI storage, audit related class slots against native headers and
-      document only actual public replacements, not guessed IME/cache/drag state.
-- [ ] Extend compile-rejection/layout/prototype tests, raw migration docs, existing
-      text example where relevant and hidden/cross-target/isolated regressions.
+- [ ] Inventory raw mark/private-body helpers and masks against public GTK2.24
+      visibility/gravity/deletion/buffer APIs; remove unsafe helpers without shims.
+- [ ] Audit native instance/class/opaque storage and ownership; do not expose guessed
+      segment/body layouts or fabricate mark deletion/gravity/lifetime state.
+- [ ] Extend ABI/compile guards, raw migration docs and existing text example where
+      relevant, with hidden ARC/ORC/cross-target and isolated native regressions.
+
+## Completed batch: Raw GtkTextView bitfield/public-policy audit
+
+- [x] Removed 16 helpers/16 masks without aliases. Two obsolete bit names actually
+      addressed accepts_tab/width_changed in GTK2.24; no guessed replacements.
+- [x] Bound public get/set_overwrite and ergonomic overwriteMode; pinned native
+      editable/cursorVisible/acceptsTab/overwrite mutations. Preserved shared buffer,
+      readonly/tag permissions, native typing/IME/Insert/selection/Tab behavior.
+- [x] Preserved instance storage; corrected missing class backspace and shifted
+      clipboard/toggle/move_focus slots with class size/seven reserved slots intact.
+      Added native size/offset, eight boolean prototypes and callback/cdecl probes.
+- [x] Documented native unrealized-overwrite invalidation defect. Checked changing
+      overwrite requires realization, never realizes implicitly; same-value no-op
+      allowed. Native diagnostic/source-only optional patch, no installed GTK change.
+- [x] Expanded text example/docs, compile/source guards and unrealized ARC/ORC
+      shared-buffer/boolean/pin/purity/lifetime tests; isolated native overwrite/
+      Insert/selection/readonly/hidden-caret Tab/focus tests and opt-in guard.
 
 ## Completed batch: Remaining raw GtkEntry bitfield audit
 
@@ -313,7 +330,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; GtkTextView is the next proposed batch (Entry complete).
+      corresponding policies; GtkTextMark is next (Entry/TextView complete).
 
 ### Clipboard and drag-and-drop
 
@@ -366,6 +383,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Raw TextView flag cleanup, native class-slot/boolean audit, pinned view policy,
+      unrealized overwrite precondition and isolated edit/focus coverage (above).
 - [x] Removed remaining raw Entry private-bitfield helpers/masks, corrected native
       class slots, documented public replacements and added ABI/compile guards (above).
 - [x] Native Entry progress fraction/step and explicit pulse, no shadow mode/timer,
