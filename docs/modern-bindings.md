@@ -139,6 +139,22 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextTag public-property audit
+
+Removed 48 private flag/padding helpers and 48 constants without aliases. Native
+instance/class/tag-table ABI remains checked, with ten signature/cdecl event probes
+and compile/source guards. Real public *-set properties remove contributions; false
+assignments remain explicit overrides. New SDK clearBold/Italic/Underline/Invisible/
+Editable helpers complement color clears. Stored getters are not effective style.
+
+Checked native priority validates membership/range; priority changes shift ranks
+but GTK2 emits no style invalidation, so no automatic repaint is promised or faked.
+Property/range/table operations pin tag/table/buffer owners as appropriate; shared
+renderer property helpers also pin emitters. Unrealized ARC/ORC tests cover metadata,
+false/unset/membership/priority, alias-drop lifetimes and guards. Isolated native
+pixels cover inheritance/removal and fresh priority queries without model rebinding.
+See [raw migration](raw-widgets.md#gtktexttag-raw-migration-real-override-properties).
+
 ### Raw GtkTextAttributes/Appearance audit
 
 Removed 33 helpers/34 masks without aliases, preserving native storage. Corrected

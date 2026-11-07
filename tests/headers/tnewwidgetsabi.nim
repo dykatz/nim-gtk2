@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type TagEvent = proc (tag: gtk.PTextTag, obj: g.PGObject, event: gd.PEvent, iter: gtk.PTextIter): g.gboolean {.cdecl.}
+proc tagStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_tag_storage_abi".}
+proc tagApi(event: TagEvent): g.gboolean {.cdecl, importc: "nim_gtk2_tag_api_abi".}
 type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
 proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
 proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
@@ -237,6 +240,22 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "TextTag/table layout, public priority/membership and event ABI":
+    let layout = [sizeof(gtk.TTextTag), offsetOf(gtk.TTextTag, table),
+      offsetOf(gtk.TTextTag, name), offsetOf(gtk.TTextTag, priority),
+      offsetOf(gtk.TTextTag, values), sizeof(gtk.TTextTagClass), offsetOf(gtk.TTextTagClass, event),
+      sizeof(gtk.TTextTagTable), sizeof(gtk.TTextTagTableClass),
+      offsetOf(gtk.TTextTagTableClass, tag_changed), offsetOf(gtk.TTextTagTableClass, tag_added),
+      offsetOf(gtk.TTextTagTableClass, tag_removed)]
+    for i, expected in layout: check tagStorage(g.guint(i)).int == expected
+    proc event(tag: gtk.PTextTag, obj: g.PGObject, native: gd.PEvent, iter: gtk.PTextIter): g.gboolean {.cdecl.} =
+      doAssert cast[uint](tag) == 0xf5 and cast[uint](obj) == 0xf6
+      doAssert native != nil and iter != nil and cast[gd.PEventAny](native).`type` == gd.BUTTON_PRESS
+      g.gboolean(-123)
+    var klass: gtk.TTextTagClass
+    klass.event = event
+    check g.toBool(tagApi(klass.event))
+
   test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
     let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),
       offsetOf(gtk.TTextAppearance, padding1), sizeof(gtk.TTextAttributes),

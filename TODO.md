@@ -8,14 +8,30 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextTag flag/public-property audit
+## Next proposed batch: Raw GtkTextTagTable private-hook/traversal audit
 
-- [ ] Inventory legacy raw tag *_set/padding bitfield helpers and masks against
-      actual GTK2.24 public properties, priority and tag-table membership APIs.
-- [ ] Remove unsafe helpers without aliases, audit native instance/class layout and
-      public-property lifetimes; do not invent tag/cache state or authorization.
-- [ ] Extend compile/ABI guards, migration docs and text example where relevant,
+- [ ] Audit raw private buffer-registration hooks against GTK2.24 public table APIs;
+      remove unsupported private bindings without aliases or substitute bookkeeping.
+- [ ] Verify table ownership, traversal mutation restrictions and buffer/tag lifetime
+      contracts; keep only native public membership/order semantics and ABI storage.
+- [ ] Extend compile/ABI guards, raw migration docs and text example where relevant,
       with hidden ARC/ORC/cross-target and isolated regressions.
+
+## Completed batch: Raw GtkTextTag flag/public-property audit
+
+- [x] Removed 48 flag/padding helpers and 48 masks without aliases; preserved native
+      tag/table instance/class ABI. Old pad masks addressed real paragraph/margin bits.
+- [x] Audited real override properties/spellings and false-vs-unset semantics; added
+      clearBold/Italic/Underline/Invisible/Editable alongside color clears, plus checked
+      native priority with actual table membership/range validation.
+- [x] Pinned property/color/range/table operations and shared property emitters through
+      native callbacks. Creation owns its table before native construction; detached
+      tags remain valid without pretending membership or retaining document buffers.
+- [x] Recorded native priority's lack of tag-changed/repaint notification; no synthetic
+      refresh, detach/reapply, buffer rebinding, private cache or authorization promise.
+- [x] Expanded text example/docs, removal/source/property/priority/pin/purity tests,
+      ten native signature/cdecl/layout probes and isolated inheritance/removal pixel
+      and fresh priority-query tests with opt-in guard.
 
 ## Completed batch: Raw GtkTextAttributes bitfield/ownership audit
 
@@ -361,7 +377,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; GtkTextTag is next (Entry/TextView/Mark/Attributes complete).
+      corresponding policies; TagTable private-hook audit is next (Entry/TextView/Mark/Attributes/Tag complete).
 
 ### Clipboard and drag-and-drop
 
@@ -414,6 +430,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Raw tag flag removal, native property/priority/membership audit and pinned
+      override/range lifetimes, with native inheritance/removal rendering (above).
 - [x] Attributes/Appearance helper removal, ref-return ABI and boxed/style ownership
       audit with native snapshot rendering and source-only leak patch (above).
 - [x] Raw mark private-body removal, own-before-insert creation, explicit buffer

@@ -3,6 +3,39 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_tag_storage_abi(guint index) {
+  static const size_t layout[] = { sizeof(GtkTextTag), offsetof(GtkTextTag, table),
+    offsetof(GtkTextTag, name), offsetof(GtkTextTag, priority), offsetof(GtkTextTag, values),
+    sizeof(GtkTextTagClass), offsetof(GtkTextTagClass, event), sizeof(GtkTextTagTable),
+    sizeof(GtkTextTagTableClass), offsetof(GtkTextTagTableClass, tag_changed),
+    offsetof(GtkTextTagTableClass, tag_added), offsetof(GtkTextTagTableClass, tag_removed) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_tag_api_abi(gboolean (*event)(GtkTextTag *, GObject *, GdkEvent *, const GtkTextIter *)) {
+  typedef GtkTextTag *(*New)(const gchar *);
+  typedef gint (*Priority)(GtkTextTag *);
+  typedef void (*SetPriority)(GtkTextTag *, gint);
+  typedef gboolean (*Event)(GtkTextTag *, GObject *, GdkEvent *, const GtkTextIter *);
+  typedef void (*AddRemove)(GtkTextTagTable *, GtkTextTag *);
+  typedef GtkTextTag *(*Lookup)(GtkTextTagTable *, const gchar *);
+  typedef gint (*Size)(GtkTextTagTable *);
+  typedef void (*Foreach)(GtkTextTagTable *, GtkTextTagTableForeach, gpointer);
+#define TAG_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { TAG_AUDIT(New, &gtk_text_tag_new); }
+  { TAG_AUDIT(Priority, &gtk_text_tag_get_priority); }
+  { TAG_AUDIT(SetPriority, &gtk_text_tag_set_priority); }
+  { TAG_AUDIT(Event, &gtk_text_tag_event); }
+  { TAG_AUDIT(Event, ((GtkTextTagClass *)0)->event); }
+  { TAG_AUDIT(AddRemove, &gtk_text_tag_table_add); }
+  { TAG_AUDIT(AddRemove, &gtk_text_tag_table_remove); }
+  { TAG_AUDIT(Lookup, &gtk_text_tag_table_lookup); }
+  { TAG_AUDIT(Size, &gtk_text_tag_table_get_size); }
+  { TAG_AUDIT(Foreach, &gtk_text_tag_table_foreach); }
+#undef TAG_AUDIT
+  GdkEvent native_event = {0}; GtkTextIter iter;
+  native_event.type = GDK_BUTTON_PRESS;
+  return event((GtkTextTag *)(guintptr)0xf5, (GObject *)(guintptr)0xf6, &native_event, &iter) == -123;
+}
 size_t nim_gtk2_attributes_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextAppearance), offsetof(GtkTextAppearance, rise),
     offsetof(GtkTextAppearance, padding1), sizeof(GtkTextAttributes),

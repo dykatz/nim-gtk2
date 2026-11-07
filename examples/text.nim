@@ -31,7 +31,13 @@ proc main() =
   let underlineEmphasis = newCheckButton("Underline emphasis tag (not an attribute snapshot)")
   underlineEmphasis.active = emphasis.underline
   underlineEmphasis.onToggled(proc () = emphasis.underline = underlineEmphasis.active)
-  layout.packStart(underlineEmphasis, packShrink)
+  let tagPolicy = newHBox(spacing = 6)
+  let inheritUnderline = newButton("Unset underline override")
+  tagPolicy.packStart(underlineEmphasis, packShrink)
+  tagPolicy.packStart(inheritUnderline, packShrink)
+  layout.packStart(tagPolicy, packShrink)
+  inheritUnderline.onClicked(proc () = emphasis.clearUnderline())
+  # Checkbox assigns a value; this button removes its override, not the tag ranges.
   var bookmark = buffer.createMark(0, "bookmark", leftGravity = true)
   let showBookmark = newCheckButton("Show bookmark cursor (not document text)")
   showBookmark.onToggled(proc () = bookmark.visible = showBookmark.active)

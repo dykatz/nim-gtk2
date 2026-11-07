@@ -24,6 +24,8 @@ proc integerProperty(w: ObjectHandle, name: cstring, isEnum = false): int =
   if isEnum: g.get_enum(addr v).int else: g.get_int(addr v).int
 proc setIntegerProperty(w: ObjectHandle, name: cstring, n: int, isEnum = false) =
   let p = nativePointer(w)
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
   var v = typedProperty(p, name)
   defer: g.unset(addr v)
   if isEnum: g.set_enum(addr v, g.gint(n))
@@ -37,19 +39,31 @@ proc booleanProperty(w: ObjectHandle, name: cstring): bool =
   g.toBool(g.get_boolean(addr v))
 proc setBooleanProperty(w: ObjectHandle, name: cstring, value: bool) =
   let p = nativePointer(w)
+  discard g.g_object_ref(p)
+  defer: g.g_object_unref(p)
   var v = typedProperty(p, name)
   defer: g.unset(addr v)
   g.set_boolean(addr v, g.gbool(value))
   g.set_property(cast[g.PGObject](p), name, addr v)
+
+template withTagTable(t: TextTag, body: untyped) =
+  let owner = nativePointer(t.table)
+  discard g.g_object_ref(owner)
+  defer: g.g_object_unref(owner)
+  body
+proc setIntegerProperty(t: TextTag, name: cstring, n: int, isEnum = false) =
+  withTagTable(t): setIntegerProperty(ObjectHandle(t), name, n, isEnum)
+proc setBooleanProperty(t: TextTag, name: cstring, value: bool) =
+  withTagTable(t): setBooleanProperty(ObjectHandle(t), name, value)
 
 proc createTag*(b: TextBuffer, name = ""): TextTag =
   let text = checkedUtf8Text(name)
   let table = rawGtk.get_tag_table(b.raw)
   if name.len > 0 and rawGtk.table_lookup(table, text) != nil:
     raise newException(ValueError, "text tag name already exists")
+  result.table.state = adoptObject(table, borrowed = true, cache = true, hasDestroySignal = false)
   result.state = adoptObject(rawGtk.text_tag_new(if name.len == 0: nil else: text),
     cache = true, hasDestroySignal = false, sink = false)
-  result.table.state = adoptObject(table, borrowed = true, cache = true, hasDestroySignal = false)
   rawGtk.table_add(table, result.raw)
 proc tag*(b: TextBuffer, name: string): TextTag =
   let value = checkedUtf8Text(name)
@@ -64,21 +78,51 @@ type TagMembership = object
 proc visitTextTag(tag: rawGtk.PTextTag, data: pointer) {.cdecl.} =
   let check = cast[ptr TagMembership](data)
   if tag == check.tag: check.found = true
+proc checkedTagTable(tag: TextTag): rawGtk.PTextTagTable =
+  result = cast[rawGtk.PTextTagTable](nativePointer(tag.table))
+  var member = TagMembership(tag: tag.raw)
+  rawGtk.table_foreach(result, visitTextTag, addr member)
+  if not member.found: raise newException(ValueError, "text tag was removed from its table")
 proc checkTag(b: TextBuffer, tag: TextTag) =
   let table = rawGtk.get_tag_table(b.raw)
-  if cast[pointer](table) != nativePointer(tag.table):
+  if table != checkedTagTable(tag):
     raise newException(ValueError, "text tag belongs to another table")
-  var member = TagMembership(tag: tag.raw)
-  rawGtk.table_foreach(table, visitTextTag, addr member)
-  if not member.found: raise newException(ValueError, "text tag was removed from its table")
+proc priority*(tag: TextTag): int =
+  discard checkedTagTable(tag)
+  rawGtk.get_priority(tag.raw).int
+proc `priority=`*(tag: TextTag, value: int) =
+  let table = checkedTagTable(tag)
+  if value < 0 or value >= rawGtk.table_get_size(table).int:
+    raise newException(ValueError, "text tag priority must be in 0..<table size")
+  let p = tag.raw
+  discard g.g_object_ref(table)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(table)
+  rawGtk.set_priority(p, g.gint(value))
 proc applyTag*(b: TextBuffer, tag: TextTag, first, last: int) =
   checkTag(b, tag)
   var r = bufferRange(b, first, last)
-  rawGtk.apply_tag(b.raw, tag.raw, addr r.first, addr r.last)
+  let owner = b.raw
+  let p = tag.raw
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
+  withTagTable(tag): rawGtk.apply_tag(owner, p, addr r.first, addr r.last)
 proc removeTag*(b: TextBuffer, tag: TextTag, first, last: int) =
   checkTag(b, tag)
   var r = bufferRange(b, first, last)
-  rawGtk.remove_tag(b.raw, tag.raw, addr r.first, addr r.last)
+  let owner = b.raw
+  let p = tag.raw
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
+  withTagTable(tag): rawGtk.remove_tag(owner, p, addr r.first, addr r.last)
 proc removeAllTags*(b: TextBuffer, first, last: int) =
   var r = bufferRange(b, first, last)
   rawGtk.remove_all_tags(b.raw, addr r.first, addr r.last)
@@ -88,7 +132,15 @@ proc hasTag*(b: TextBuffer, tag: TextTag, offset: int): bool =
   g.toBool(rawGtk.has_tag(addr it, tag.raw))
 proc deleteTag*(b: TextBuffer, tag: TextTag) =
   checkTag(b, tag)
-  rawGtk.table_remove(rawGtk.get_tag_table(b.raw), tag.raw)
+  let owner = b.raw
+  let table = rawGtk.get_tag_table(owner)
+  let p = tag.raw
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
+  withTagTable(tag): rawGtk.table_remove(table, p)
 proc bold*(t: TextTag): bool = integerProperty(t, "weight") >= 700
 proc `bold=`*(t: TextTag, value: bool) = setIntegerProperty(t, "weight", if value: 700 else: 400)
 proc italic*(t: TextTag): bool = integerProperty(t, "style", true) == 2
@@ -102,6 +154,12 @@ proc `editable=`*(t: TextTag, value: bool) = setBooleanProperty(t, "editable", v
 proc setTagColor(t: TextTag, name: cstring, color: Color) =
   if color.alpha != 65535: raise newException(ValueError, "text tag colors do not support alpha")
   let p = t.raw
+  let owner = nativePointer(t.table)
+  discard g.g_object_ref(owner)
+  discard g.g_object_ref(p)
+  defer:
+    g.g_object_unref(p)
+    g.g_object_unref(owner)
   var v = typedProperty(p, name)
   defer: g.unset(addr v)
   var native = TColor(red: color.red, green: color.green, blue: color.blue)
@@ -111,6 +169,11 @@ proc setForeground*(t: TextTag, color: Color) = setTagColor(t, "foreground-gdk",
 proc setBackground*(t: TextTag, color: Color) = setTagColor(t, "background-gdk", color)
 proc clearForeground*(t: TextTag) = setBooleanProperty(t, "foreground-set", false)
 proc clearBackground*(t: TextTag) = setBooleanProperty(t, "background-set", false)
+proc clearBold*(t: TextTag) = setBooleanProperty(t, "weight-set", false)
+proc clearItalic*(t: TextTag) = setBooleanProperty(t, "style-set", false)
+proc clearUnderline*(t: TextTag) = setBooleanProperty(t, "underline-set", false)
+proc clearInvisible*(t: TextTag) = setBooleanProperty(t, "invisible-set", false)
+proc clearEditable*(t: TextTag) = setBooleanProperty(t, "editable-set", false)
 
 proc findText*(b: TextBuffer, needle: string, first = 0, last = -1,
                backwards = false, visibleOnly = false, textOnly = true): TextMatch =

@@ -42,7 +42,7 @@ class HeaderLayout(unittest.TestCase):
         for fragment in [HEADERS / 'gtk2.nim', *(HEADERS / 'gtk2').glob('*.nim')]:
             text = fragment.read_text()
             with self.subTest(fragment=fragment.name):
-                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView|TextMarkBody|TextAttributes|TextAppearance)_')
+                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView|TextMarkBody|TextAttributes|TextAppearance|TextTag)_')
                 self.assertNotRegex(text, r'\b[PT]TextMarkBody\b')
                 if fragment.name.startswith('textmark'):
                     self.assertNotRegex(text, r'\.segment\b|\.flag0\b')
@@ -51,6 +51,8 @@ class HeaderLayout(unittest.TestCase):
                         self.assertNotRegex(text, r'(?i)\.(?:Entry_?flag0|flag1)\b')
                     if fragment.name.startswith('textview'):
                         self.assertNotRegex(text, r'(?i)\.TextView_?flag0\b')
+                    if fragment.name.startswith('texttag'):
+                        self.assertNotRegex(text, r'(?i)\.TextTag_?flag0\b')
 
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):

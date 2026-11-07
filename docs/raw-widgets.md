@@ -9,6 +9,68 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextTag raw migration: real override properties
+
+Removed **48 private flag/padding helpers and 48 mask/shift constants**, without
+aliases. Public native tag/table instance/class storage remains ABI-checked. Stale
+pad1/pad2 masks actually address paragraph-background-set/accumulative-margin in
+GTK2.24, not padding. No SDK code interprets those words or substitutes new masks.
+
+Most old *_set names correspond to public gboolean GObject properties, but spelling
+is not a blind underscore conversion: bg_color_set -> background-set, fg_color_set
+-> foreground-set, bg_stipple_set -> background-stipple-set, fg_stipple_set ->
+foreground-stipple-set, bg_full_height_set -> background-full-height-set. The
+remaining real flags map to scale-set, justification-set, left-margin-set,
+indent-set, rise-set, strikethrough-set, right-margin-set, pixels-above-lines-set,
+pixels-below-lines-set, pixels-inside-wrap-set, tabs-set, underline-set,
+wrap-mode-set, invisible-set, editable-set and language-set. Raw users must use
+actual public GParamSpec/GValue types and lifecycle, not private word writes.
+Padding has no public property. Paragraph-background and accumulative-margin are
+real named policies, not replacements for obsolete pad helpers.
+
+Assigning a tag property establishes an override: underline=false explicitly
+requests no underline, and editable=false explicitly denies native interactive
+editing where applicable. Unsetting the corresponding public *-set property removes
+that tag's contribution, permitting lower-priority tags/view defaults to win. It
+does not remove the tag's ranges, reset its stored value, or mean false. SDK
+clearBold/clearItalic/clearUnderline/clearInvisible/clearEditable now complement
+existing clearForeground/clearBackground through those actual properties. Getter
+values are the tag's stored property, not a computed effective style or *-set flag.
+
+SDK priority reads/sets native priority after checking actual membership with public
+table_foreach. Values must be 0..<table size; invalid inputs are atomic. Priorities
+are unique, higher wins and native reassignment shifts other ranks. Removed tags
+or tags moved to a different table through raw APIs reject checked priority/range
+operations; properties on a live detached tag remain native. Membership is not
+inferred from a non-nil cached handle/name/private pointer. Tags retain their SDK
+table handle, not a document buffer. Creation owns before native tag-added signals;
+removal during that notification can return a valid but detached tag.
+
+**Native priority is not a repaint command.** GTK2.24.33 set_priority only changes
+ranks and emits no tag-changed notification. Fresh iterator-style queries reflect
+ordering, while existing view layouts can stay cached until a genuine native style/
+range invalidation. The SDK does not fake signals, detach/reapply tags, rebind
+buffers or promise automatic redraw. Applications must account for native behavior;
+authorization must not depend on cached pixels, priority or visibility alone.
+Tag editability can override a view's default editability under GTK's rules.
+
+Property/color/override helpers pin native tag and SDK table lifetimes through
+notifications; range apply/remove and table removal also pin relevant buffer/tag/
+table owners. Shared renderer property helpers pin their native emitter too. This
+prevents premature final release, not arbitrary destructive table/BTree reentrancy:
+raw observers still obey GTK traversal rules and must not pump nested events or
+mutate a table during foreach. No generic property/reflection/tag-event or native
+subclass API was added.
+
+Ten native signature checks and tag/table layout/cdecl event probes cover ABI.
+Unrealized tests/tgtk2texttagaudit.nim rejects every old helper/constant, validates
+property metadata, false/unset/priority/membership and alias-drop lifetimes, plus
+purity and removal during tag-added. Isolated testMappedTextTags requires
+GTK2_TEST_VIRTUAL_DISPLAY=1 for inheritance/removal pixels and fresh priority
+queries, without simulating a cache reset. The text example has an explicit unset
+underline-override button, distinct from its manual value checkbox. Normal tests
+never map/realize, claim PRIMARY, request selections or synthesize desktop input.
+
 ## GtkTextAttributes/Appearance raw migration and ownership
 
 Removed **33 unsafe helpers and 34 mask/shift constants** across TextAttributes and

@@ -4160,6 +4160,35 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### TextTag override and priority policy
+
+Raw GtkTextTag flag/padding helpers and masks are removed without shims; native
+storage/layout remains checked. Use real public GObject properties, not flag words;
+see [tag migration](raw-widgets.md#gtktexttag-raw-migration-real-override-properties).
+New clearBold/clearItalic/clearUnderline/clearInvisible/clearEditable remove the
+corresponding tag contribution, like existing color clears. Assigning false instead
+establishes an explicit override. Clearing leaves stored values/tag ranges intact,
+so property getters alone do not report whether a value contributes to effective
+style. The text example separates its value checkbox from an unset-override button.
+
+TextTag.priority checks current membership in its SDK table and validates 0..<table
+size before native mutation. Higher native priority wins and other ranks shift;
+removed/foreign-table tags reject checked priority/range operations. A live detached
+tag still supports native property changes. Its SDK table handle does not retain a
+document buffer. Native tag-added removal returns a valid detached tag.
+
+GTK2 priority changes do not emit tag-changed: fresh style queries use new ranks,
+but cached views need not repaint until genuine native invalidation. No synthetic
+signal, detach/reapply, buffer rebinding or cache-reset helper is added. Native
+priority/visible pixels are not authorization; tag editability may override view
+defaults. Property/color/clear/range/table operations pin native owners through
+callbacks, without legalizing destructive reentrancy during GTK traversal.
+
+Unrealized ARC/ORC property/removal/priority/pin/guard tests and native tag/table
+layout/signature/cdecl event probes cover the change. Opt-in testMappedTextTags
+checks actual inherited/false/unset/removal pixels and fresh priority queries on an
+isolated display. No normal test realizes widgets, requests selections or fakes input.
+
 ### Raw text attributes and effective style
 
 TextAttributes/Appearance flag helpers and masks are removed without aliases.
@@ -4912,7 +4941,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4951,7 +4980,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
