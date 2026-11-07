@@ -3753,10 +3753,9 @@ oriented anchor/cursor. Without a selection all four offsets equal the cursor.
 Snapshots and selectedText copies do not retain the widget and survive its teardown;
 they are historical values, not live marks. selectedText copies GTK's allocated
 GtkEditable.get_chars result and frees that allocation. A visible entry without a
-selection returns an empty string. No selection observer is introduced in this
-batch: selection-only moves do not emit text onChanged. The inputs example has an
-explicit Inspect button rather than pretending text notifications track every
-cursor change.
+selection returns an empty string. Selection-only moves do not emit text onChanged;
+use the copied idle observations below. The inputs example observes keyboard-driven
+selection and also offers a read-only Inspect button.
 
 selectRange(anchor,cursor) and cursorOffset= accept only 0..characterCount, including
 the end position. Both endpoints are checked before any mutation, callback-work
@@ -3813,6 +3812,83 @@ The opt-in testMappedEntrySelection requires GTK2_TEST_VIRTUAL_DISPLAY=1 on an
 isolated display. Unix X11 tests use real Shift-Left/focus/preview keys and explicitly
 exercise PRIMARY ownership, preserving another owner, masked password replies and
 combo cleanup. Never run those tests on an ordinary desktop.
+
+### Entry cursor/selection observations
+
+```nim
+let connection = entry.onSelectionChanged(
+  (proc (value: EntrySelection) =
+    echo value.anchor, " -> ", value.cursor), initial = true)
+# Later, if the entry itself is not being destroyed:
+connection.disconnect()
+```
+
+onSelectionChanged observes the same copied EntrySelection value described above,
+including direction and collapsed cursor moves. It works on ordinary Entry,
+protected editable combo children and inherited SpinButton text. No selected text,
+password text, character count, native event or widget reference is in the payload.
+A snapshot remains usable after its widget is destroyed. Password/read-only entries
+may be observed; coordinate changes are not authorization or permission to extract
+password text. Existing selectedText safeguards are unchanged.
+
+Delivery is **asynchronous final-state**, not one callback per key/notification.
+GTK freezes/thaws paired cursor-position/selection-bound notifications inside its
+position setter, then continues adjustment/recompute and PRIMARY updates. Each
+native handler only schedules one idle source. That source samples the final public
+bounds/cursor, deduplicates against the last delivered (or registration) snapshot,
+and then calls the application after normal native traversal. A burst becomes one
+value; a roundtrip back to the previous coordinates before idle delivers nothing.
+Equal coordinates with different text do not trigger delivery: observe text changes
+separately with onChanged/onTextChanged. Native keyboard grapheme rules and the
+actual native Unicode-preview offsets remain unchanged.
+
+There is no initial callback by default. initial=true requests an **idle** first
+sample, even if unchanged; intervening changes coalesce into that sample. Nothing
+runs synchronously on registration or inside the notify/PRIMARY/completion emitter.
+Each connection samples independently. If an earlier observer changes the entry,
+a later observer can see its newer final state; this is not a frozen global event
+batch. User edits from a callback schedule another non-nested idle delivery if the
+coordinates change. Avoid feedback loops and do not pump nested GTK loops during
+native operations; deferral is not a sandbox for raw reentrant event iteration.
+
+EntrySelectionConnection has a cheap connected query and idempotent disconnect.
+Dropping a token does not disconnect. The token/source retain callback data, **not
+the widget**. Each native signal closure and queued source has an independent data
+pin. A native parent can keep the entry/listener alive after public entry aliases
+disappear; conversely retaining a token or pending initial source cannot keep an
+unparented entry alive. Owner destruction/finalization cancels pending work and
+releases captures; combo destruction invalidates its child observers too.
+
+Explicit disconnect cancels queued work, removes all three hooks, prunes live
+shared-state bookkeeping and releases captures promptly. Temporary data/native pins
+protect teardown if a capture destructor drops the last public entry alias. Native
+closure-finalization cleanup never dereferences or refs its weak widget; losing a
+native hook invalidates the whole observation, leaving any remaining hooks inert
+until native cleanup. No weak-pointer resurrection, private GTK field access or
+ownership-suppression workaround is used. A function already executing keeps its
+local closure copy through return, so self-disconnect/owner destruction is safe.
+Exceptions are caught without disabling subsequent valid observations. Capturing
+custom owners/destructors must still obey UI-thread and teardown rules.
+
+Unlike completion-session observers, this observation belongs to the **entry**:
+completion detach/close/replacement does not end it. It can observe common-prefix
+selection, popup preview, native PRIMARY loss and selection-helper/focus changes;
+it neither cancels completion work itself nor accepts/resets native history.
+Application callbacks may safely close completion or destroy the owner at idle.
+Registration/disconnect are forbidden inside synchronous model/match functions;
+already copied EntrySelection values and connected's plain state flag are ordinary
+non-GTK data. Self-capturing GUI closures can still form cycles; explicitly disconnect
+or destroy their widget tree before abandoning it.
+
+Observing alone never realizes a widget, claims PRIMARY or issues selection requests.
+Hidden tests/tgtk2entryobservations.nim assert unrealized state and cover pairing,
+initial/dedup/reentrant edits, password/readonly, text-only changes, native parent
+ownership, token/source non-ownership, prompt disconnect/destruction/capture cleanup,
+combo/SpinButton, completion and purity guards. Native probes check notify's
+GObject/GParamSpec/userdata and GClosureNotify cdecl ABI. The opt-in isolated
+testMappedEntryObservations requires GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 XTEST
+covers Shift-Left, reverse focus roundtrips, PRIMARY loss with owner teardown and
+completion-preview teardown beyond the native emitters. Never run it on a desktop.
 
 ## Synchronous model functions and cell presentation
 
@@ -4413,7 +4489,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4452,7 +4528,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

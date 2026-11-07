@@ -477,6 +477,7 @@ include gtk2/completion
 include gtk2/completionmatch
 include gtk2/completionactions
 include gtk2/entryselection
+include gtk2/entryobservations
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors

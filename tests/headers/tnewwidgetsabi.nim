@@ -13,6 +13,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type EntrySelectionNotify = proc (instance: g.PGObject, spec: g.PGParamSpec, data: pointer) {.cdecl.}
+proc invokeEntrySelectionNotify(fn: EntrySelectionNotify, release: g.TGClosureNotify)
+  {.cdecl, importc: "nim_gtk2_entry_selection_notify_abi".}
 type EditableBounds = proc (editable: gtk.PEditable, first, last: ptr g.gint): g.gboolean {.cdecl.}
 proc invokeEditableBounds(fn: EditableBounds): g.gboolean {.cdecl, importc: "nim_gtk2_editable_selection_abi".}
 type CompletionActionSignal = proc (completion: gtk.PEntryCompletion, index: g.gint, data: pointer) {.cdecl.}
@@ -207,6 +210,14 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry selection notify GObject/ParamSpec/data and closure-notify ABI":
+    proc notify(instance: g.PGObject, spec: g.PGParamSpec, data: pointer) {.cdecl.} =
+      doAssert cast[uint](instance) == 0x81 and cast[uint](spec) == 0x82
+      doAssert cast[uint](data) == 0x83
+    proc release(data: pointer, closure: g.PGClosure) {.cdecl.} =
+      doAssert cast[uint](data) == 0x83 and cast[uint](closure) == 0x84
+    invokeEntrySelectionNotify(notify, release)
+
   test "GtkEditable selection gint outputs/gboolean and cursor/chars prototypes":
     proc bounds(editable: gtk.PEditable, first, last: ptr g.gint): g.gboolean {.cdecl.} =
       doAssert cast[uint](editable) == 0x71

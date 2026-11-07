@@ -139,6 +139,11 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Entry selection observations now coalesce copied final coordinates at UI idle,
+with optional initial delivery, non-owning tokens and prompt cancellation/cleanup.
+The inputs example updates from real keyboard selection; see the
+[observation guide](docs/gtk2.md#entry-cursorselection-observations) and isolated
+`testMappedEntryObservations` task.
 Entry now has checked Unicode cursor/selection snapshots and helpers, including
 reverse ranges, copied selected text and direction-preserving focus. Realized
 selection uses native PRIMARY ownership; normal tests stay unrealized.

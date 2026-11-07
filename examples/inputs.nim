@@ -73,13 +73,16 @@ proc main() =
   suggestions.onInlineChanged(proc (value: CompletionInlineState) =
     provisional.text = $value.kind & ": " & value.text & " — suffix " &
       $value.first & ".." & $value.last & " (key: " & value.key & ")")
-  let selectionStatus = newLabel("Inspect selection after keyboard navigation")
+  let selectionStatus = newLabel("Selection changes arrive at UI idle")
   layout.packStart(selectionStatus, packShrink)
-  proc inspectSelection() =
-    let state = name.entry.selectionBounds
+  proc showSelection(state: EntrySelection) =
     selectionStatus.text = "Code points: " & $name.entry.characterCount &
       "; anchor/cursor " & $state.anchor & "/" & $state.cursor &
       "; range " & $state.first & ".." & $state.last
+  proc inspectSelection() = showSelection(name.entry.selectionBounds)
+  let selectionChanges = name.entry.onSelectionChanged(
+    (proc (state: EntrySelection) = showSelection(state)), initial = true)
+  defer: selectionChanges.disconnect()
   let selectionRow = newHBox(spacing = 6)
   let all = newButton("Select all")
   let reverse = newButton("Reverse last 2 code points")

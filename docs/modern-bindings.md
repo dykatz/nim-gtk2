@@ -139,6 +139,27 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry cursor/selection observations
+
+onSelectionChanged(Entry) exposes copied EntrySelection coordinates through an
+idle-coalesced, deduplicated EntrySelectionConnection, optionally initial=true.
+The notify::cursor-position/selection-bound handlers only schedule: GTK still
+recomputes/updates PRIMARY after paired notification thaw. Sampling and user code
+run at idle, including completion previews and PRIMARY loss, never as synchronous
+selection decisions. Same-coordinate text changes are deliberately not events.
+
+Per-native-closure and per-source data pins are independent of widget ownership;
+weak widget pointers are invalidated on destroy/closure teardown. Retained tokens
+or queued sources do not retain unparented entries. Explicit disconnect pins native
+teardown, removes hooks/bookkeeping and promptly releases captures. Closure-finalize
+cleanup never refs a finalizing widget. Reentrant edits schedule later snapshots,
+self-disconnect/destroy is safe, exceptions are contained and pure model functions
+cannot register/disconnect. Payloads never copy selected/password text.
+
+Expanded inputs, unrealized ARC/ORC lifecycle tests, native notify/closure ABI and
+isolated PRIMARY/keyboard/completion-emitter regressions accompany the contract.
+No selection requests, realization or ownership changes are caused by observation.
+
 ### Entry Unicode cursor/selection
 
 EntrySelection copies ordered bounds and directed anchor/cursor in Unicode code
@@ -151,7 +172,8 @@ is supported, including protected combo children and inherited SpinButton text.
 Entry.focus now restores selection direction, with native/state pins and destruction/
 bounds checks. Valid moves cancel queued SDK completion work without rewriting native
 preview/history or simulating input. Getters and mutators share the synchronous-model
-handle guard; copied snapshots remain ordinary values. No selection observer yet.
+handle guard; copied snapshots remain ordinary values. Copied selection observers
+are described above.
 
 Realized-but-unmapped entries can claim PRIMARY; unrealized ones cannot. Hidden
 ARC/ORC tests assert unrealized state throughout (including focus/draining), while

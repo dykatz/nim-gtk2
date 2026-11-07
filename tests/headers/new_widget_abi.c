@@ -3,6 +3,15 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef void (*NimEntrySelectionNotify)(GObject *, GParamSpec *, gpointer);
+void nim_gtk2_entry_selection_notify_abi(NimEntrySelectionNotify fn, GClosureNotify release) {
+  typedef void (*Notify)(GObject *, GParamSpec *);
+  typedef char notify_signature[__builtin_types_compatible_p(Notify,
+    __typeof__(((GObjectClass *)0)->notify)) ? 1 : -1];
+  (void)sizeof(notify_signature);
+  fn((GObject *)(guintptr)0x81, (GParamSpec *)(guintptr)0x82, (gpointer)(guintptr)0x83);
+  release((gpointer)(guintptr)0x83, (GClosure *)(guintptr)0x84);
+}
 typedef gboolean (*NimEditableBounds)(GtkEditable *, gint *, gint *);
 gboolean nim_gtk2_editable_selection_abi(NimEditableBounds fn) {
   typedef void (*Select)(GtkEditable *, gint, gint);

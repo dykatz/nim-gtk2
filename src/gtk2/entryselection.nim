@@ -6,8 +6,8 @@ proc characterCount*(entry: Entry): int =
   g.g_utf8_strlen(rawGtk.get_text(entry.raw), -1).int
 proc cursorOffset*(entry: Entry): int =
   rawGtk.get_position(cast[rawGtk.PEditable](entry.raw)).int
-proc selectionBounds*(entry: Entry): EntrySelection =
-  let editable = cast[rawGtk.PEditable](entry.raw)
+proc copyEntrySelection(p: rawGtk.PEntry): EntrySelection =
+  let editable = cast[rawGtk.PEditable](p)
   var first, last: g.gint
   result.hasSelection = g.toBool(rawGtk.get_selection_bounds(editable, addr first, addr last))
   result.cursor = rawGtk.get_position(editable).int
@@ -19,6 +19,7 @@ proc selectionBounds*(entry: Entry): EntrySelection =
     result.first = result.cursor
     result.last = result.cursor
     result.anchor = result.cursor
+proc selectionBounds*(entry: Entry): EntrySelection = copyEntrySelection(entry.raw)
 proc hasSelection*(entry: Entry): bool = entry.selectionBounds.hasSelection
 proc selectedText*(entry: Entry): string =
   let p = entry.raw

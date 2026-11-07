@@ -8,16 +8,32 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry cursor/selection observations
+## Next proposed batch: Entry limits and presentation policy
 
-- [ ] Audit paired cursor-position/selection-bound notifications and native cleanup
-      timing, including text edits, PRIMARY loss, focus and completion preview.
-- [ ] Add copied final-state idle-coalesced observations without synchronous user
-      callbacks in native selection/ownership emitters; avoid selected password text.
-- [ ] Define initial delivery, disconnection, owner lifetime and cancellation, with
-      independent native/source pins and prompt capture release.
-- [ ] Expand inputs example to observe native keyboard selection; maintain unrealized
-      hidden ARC/ORC/ABI tests and isolated PRIMARY/keyboard regressions.
+- [ ] Audit native character-count max-length/truncation, width-chars, alignment and
+      activates-default behavior, including combo entries and inherited SpinButton.
+- [ ] Add checked native-width/finite/range policy controls without pretending byte
+      limits are character limits or inventing validation/undo/IME transactions.
+- [ ] Define truncation/callback/selection/completion effects and pin native emitters
+      across checked mutations; retain explicit application/default-button policy.
+- [ ] Expand inputs example and hidden ARC/ORC/ABI plus isolated default-keyboard tests.
+
+## Completed batch: Entry cursor/selection observations
+
+- [x] Audited paired notify thaw before native adjustment/recompute/PRIMARY cleanup;
+      native handlers only schedule, with final public cursor/bounds sampled at idle.
+- [x] Copied EntrySelection observations with coalescing/dedup, optional deferred
+      initial delivery, no text/password payload and no events for text-only changes
+      retaining the same coordinates. Per-connection, not global emission snapshots.
+- [x] Non-owning connection/source/weak widget semantics with independent native
+      closure/source pins, prompt capture release, explicit pinned disconnection,
+      and owner destroy/finalization cancellation without finalizing-widget refs.
+- [x] Reentrant edits schedule later callbacks; self-disconnect/destroy/throw contained.
+      Native parent ownership survives public alias loss; combo/SpinButton and pure
+      model-function guards work. Completion attachment lifetime stays independent.
+- [x] Expanded inputs/docs, unrealized hidden ARC/ORC ownership/lifecycle tests,
+      notify/GParamSpec/GClosure ABI, isolated PRIMARY loss/Shift-Left/focus and
+      native preview observer-driven teardown. Observation issues no selection requests.
 
 ## Completed batch: Entry Unicode cursor and selection
 
@@ -213,7 +229,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry cursor/selection observations (next proposed batch above).
+- [ ] Entry limits/presentation/default-activation policy (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
@@ -269,6 +285,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Idle-coalesced copied Entry selection observations with independent native/source
+      pins, non-owning tokens and isolated native ownership/keyboard tests (above).
 - [x] Checked Unicode Entry cursor/selection snapshots/helpers, native PRIMARY policy,
       reverse-selection focus preservation and isolated keyboard tests (above).
 - [x] Literal EntryCompletion action rows, detached configuration and copied deferred
