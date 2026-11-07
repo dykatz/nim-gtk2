@@ -59,6 +59,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2builder.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uimanager.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2completion.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2inlinecompletion.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modelfunctions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2iconselection.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textanchors.nim"
@@ -106,6 +107,9 @@ task testMappedTextSerialization, "Test restored native text/tag/image layout (i
 
 task testMappedRichClipboard, "Test rich clipboard negotiation and foreign owners (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedrichclipboard.nim"
+
+task testMappedInlineCompletion, "Test native inline completion/preview keys (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1; X11 needs XTEST)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedinlinecompletion.nim"
 
 task testCalculator, "Test calculator arithmetic and hidden UI (requires a display)":
   exec "nim r --path:src tests/tcalculator_engine.nim"

@@ -139,6 +139,12 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+EntryCompletion now supports opt-in native inline common prefixes and popup
+previews, with copied idle observations and safe deferred entry/combo callbacks.
+See [examples/inputs.nim](examples/inputs.nim) and the
+[inline completion guide](docs/gtk2.md#inline-common-prefix-and-popup-selection),
+including GTK2's documented Unicode preview limitation/optional source patch.
+`testMappedInlineCompletion` requires an explicitly opted-in isolated display.
 Rich clipboard document transfer now offers immutable snapshots and cancellable
 requests with explicit native-parser trust and text fallback. Imports remain
 detached until the application commits them; plain copy/paste is unchanged.

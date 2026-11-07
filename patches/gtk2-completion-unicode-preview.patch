@@ -1,0 +1,11 @@
+--- a/gtk/gtkentrycompletion.c
++++ b/gtk/gtkentrycompletion.c
+@@ -1706,7 +1706,7 @@ gtk_entry_completion_insert_completion_text (GtkEntryCompletion *completion,
+ 
+   gtk_entry_set_text (GTK_ENTRY (priv->entry), text);
+ 
+-  len = strlen (priv->completion_prefix);
++  len = g_utf8_strlen (priv->completion_prefix, -1);
+   gtk_editable_select_region (GTK_EDITABLE (priv->entry), len, -1);
+ 
+   if (priv->changed_id > 0)

@@ -3,6 +3,21 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gboolean (*NimCompletionPrefix)(GtkEntryCompletion *, const gchar *, gpointer);
+typedef gboolean (*NimCompletionCursor)(GtkEntryCompletion *, GtkTreeModel *, GtkTreeIter *, gpointer);
+typedef const gchar *(*NimCompletionKey)(GtkEntryCompletion *);
+gboolean nim_gtk2_inline_completion_abi(NimCompletionPrefix prefix,
+  NimCompletionCursor cursor, NimCompletionKey key) {
+  typedef char signature[__builtin_types_compatible_p(NimCompletionKey,
+    __typeof__(&gtk_entry_completion_get_completion_prefix)) ? 1 : -1];
+  const gchar *text;
+  (void)sizeof(signature);
+  if (prefix((GtkEntryCompletion *)(guintptr)0x41, "lambda", (gpointer)(guintptr)0x42) != 17) return FALSE;
+  if (cursor((GtkEntryCompletion *)(guintptr)0x41, (GtkTreeModel *)(guintptr)0x43,
+    (GtkTreeIter *)(guintptr)0x44, (gpointer)(guintptr)0x42) != 19) return FALSE;
+  text = key((GtkEntryCompletion *)(guintptr)0x41);
+  return text && text[0] == 'k';
+}
 typedef GdkAtom (*NimSelectionTarget)(GtkSelectionData *);
 gboolean nim_gtk2_rich_clipboard_abi(GtkClipboardGetFunc get, GtkClipboardClearFunc clear,
   NimSelectionTarget target) {

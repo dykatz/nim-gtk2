@@ -8,16 +8,35 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: EntryCompletion inline mode and selection
+## Next proposed batch: custom EntryCompletion matching
 
-- [ ] Audit native insert-prefix/cursor-on-match/inline-selection timing independently
-      of existing popup match-selected commits and application observations.
-- [ ] Add checked inline policy/selection on the existing fixed owned string model,
-      preserving native matching/navigation without unsafe callback reentrancy.
-- [ ] Define password/read-only/editable ComboBoxText behavior, edit/model/detach
-      cancellation and interaction with existing deferred popup commits.
-- [ ] Expand examples/inputs.nim with hidden ARC/ORC/ABI and isolated native keyboard
-      tests. Custom match functions, action rows and arbitrary models remain separate.
+- [ ] Audit native match-function callback/data ownership and replacement/teardown.
+- [ ] Add a pure checked match predicate using copied key/suggestion/index inputs
+      on the existing fixed owned string model, not arbitrary mutable models.
+- [ ] Contain callback exceptions with a safe fallback; reject live GTK handle
+      access/teardown/event pumping during synchronous matching as with model functions.
+- [ ] Define explicit refilter/default-native reset and popup/inline interactions;
+      expand inputs example and hidden ARC/ORC/ABI/isolated popup tests.
+
+Action rows, arbitrary models/renderers and deeper IME integration remain separate.
+
+## Completed batch: EntryCompletion inline mode and selection
+
+- [x] Audited native insert-prefix/cursor-on-match/accept/reject timing; preserve GTK
+      matching, suffix selection and popup navigation on the fixed owned string model.
+- [x] Checked inline policy, explicit prefix request, copied nullable native prefix
+      and coalesced copied provisional observations separate from onSelected commits.
+- [x] Dynamically defer SDK entry changed/activate and parent combo changed observers
+      while inline is configured, including pre-existing connections. Ordinary and
+      popup-only timing is unchanged; disconnect/destruction cancels source pins.
+- [x] Readonly suspension/restoration of effective native flags, password detach,
+      edit/model/refilter/policy/lifetime observation cancellation and combo support.
+- [x] Expanded examples/inputs.nim and docs; hidden ARC/ORC ownership/reentrancy,
+      native signal/getter ABI and isolated XTEST prefix/preview/accept/reject tests.
+- [x] Document native historical prefix retention (no public reset) without private
+      state/model-rebinding/fake-input workarounds. Cancellation does not undo text.
+- [x] Diagnose GTK2's multibyte preview suffix byte-offset defect and provide an
+      optional source patch; installed GTK unchanged, snapshots report native offsets.
 
 ## Completed batch: rich clipboard negotiation
 
@@ -138,8 +157,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Inline completion and inline selection (next proposed batch above).
-- [ ] Custom completion match functions and arbitrary completion models/columns.
+- [ ] Custom completion match functions (next proposed batch above).
+- [ ] Arbitrary completion models/columns.
 - [ ] Completion action rows and richer presentation/providers.
 - [ ] Deeper IME integration.
 
@@ -194,6 +213,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Native inline EntryCompletion prefix/preview policy, safe deferred entry/combo
+      observers, copied provisional snapshots and readonly/lifetime rules (above).
 - [x] Explicit trusted rich clipboard document negotiation, immutable offers,
       cancellable detached requests and plain fallback (above).
 - [x] Native rich-text serialization with copied data, private formats, detached

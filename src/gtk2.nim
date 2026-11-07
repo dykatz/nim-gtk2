@@ -42,7 +42,11 @@ type
     id: g.gulong
   Callback = ref object
     fn: proc () {.closure.}
+    deferForCompletion, coalesce, cancelled: bool
+    pending: int
+    idle: g.guint
 
+const completionDeferredKey = "nim-gtk2-deferred-inline-observers"
 const objectStateKey = "nim-gtk2-owned-object-state"
 
 # Synchronous model functions consume copied data, not live GUI handles. Native
@@ -331,7 +335,13 @@ proc packEnd*(box: Box, child: Widget, options = packExpandWidget, padding = 0) 
     g.gboolean(options == packExpandWidget), pad)
 
 proc releaseCallback(data: pointer, closure: g.PGClosure) {.cdecl.} =
-  GC_unref(cast[Callback](data))
+  let callback = cast[Callback](data)
+  callback.cancelled = true
+  callback.fn = nil
+  let idle = callback.idle
+  callback.idle = 0
+  if idle != 0: discard g.g_source_remove(idle)
+  GC_unref(callback)
 
 proc reportSignalError(error: ref Exception) =
   # Even a closed stderr must not unwind through C.
@@ -340,12 +350,36 @@ proc reportSignalError(error: ref Exception) =
   except Exception:
     discard
 
+proc releaseCallbackIdle(data: pointer) {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}: GC_unref(cast[Callback](data))
+proc dispatchCallbackIdle(data: pointer): g.gboolean {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}:
+    let callback = cast[Callback](data)
+    callback.idle = 0
+    let count = callback.pending
+    callback.pending = 0
+    for i in 0..<count:
+      if callback.cancelled: break
+      let fn = callback.fn
+      try: fn()
+      except Exception as error: reportSignalError(error)
+    g.gbool(false)
 proc signalThunk(instance, data: pointer) {.cdecl, gcsafe.} =
   # GTK callbacks execute only on the UI thread. The legacy raw binding marks
   # callbacks gcsafe, though user closures may access UI-thread-local state.
   {.cast(gcsafe).}:
     # Copy the closure before calling: the callback may disconnect itself.
-    let fn = cast[Callback](data).fn
+    let callback = cast[Callback](data)
+    if callback.deferForCompletion and (callback.idle != 0 or
+        g.get_data(cast[g.PGObject](instance), completionDeferredKey) != nil):
+      if callback.coalesce: callback.pending = 1
+      else: inc callback.pending
+      if callback.idle == 0:
+        GC_ref(callback)
+        callback.idle = g.g_idle_add_full(g.G_PRIORITY_DEFAULT_IDLE, cast[pointer](dispatchCallbackIdle),
+          cast[pointer](callback), cast[pointer](releaseCallbackIdle))
+      return
+    let fn = callback.fn
     try:
       fn()
     except Exception as error:
@@ -355,7 +389,11 @@ proc signalThunk(instance, data: pointer) {.cdecl, gcsafe.} =
 proc connect(w: ObjectHandle, name: cstring, fn: proc () {.closure.}, after = false): Connection =
   let p = nativePointer(w)
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
-  let callback = Callback(fn: fn)
+  let isEntry = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.entry_get_type())
+  let isCombo = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.combo_box_get_type())
+  let callback = Callback(fn: fn, coalesce: $name == "changed",
+    deferForCompletion: (isEntry and $name in ["changed", "activate"]) or
+      (isCombo and $name == "changed"))
   GC_ref(callback)
   let id = g.g_signal_connect_data(p, name, cast[g.TGCallback](signalThunk),
     cast[pointer](callback), releaseCallback,

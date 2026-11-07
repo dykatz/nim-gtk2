@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 520, 340)
+  let window = newWindow("gtk2 measurement inputs and completion", 620, 430)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -16,7 +16,18 @@ proc main() =
   let suggestions = newEntryCompletion(["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"])
   defer: suggestions.close()
   name.entry.completion = suggestions
-  layout.packStart(newLabel("Type a prefix above; use Down/Return to choose a suggestion. Free text is allowed."), packShrink)
+  layout.packStart(newLabel("Type a prefix; Down previews, Escape restores, Return selects. Free text is allowed."), packShrink)
+  let policies = newHBox(spacing = 6)
+  let inline = newCheckButton("Inline common prefix")
+  let preview = newCheckButton("Inline popup preview")
+  let popup = newCheckButton("Popup")
+  popup.active = true
+  for option in [inline, preview, popup]: policies.packStart(option, packShrink)
+  layout.packStart(policies, packShrink)
+  inline.onToggled(proc () = suggestions.inlineCompletion = inline.active)
+  preview.onToggled(proc () = suggestions.inlineSelection = preview.active)
+  popup.onToggled(proc () = suggestions.popupCompletion = popup.active)
+  layout.packStart(newLabel("Inline changes are provisional; SDK entry/combo observers run at idle."), packShrink)
 
   let amount = newAdjustment(25.4, 0, 1000, 0.1, 10)
   let input = newSpinButton(amount, digits = 2)
@@ -37,6 +48,13 @@ proc main() =
   layout.packStart(selected, packShrink)
   suggestions.onSelected(proc (value: CompletionSelection) =
     selected.text = "Suggestion " & $value.index & ": " & value.text)
+
+  let provisional = newLabel("No inline change")
+  layout.packStart(provisional, packShrink)
+  suggestions.onInlineChanged(proc (value: CompletionInlineState) =
+    provisional.text = $value.kind & ": " & value.text & " — suffix " &
+      $value.first & ".." & $value.last & " (key: " & value.key & ")")
+  window.onDestroy(proc () = suggestions.close())
 
   proc refresh() =
     let centimeters = units.activeIndex == 0

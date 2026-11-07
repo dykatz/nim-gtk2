@@ -3324,7 +3324,7 @@ labels/dispatch, tearoffs, overlay teardown, conditional visibility and close fr
 an activation callback. No private GTK layouts, native warning suppression or
 installed-library modifications are used.
 
-## Popup text completion and editable combo entries
+## Text completion and editable combo entries
 
 The expanded [inputs example](../examples/inputs.nim) attaches text completion to
 its editable measurement-name combo. Existing editable ComboBoxText support is now
@@ -3339,15 +3339,16 @@ replacement before changing GTK. Callers do not receive mutable model/renderer
 handles or borrowed iterators. Replacing the list cancels stale commits and queued
 selection observations; returned item copies remain independent.
 
-This initial wrapper is **popup-only**: GTK performs normalized, case-insensitive
+The default policy remains **popup-only**: GTK performs normalized, case-insensitive
 prefix matching and native popup rendering/navigation. minimumKeyLength accepts a
 nonnegative gint count; popupCompletion, popupSingleMatch and popupSetWidth control
 native popup policy. refilter() requires an attached entry and updates matching;
 it is not a public force-popup method. Normal user editing triggers GTK's popup
 timeout. gtk_entry_set_text (and entryText=) intentionally suppresses automatic
 popup scheduling in GTK2; do not confuse programmatic replacement with typing.
-Inline completion/selection, custom match functions, arbitrary model columns,
-action rows, markup providers and IME integration remain raw/separate work.
+Inline completion/selection are opt-in policies described below. Custom match
+functions, arbitrary model columns, action rows, markup providers and deeper IME
+integration remain raw/separate work.
 
 ```nim
 let suggestions = newEntryCompletion(["Length", "Length unit", "Width"])
@@ -3364,7 +3365,7 @@ than overriding their editing. A completion may attach to only one entry at a ti
 reassigning the same pair is a no-op and sharing across entries fails until detach.
 completion reads a retained SDK handle; no completion returns an empty/closed handle.
 Raw/native completion objects are not silently wrapped as fixed SDK text models.
-Changing the fixed model/column or attachment through raw GTK is rejected on checked
+Changing the fixed model/column, inline policy or attachment through raw GTK is rejected on checked
 SDK access; do not mix raw configuration with this wrapper.
 
 Password entries cannot attach completion. Hiding an attached entry's text detaches
@@ -3414,6 +3415,120 @@ entry to break it. All API calls, callbacks, finalization and unrefs stay on the
 thread with GTK initialized under ARC/ORC. GtkBuilder completion lookups are not
 provided: this fixed private-model wrapper requires its own constructor.
 
+### Inline common prefix and popup selection
+
+inlineCompletion and inlineSelection default false and can be configured before
+attachment. inlineCompletion enables native common-prefix insertion with a selected
+new suffix; inlineSelection enables native tentative row preview while navigating
+the popup. They are independent: prefix completion works with popupCompletion=false,
+while popup previews require an actual native popup. Neither changes the fixed
+owned string model. The expanded inputs example provides separate checkboxes.
+
+```nim
+let completion = newEntryCompletion(["alphabet", "alphanumeric"])
+completion.inlineCompletion = true
+completion.inlineSelection = true
+entry.completion = completion
+completion.onInlineChanged(proc (value: CompletionInlineState) =
+  echo value.kind, ": ", value.text, " suffix ", value.first, "..", value.last)
+```
+
+Native insert-prefix remains in charge of inserting/selecting the common suffix
+and setting GTK's internal acceptance flag. cursor-on-match retains native popup
+preview behavior. Down/Up/Page keys navigate; Escape restores GTK's original key;
+Right/Left/Tab retain/position the native tentative text according to GTK, and
+Return uses the existing deferred match-selected commit. A preview/common prefix
+is not an onSelected event. onSelected still reports explicit popup selection,
+not every way to accept text. This is native GTK behavior, not an SDK suggestion
+engine, custom matcher or keyboard/IME reimplementation.
+
+GTK's popup matching normalizes/casefolds, but its common-prefix computation
+requires actual case-sensitive string prefixes; the SDK does not invent a different
+case-preserving algorithm. minimumKeyLength retains GTK's popup semantics and is
+not an extra SDK inline threshold. Programmatic text assignment suppresses native
+popup scheduling, but with inlineCompletion it may still schedule a native prefix
+check. insertPrefix() explicitly refilters and requests native prefix insertion;
+it requires an attached editable entry with inlineCompletion enabled. It pins the
+native completion throughout the call. Normal typed insertion schedules GTK's own
+high-priority prefix check; no nested event iteration is introduced.
+
+#### Safe callback timing
+
+Inline GTK defaults mutate entry text synchronously, then continue unblocking entry
+handlers, updating completion fields or restoring popup state. Letting application
+changed callbacks tear down this state inside the emitter is unsafe. Consequently,
+while **either inline policy is configured on an attached entry**, SDK Entry.onChanged
+and Entry.onActivate observations are delivered at UI idle instead of synchronously.
+For an editable ComboBoxText, its inherited ComboBox.onChanged observations defer
+as well. This dynamic policy also covers connections installed before attaching or
+enabling completion. Ordinary entries and popup-only completion retain their prior
+synchronous timing.
+
+Changed observations coalesce to one no-argument callback reading current state;
+activation observations retain per-emission delivery. Disconnection or widget
+teardown cancels queued callbacks and releases captures/source pins. Once queued,
+an observation stays deferred even if inline policy is disabled/detached before
+its delivery; later synchronous callbacks cannot overtake it. These Entry/Combo
+observations belong to their widget, not to the completion, and are not automatically
+removed by detach. ComboBoxText.onTextChanged already provides copied idle state.
+
+Native matching/default insertion/navigation continue normally, but **no SDK entry/
+combo changed/activate application closure runs inside those native emitters**.
+Raw signal handlers and synchronous input/drawing/decision callbacks retain their
+native restrictions: do not destroy/reconfigure entries or pump events from a raw
+inline signal, raw changed callback or a synchronous key handler whose native
+completion chain will continue. This checked callback policy is not a sandbox.
+
+onInlineChanged returns a CompletionInlineConnection with connected/idempotent
+disconnect; dropping it does not disconnect. Its CompletionInlineState contains
+kind (inlinePrefix/inlinePreview), copied key/text, source suggestion index (-1 for
+common prefix), and current native selection first/last/cursor character offsets.
+At UI idle the bridge collects entry state after the native emitter, then queues
+a copied coalesced application observation. It is a provisional snapshot, not a
+veto/acceptance hook, stable row handle or guaranteed current selection at later
+delivery. No model pointer/iterator/widget is exposed. A later text edit, model
+replacement/refilter, readonly transition, policy change, selection commit, detach,
+hiding/destruction or close cancels stale inline observations. Callbacks may close,
+detach, edit, replace models or destroy windows safely; exceptions are contained.
+
+#### Readonly, lifecycle and native limitations
+
+Read-only entries suspend both effective native inline flags while retaining the
+requested policies returned by the SDK getters. Making the entry editable restores
+them; pending commits/inline observations are cancelled at each transition.
+insertPrefix rejects readonly targets. Password entries still cannot attach, and
+hiding text detaches, cancels work and releases both selection/inline observers.
+The same rules cover the ordinary public entry of an editable ComboBoxText;
+SpinButton/private entry subclasses remain rejected. Reattach/reconnect for a new
+observation session. Explicit close/destroy still breaks self-capturing observer
+cycles. Calls, native final releases and observers remain UI-thread ARC/ORC work.
+
+completionPrefix() copies CompletionPrefix(available,text) from GTK's borrowed
+get_completion_prefix result; nil is distinct from an available empty key. This
+is GTK's **original popup-preview key**, not the computed common prefix. GTK may
+retain it after model/policy/attachment changes; GTK2 has no public reset. Cancelling
+SDK work does not undo already-inserted native text or erase native history. No
+private-field access, model rebinding or fake-input reset is used. Use normal native
+accept/reject navigation or a genuinely new controller when a new history is needed.
+
+GTK 2.24.33 also computes popup-preview suffix start with strlen(original_key) but
+passes it to a character-offset API. A multibyte key can therefore select too little
+of the preview (e.g. λ starts the selection at character 2 rather than 1). Common
+prefix insertion uses Unicode lengths correctly. SDK snapshots report the actual
+native character offsets, not a fabricated correction. The optional, **not applied**
+[gtk2-completion-unicode-preview.patch](../patches/gtk2-completion-unicode-preview.patch)
+changes the native preview start to g_utf8_strlen. Installed libraries are unchanged;
+normal code does not suppress warnings or patch/rewrite native state at runtime.
+The isolated mapped suite diagnoses this case and supports patched/unpatched GTK.
+
+Hidden tests/tgtk2inlinecompletion.nim checks Unicode prefix selection, readonly/
+password/ordinary-entry policy, pre-existing entry/combo connections, safe teardown
+from changed/inline callbacks, cancellation and disconnection without mapping
+windows. Native C probes verify insert-prefix/cursor-on-match and borrowed prefix
+ABI. testMappedInlineCompletion uses an explicitly isolated display and
+GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 XTEST checks typed suffix replacement, native
+preview/Escape/Right/Tab/Return, activation/combo destruction and Unicode offsets.
+
 ### Editable ComboBoxText
 
 newComboBoxText(...,editable=true) already uses GTK2.24's native with-entry constructor.
@@ -3431,7 +3546,8 @@ a coalesced final state at idle, without an initial event, allowing safe downstr
 updates/destruction. A free-form edit normally has index=-1 even if its text happens
 to equal a listed choice; typing/completion does not implicitly select a row or add
 one. It remains distinct from activeIndex and from a suggestion-list index.
-The older ComboBox.onChanged timing remains unchanged; use onTextChanged for copied,
+ComboBox.onChanged remains synchronous except while its entry has configured SDK
+inline completion/selection (above); use onTextChanged for consistently copied,
 deferred text observations. Disconnect/destroy cancels pending delivery.
 
 Hidden tests/tgtk2completion.nim configures unmapped entries and uses public native
@@ -4043,7 +4159,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4082,7 +4198,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

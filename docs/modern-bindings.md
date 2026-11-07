@@ -146,7 +146,7 @@ native gint/gboolean/pointer/cdecl signatures; C probes verify match-selected's
 completion/model/iter/data pointers and handled gboolean return. ComboBox's missing
 public get_type declaration was added without copying native private layouts.
 
-The SDK owns a fixed text model and popup-only configuration. It handles native
+The SDK owns a fixed text model with a popup-only default policy. It handles native
 match-selected before its true-handled default, copies the match and commits at
 UI idle so native popup code cannot continue after an application callback tears
 its state down. Native objects are retained across the text setter; pending work
@@ -157,7 +157,22 @@ handler IDs or renderer/popup fields are inspected.
 Editable ComboBoxText adds a retained public entry view, private-child removal/
 destruction guards and copied/coalesced text observations. Existing text mutations
 now validate UTF-8 before GTK. This is not arbitrary model/renderer rebinding or
-inline/custom-provider completion.
+custom-provider completion.
+
+Inline common prefix and popup selection are now opt-in on this same model. Native
+insert-prefix/cursor-on-match defaults retain GTK matching, suffix selection and
+accept/reject navigation; copied provisional observations are collected/delivered
+at idle. While either inline policy is configured, SDK entry changed/activate and
+its combo changed callbacks defer dynamically, even for older connections. This
+prevents application teardown while native defaults keep using entry state.
+
+Readonly changes suspend effective native flags but preserve requested policy;
+password/lifetime teardown detaches and cancels observers. The public prefix getter
+copies GTK's nullable historical key. No private history reset is emulated. Native
+Unicode popup previews use a byte offset on GTK 2.24.33; the optional source patch
+fixes that in GTK, while SDK snapshots continue reporting actual native offsets.
+Hidden/mapped ARC/ORC tests and signal/getter C probes cover timing and ownership;
+see docs/gtk2.md for the changed callback contract and remaining custom/IME scope.
 
 ### RadioAction and UIManager boundaries
 

@@ -13,6 +13,13 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  CompletionPrefixSignal = proc (completion: gtk.PEntryCompletion, text: cstring, data: pointer): g.gboolean {.cdecl.}
+  CompletionCursorSignal = proc (completion: gtk.PEntryCompletion, model: gtk.PTreeModel,
+    iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.}
+  CompletionKey = proc (completion: gtk.PEntryCompletion): cstring {.cdecl.}
+proc invokeInlineCompletion(prefix: CompletionPrefixSignal, cursor: CompletionCursorSignal,
+    key: CompletionKey): g.gboolean {.cdecl, importc: "nim_gtk2_inline_completion_abi".}
 type SelectionTarget = proc (data: gtk.PSelectionData): TAtom {.cdecl.}
 proc invokeRichClipboard(get: gtk.TClipboardGetFunc, clear: gtk.TClipboardClearFunc,
     target: SelectionTarget): g.gboolean {.cdecl, importc: "nim_gtk2_rich_clipboard_abi".}
@@ -194,6 +201,20 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "inline completion prefix/cursor signals and borrowed prefix ABI":
+    proc prefix(completion: gtk.PEntryCompletion, text: cstring, data: pointer): g.gboolean {.cdecl.} =
+      doAssert cast[uint](completion) == 0x41 and cast[uint](data) == 0x42 and $text == "lambda"
+      g.gboolean(17)
+    proc cursor(completion: gtk.PEntryCompletion, model: gtk.PTreeModel,
+        iter: gtk.PTreeIter, data: pointer): g.gboolean {.cdecl.} =
+      doAssert cast[uint](completion) == 0x41 and cast[uint](model) == 0x43
+      doAssert cast[uint](iter) == 0x44 and cast[uint](data) == 0x42
+      g.gboolean(19)
+    proc key(completion: gtk.PEntryCompletion): cstring {.cdecl.} =
+      doAssert cast[uint](completion) == 0x41
+      "key"
+    check g.toBool(invokeInlineCompletion(prefix, cursor, key))
+
   test "rich clipboard get/clear callbacks and pointer-width target atom ABI":
     proc get(c: gtk.PClipboard, selection: gtk.PSelectionData, info: g.guint, data: pointer) {.cdecl.} =
       doAssert cast[uint](c) == 0x61 and cast[uint](selection) == 0x62
