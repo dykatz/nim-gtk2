@@ -13,6 +13,8 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc invokeCompletionMatch(fn: gtk.TEntryCompletionMatchFunc, destroy: g.TGDestroyNotify): g.gboolean
+  {.cdecl, importc: "nim_gtk2_completion_match_abi".}
 type
   CompletionPrefixSignal = proc (completion: gtk.PEntryCompletion, text: cstring, data: pointer): g.gboolean {.cdecl.}
   CompletionCursorSignal = proc (completion: gtk.PEntryCompletion, model: gtk.PTreeModel,
@@ -201,6 +203,15 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "completion predicate key/iter/data, destroy notifier and gboolean ABI":
+    proc match(completion: gtk.PEntryCompletion, key: cstring, iter: gtk.PTreeIter,
+        data: pointer): g.gboolean {.cdecl.} =
+      doAssert cast[uint](completion) == 0x51 and $key == "native-key"
+      doAssert cast[uint](iter) == 0x52 and cast[uint](data) == 0x53
+      g.gboolean(17)
+    proc destroy(data: pointer) {.cdecl.} = doAssert cast[uint](data) == 0x53
+    check g.toBool(invokeCompletionMatch(match, destroy))
+
   test "inline completion prefix/cursor signals and borrowed prefix ABI":
     proc prefix(completion: gtk.PEntryCompletion, text: cstring, data: pointer): g.gboolean {.cdecl.} =
       doAssert cast[uint](completion) == 0x41 and cast[uint](data) == 0x42 and $text == "lambda"

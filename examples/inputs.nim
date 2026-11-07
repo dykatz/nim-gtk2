@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 620, 430)
+  let window = newWindow("gtk2 measurement inputs and completion", 720, 470)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -28,6 +28,16 @@ proc main() =
   preview.onToggled(proc () = suggestions.inlineSelection = preview.active)
   popup.onToggled(proc () = suggestions.popupCompletion = popup.active)
   layout.packStart(newLabel("Inline changes are provisional; SDK entry/combo observers run at idle."), packShrink)
+  let matching = newCheckButton("Custom ASCII substring matching (not Unicode normalization)")
+  layout.packStart(matching, packShrink)
+  matching.onToggled(proc () =
+    if matching.active:
+      suggestions.setMatch(proc (input: CompletionMatchInput): bool =
+        # Synchronous pure computation on copies only: never access widgets here.
+        input.text.toLowerAscii.contains(input.key))
+    else:
+      suggestions.clearMatch() # Actual GTK default matcher, not an approximation.
+    suggestions.refilter())
 
   let amount = newAdjustment(25.4, 0, 1000, 0.1, 10)
   let input = newSpinButton(amount, digits = 2)

@@ -139,6 +139,27 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Custom completion predicates
+
+The public raw GtkEntryCompletionMatchFunc/set_match_func declarations use native
+pointer/cstring/gboolean/cdecl and destroy-notify ABI. The ergonomic setMatch sees
+only copied normalized key, literal suggestion and source index from the fixed
+owned string model; no native iterator/filter position enters user code.
+
+The shared model-function depth guard rejects live SDK handle access and controller
+teardown during matching, contains exceptions with no-match fallback, and defers
+last ordinary native releases until idle. Separate per-install callback-data pins
+and a pinned/reentrancy-guarded native setter handle GTK's destroy-old-before-assign
+semantics. Non-owning tokens deactivate captures; explicit clearMatch installs NULL
+to restore GTK itself. Caller-requested refilter is required for cached rows.
+
+Matcher lifetime is controller-wide, not attachment-wide. Model replacement updates
+the callback's retained fixed model before native filtering. Close/finalization
+invalidates tokens; checked access notices raw replacement. Inline prefix/preview
+algorithms are unchanged, and filtering is not authorization. Expanded inputs,
+hidden ARC/ORC lifecycle/purity tests, C probes and isolated real-popup tests cover
+the contract; see docs/gtk2.md and TODO.md for remaining action/provider work.
+
 ### Entry completion and editable text input
 
 EntryCompletion is an opaque non-floating GObject. Core setters/getters retain
@@ -157,7 +178,7 @@ handler IDs or renderer/popup fields are inspected.
 Editable ComboBoxText adds a retained public entry view, private-child removal/
 destruction guards and copied/coalesced text observations. Existing text mutations
 now validate UTF-8 before GTK. This is not arbitrary model/renderer rebinding or
-custom-provider completion.
+arbitrary custom-provider/model completion.
 
 Inline common prefix and popup selection are now opt-in on this same model. Native
 insert-prefix/cursor-on-match defaults retain GTK matching, suffix selection and

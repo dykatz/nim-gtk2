@@ -3346,9 +3346,8 @@ native popup policy. refilter() requires an attached entry and updates matching;
 it is not a public force-popup method. Normal user editing triggers GTK's popup
 timeout. gtk_entry_set_text (and entryText=) intentionally suppresses automatic
 popup scheduling in GTK2; do not confuse programmatic replacement with typing.
-Inline completion/selection are opt-in policies described below. Custom match
-functions, arbitrary model columns, action rows, markup providers and deeper IME
-integration remain raw/separate work.
+Inline completion/selection are opt-in policies described below. Custom match predicates are covered below. Arbitrary model columns, action rows,
+markup providers and deeper IME integration remain raw/separate work.
 
 ```nim
 let suggestions = newEntryCompletion(["Length", "Length unit", "Width"])
@@ -3414,6 +3413,94 @@ own completion/entry can form a reference cycle: explicitly close or destroy its
 entry to break it. All API calls, callbacks, finalization and unrefs stay on the UI
 thread with GTK initialized under ARC/ORC. GtkBuilder completion lookups are not
 provided: this fixed private-model wrapper requires its own constructor.
+
+### Custom completion matching
+
+The expanded inputs example offers an explicitly labelled ASCII substring mode.
+setMatch installs a short synchronous predicate on the **same fixed owned string
+model**; it does not expose mutable GTK models, filtered popup positions, native
+iterators or renderers.
+
+```nim
+import std/strutils
+let connection = completion.setMatch(proc (input: CompletionMatchInput): bool =
+  input.text.toLowerAscii.contains(input.key))
+completion.refilter() # Explicit cache refresh; native typing also refreshes.
+# Later:
+completion.clearMatch() # Actual GTK default, not an SDK approximation.
+completion.refilter()
+```
+
+CompletionMatchInput contains copied key/text strings and index in the source
+suggestion list. GTK supplies key after compatibility decomposition and casefolding
+(G_NORMALIZE_ALL then g_utf8_casefold), not the literal entry spelling. text is the
+original literal suggestion, not pre-normalized. index is not a filtered popup row,
+combo choice index or stable row reference. Copies remain usable after model or
+controller teardown. If implementing Unicode matching, deliberately normalize the
+suggestion consistently; toLowerAscii is only the example's declared ASCII policy,
+not GTK's full Unicode default. No second undocumented SDK normalizer runs.
+
+The predicate returns a row visibility decision **synchronously**. It may use copies
+and ordinary application configuration, not live GTK handles, raw GTK calls, event
+iteration, model mutation, controller close/disconnect or arbitrary owner teardown.
+The shared synchronous model-function guard rejects checked handle access and
+completion construction/close, as well as selection/inline/match disconnection.
+Exceptions are caught and the affected row is rejected. Disconnected predicates
+also reject rows; there is no implicit fallback to a guessed prefix algorithm.
+As with model functions, last ordinary SDK native releases during the predicate
+wait for UI idle so native traversal is not interrupted. This is not a sandbox:
+captured custom owners/destructors and raw calls must obey the contract too.
+
+The native callback copies its function and input before entering that guard. Native
+callback-data pins are independent of public tokens/handles. GTK destroys the old
+callback data **before** installing its replacement; separate slots, a native owner
+pin and a replacement guard ensure old cleanup cannot invalidate the new slot or
+recursively close/reconfigure the controller. Native finalization releases captures.
+Replacing the fixed item list updates the slot's retained model before GTK may
+match the new rows; stale iterators never escape into application code.
+
+CompletionMatchConnection has connected and idempotent disconnect. It does not own
+the controller; dropping a token does not disconnect. matchConnection() returns the
+current token or an empty inactive one. customMatching reports whether an SDK custom
+bridge is installed, **even after its token disconnects**. Disconnect releases user
+captures immediately but leaves a no-match native bridge until clearMatch restores
+GTK's exact default (NULL native function). Replacement, clearMatch, close and native
+finalization invalidate old tokens and release their captures. An old token cannot
+disconnect a replacement. A matcher capturing its own completion/entry can still
+create an ownership cycle; explicitly clear/close before abandoning it.
+
+The matcher belongs to the controller, not an attachment observation session: it
+survives detach/password hiding and may be reused on reattachment. Native entry
+ownership retains it even after public aliases disappear. Matching can also occur
+when replacing a model with a cached native key, so do not assume callbacks only
+occur during typing or while the popup is mapped. Checked access detects a raw
+replacement of the installed function via its destroy notification; close remains
+a cleanup path. Mixing raw configuration with the fixed SDK wrapper is unsupported.
+
+setMatch and clearMatch cancel queued SDK commits/provisional/selection observations
+but **do not automatically refilter GTK's cached rows**. Call refilter after changing
+a predicate or captured configuration, resetting or disconnecting it; normal native
+editing/explicit insertPrefix also refreshes. A disconnected token cannot refresh
+its non-owned controller. Old cached popup rows can remain selectable until refresh:
+matching is presentation, not authorization or a privacy filter. Do not populate the
+suggestion model with data the application is not entitled to expose.
+
+A custom predicate changes only which suggestions are visible. Popup selection still
+uses deferred onSelected commits and original source indices. Inline common-prefix
+computation remains GTK's literal starts-with algorithm over accepted rows; substring
+or fuzzy matches do not automatically produce a new kind of inline suffix, highlight
+or replacement span. Native previews/accept/reject behavior and the documented
+Unicode preview/history limitations remain unchanged. Already-inserted text and
+native historical prefix state are not rolled back by predicate changes.
+
+Hidden tests/tgtk2completionmatch.nim covers normalized/copied inputs, source indices,
+model replacement, explicit refresh, token/capture/native lifetime, pure-function
+access rejection, exception fallback, delayed native release and replacement cleanup
+reentrancy. C probes check native match/setter/destroy-notify pointer/cdecl/gboolean
+ABI. testMappedCompletionMatch requires an explicitly isolated display and
+GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 XTEST verifies non-prefix popup choices, source
+indices after model changes, exact native default reset and safe observer teardown.
+Normal tests never map popups or manipulate desktop selection state.
 
 ### Inline common prefix and popup selection
 
@@ -4159,7 +4246,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4198,7 +4285,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

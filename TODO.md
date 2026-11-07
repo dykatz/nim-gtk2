@@ -8,17 +8,33 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: custom EntryCompletion matching
+## Next proposed batch: EntryCompletion action rows
 
-- [ ] Audit native match-function callback/data ownership and replacement/teardown.
-- [ ] Add a pure checked match predicate using copied key/suggestion/index inputs
-      on the existing fixed owned string model, not arbitrary mutable models.
-- [ ] Contain callback exceptions with a safe fallback; reject live GTK handle
-      access/teardown/event pumping during synchronous matching as with model functions.
-- [ ] Define explicit refilter/default-native reset and popup/inline interactions;
-      expand inputs example and hidden ARC/ORC/ABI/isolated popup tests.
+- [ ] Audit native action insertion/deletion/activation timing and row ownership,
+      especially changes while a popup/key emitter is still using indices.
+- [ ] Add checked owned literal-text actions and copied deferred activation payloads,
+      independently of suggestion indices and existing match/inline observations.
+- [ ] Define replacement, stale activation cancellation, close/detach behavior and
+      native preview interaction without private popup fields or fake input resets.
+- [ ] Expand inputs example and hidden ARC/ORC/ABI/isolated action-keyboard tests.
 
-Action rows, arbitrary models/renderers and deeper IME integration remain separate.
+Markup/providers, arbitrary models/renderers and deeper IME integration remain separate.
+
+## Completed batch: custom EntryCompletion matching
+
+- [x] Audited native setter destroy-old-before-assignment and callback/model lifetime.
+- [x] Pure predicate on copied normalized key/literal suggestion/source index from
+      the existing fixed owned string model; no mutable GTK models/iters exposed.
+- [x] Checked synchronous GUI-access/teardown/disconnection rejection, contained
+      exceptions/no-match fallback and delayed ordinary final native releases.
+- [x] Independent native slot pins, guarded/pinned replacement, non-owning tokens,
+      prompt capture release and owner-finalization cleanup. Matcher survives detach.
+- [x] Explicit refilter/captured-state refresh and exact native NULL default reset;
+      disconnected bridges reject rows, and cached rows are not authorization.
+- [x] Fixed-model replacement updates callback ownership before native iteration;
+      native inline algorithms/history remain unchanged for custom visibility.
+- [x] Expanded inputs example/docs and hidden ARC/ORC lifetime/purity/reentrancy,
+      callback/setter ABI and isolated native popup/default-reset tests.
 
 ## Completed batch: EntryCompletion inline mode and selection
 
@@ -157,9 +173,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Custom completion match functions (next proposed batch above).
+- [ ] Completion action rows (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
-- [ ] Completion action rows and richer presentation/providers.
+- [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 
 ### Clipboard and drag-and-drop
@@ -213,6 +229,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Pure copied-input custom EntryCompletion predicates, guarded replacement,
+      explicit default reset/refilter and independent callback ownership (above).
 - [x] Native inline EntryCompletion prefix/preview policy, safe deferred entry/combo
       observers, copied provisional snapshots and readonly/lifetime rules (above).
 - [x] Explicit trusted rich clipboard document negotiation, immutable offers,

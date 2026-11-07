@@ -2,6 +2,11 @@
 type
   TEntryCompletion* {.pure, final, incompleteStruct.} = object
   PEntryCompletion* = ptr TEntryCompletion
+  TEntryCompletionMatchFunc* = proc (completion: PEntryCompletion, key: cstring,
+    iter: PTreeIter, data: gpointer): gboolean {.cdecl.}
+proc entry_completion_set_match_func*(completion: PEntryCompletion,
+    fn: TEntryCompletionMatchFunc, data: gpointer, destroy: TGDestroyNotify)
+  {.cdecl, dynlib: lib, importc: "gtk_entry_completion_set_match_func".}
 proc entry_completion_get_type*(): GType {.cdecl, dynlib: lib, importc: "gtk_entry_completion_get_type".}
 proc entry_completion_new*(): PEntryCompletion {.cdecl, dynlib: lib, importc: "gtk_entry_completion_new".}
 proc entry_set_completion*(entry: PEntry, completion: PEntryCompletion) {.cdecl, dynlib: lib, importc: "gtk_entry_set_completion".}

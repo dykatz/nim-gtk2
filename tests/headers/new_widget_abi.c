@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef void (*NimCompletionSetMatch)(GtkEntryCompletion *, GtkEntryCompletionMatchFunc,
+  gpointer, GDestroyNotify);
+gboolean nim_gtk2_completion_match_abi(GtkEntryCompletionMatchFunc fn, GDestroyNotify destroy) {
+  typedef char signature[__builtin_types_compatible_p(NimCompletionSetMatch,
+    __typeof__(&gtk_entry_completion_set_match_func)) ? 1 : -1];
+  gboolean matched;
+  (void)sizeof(signature);
+  matched = fn((GtkEntryCompletion *)(guintptr)0x51, "native-key",
+    (GtkTreeIter *)(guintptr)0x52, (gpointer)(guintptr)0x53);
+  destroy((gpointer)(guintptr)0x53);
+  return matched == 17;
+}
 typedef gboolean (*NimCompletionPrefix)(GtkEntryCompletion *, const gchar *, gpointer);
 typedef gboolean (*NimCompletionCursor)(GtkEntryCompletion *, GtkTreeModel *, GtkTreeIter *, gpointer);
 typedef const gchar *(*NimCompletionKey)(GtkEntryCompletion *);
