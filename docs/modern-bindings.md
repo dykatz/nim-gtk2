@@ -139,6 +139,29 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry limits/presentation/default activation
+
+maxLength validates 0..65535 native code points; zero retains GTK's stock allocation
+ceiling (65535 total bytes including NUL), not unlimited UTF-8 capacity. widthChars
+accepts only -1 or a nonnegative gint; alignment validates finite 0..1 and crosses
+FFI as gfloat; activatesDefault uses gboolean and actual native default handling.
+Default response choice/sensitivity/authorization remain explicit application policy.
+
+GTK truncates/emits changed before storing max-length. A pinned scoped policy marker
+therefore defers existing/new SDK Entry changed/activate and parent ComboBox changed
+observers until committed-state idle delivery; ordinary/inline timing otherwise stays
+as documented. Native/state capture cleanup is guarded by pointer pins, without
+private field writes or model rebinding. Max changes invalidate queued SDK completion
+work but do not implement atomic validation, filter long choices or fake rollback.
+SpinButton/native clipboard/IME behavior remains GTK's own.
+
+Raw alignment's incorrect PWidget argument is corrected to PEntry, with its native
+gfloat getter added. Obsolete unsigned activates-default bitfield overloads are
+removed: only the native getter/gboolean setter is used. ABI storage remains intact.
+Expanded inputs/dialog examples, unrealized ARC/ORC truncation/lifetime tests, eight
+prototype/native scalar probes and isolated Return/default/completion regressions
+cover the contract. See docs/gtk2.md for character-vs-byte and callback details.
+
 ### Entry cursor/selection observations
 
 onSelectionChanged(Entry) exposes copied EntrySelection coordinates through an

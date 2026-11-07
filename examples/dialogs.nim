@@ -27,7 +27,8 @@ proc main() =
     discard dialog.addButton("_Cancel", responseCancel)
     discard dialog.addButton("_Save", responseOk)
     dialog.defaultResponse = responseOk
-    entry.onActivate(proc () = dialog.respond(responseOk))
+    # Use GTK's explicitly configured default response, not a simulated Return handler.
+    entry.activatesDefault = true
     dialog.onResponse do (id: ResponseId):
       if id == responseOk: status.text = "Saved: " & entry.text
       dialog.destroy()

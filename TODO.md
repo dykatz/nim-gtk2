@@ -8,15 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry limits and presentation policy
+## Next proposed batch: Entry icons and icon activation
 
-- [ ] Audit native character-count max-length/truncation, width-chars, alignment and
-      activates-default behavior, including combo entries and inherited SpinButton.
-- [ ] Add checked native-width/finite/range policy controls without pretending byte
-      limits are character limits or inventing validation/undo/IME transactions.
-- [ ] Define truncation/callback/selection/completion effects and pin native emitters
-      across checked mutations; retain explicit application/default-button policy.
-- [ ] Expand inputs example and hidden ARC/ORC/ABI plus isolated default-keyboard tests.
+- [ ] Audit GTK2.24 primary/secondary icon ownership, storage replacement, enum/event
+      ABI and native traversal after icon press/release signals.
+- [ ] Add checked pixbuf/icon-name configuration, plain tooltips and per-icon
+      sensitivity/activatability without exposing internal widgets or markup policy.
+- [ ] Add copied deferred icon activation observations and safe cancellation/owner
+      cleanup; preserve native input/default behavior, not simulated button clicks.
+- [ ] Expand inputs example with hidden ARC/ORC/ABI and isolated pointer tests.
+
+Icon drag sources/providers, custom renderers, undo and deeper IME work remain separate.
+
+## Completed batch: Entry limits and presentation policy
+
+- [x] Audited character max-length vs stock 65535-byte allocation ceiling; checked
+      0..65535 maxLength, -1/nonnegative gint widthChars, finite 0..1 gfloat alignment
+      and native gboolean activatesDefault. No unlimited/byte-limit fiction.
+- [x] Corrected raw alignment receiver to PEntry and added getter; removed obsolete
+      unsigned default-activation bitfield helpers without shims, preserving storage.
+- [x] Native max setter truncates/emits before storing its limit: scoped native pins
+      and deferral for SDK Entry/parent ComboBox observations ensure committed-state
+      idle callbacks, including pre-existing connections and safe reconfigure/destroy.
+- [x] Invalid policy is atomic; valid max policy cancels queued completion work even
+      without truncation. Native partial edits/long choices remain GTK behavior, not
+      simulated validation/rollback. Readonly/password/combo/SpinButton documented.
+- [x] Expanded inputs and native-default dialog example; unrealized hidden ARC/ORC
+      callbacks/lifetime/purity tests, eight native prototypes/gfloat/gboolean ABI,
+      isolated typed limits/default sensitivity/partial completion and combo teardown.
 
 ## Completed batch: Entry cursor/selection observations
 
@@ -229,10 +248,12 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry limits/presentation/default-activation policy (next proposed batch above).
+- [ ] Entry icons and icon activation (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
+- [ ] Audit/remove remaining legacy raw GtkEntry bitfield helpers separately before
+      exposing corresponding policies; new SDK policies must use public native APIs.
 
 ### Clipboard and drag-and-drop
 
@@ -285,6 +306,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Checked Entry native length/width/alignment/default policies, pinned/deferred
+      truncation observations and actual default-response keyboard regression (above).
 - [x] Idle-coalesced copied Entry selection observations with independent native/source
       pins, non-owning tokens and isolated native ownership/keyboard tests (above).
 - [x] Checked Unicode Entry cursor/selection snapshots/helpers, native PRIMARY policy,

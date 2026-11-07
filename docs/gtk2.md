@@ -3716,7 +3716,8 @@ updates/destruction. A free-form edit normally has index=-1 even if its text hap
 to equal a listed choice; typing/completion does not implicitly select a row or add
 one. It remains distinct from activeIndex and from a suggestion-list index.
 ComboBox.onChanged remains synchronous except while its entry has configured SDK
-inline completion/selection (above); use onTextChanged for consistently copied,
+inline completion/selection or during checked maxLength mutation (below);
+use onTextChanged for consistently copied,
 deferred text observations. Disconnect/destroy cancels pending delivery.
 
 Hidden tests/tgtk2completion.nim configures unmapped entries and uses public native
@@ -3889,6 +3890,99 @@ GObject/GParamSpec/userdata and GClosureNotify cdecl ABI. The opt-in isolated
 testMappedEntryObservations requires GTK2_TEST_VIRTUAL_DISPLAY=1; Unix X11 XTEST
 covers Shift-Left, reverse focus roundtrips, PRIMARY loss with owner teardown and
 completion-preview teardown beyond the native emitters. Never run it on a desktop.
+
+### Entry limits and presentation policy
+
+Entry and inherited SpinButton/protected editable combo entries expose:
+
+- maxLength: checked 0..65535 code points; 0 removes the application maximum, not
+  GTK's underlying buffer capacity limit. Lowering it immediately truncates text.
+- widthChars: -1 restores the native default request; 0..high(gint) requests an
+  approximate character width. This is a size request, not capacity or pixel width;
+  font metrics and container packing still determine allocation.
+- alignment: finite 0..1, passed as native gfloat and returned as float64. Zero/one
+  mean left/right in LTR and reverse under native RTL rules. It affects short-text
+  positioning, not text direction or character order; getters may reflect float32
+  rounding. NaN/infinity/out-of-range values raise rather than native clamping.
+- activatesDefault: a native gboolean policy controlling the entry's default
+  activate handler. False does not disable onActivate; true does not choose/create
+  a default button, override its sensitivity or authorize an operation.
+
+```nim
+entry.maxLength = 20
+entry.widthChars = 24
+entry.alignment = 0.5
+entry.activatesDefault = true # Only if the host's actual default policy is wanted.
+```
+
+The inputs example offers max/width/alignment/default controls. Its ordinary window
+has **no implicit default**, deliberately labelled as such. The dialogs example
+instead configures defaultResponse and enables activatesDefault, replacing its old
+manual onActivate/response simulation with GTK's actual default response behavior.
+No global accelerators, fake Return event, shortcut remapping or synthesized click
+is installed. A sensitive configured default is still required. Applications decide
+whether Return should submit and must perform their own permission/validation checks.
+
+maxLength counts Unicode code points, not UTF-8 bytes or grapheme clusters; truncation
+can split a decomposed accent sequence, but not a UTF-8 code point. The stock GTK2.24
+EntryBuffer also caps allocation at GTK_ENTRY_BUFFER_MAX_SIZE (65535 bytes including
+NUL), leaving at most 65534 UTF-8 text bytes. Multibyte text can hit this ceiling
+before the configured character count. Zero and 65535 therefore do **not** promise
+an arbitrarily long/unlimited string, even though the latter is a valid policy value.
+The SDK delegates storage/truncation to GTK rather than simulating a larger buffer.
+Invalid limits/width/alignment validate before any mutation or queued-work cancellation.
+
+These are programmatic GTK policies. Read-only/password text may still be truncated
+by an explicit maxLength assignment, just as text= can replace it; selectedText still
+rejects password extraction. SpinButton truncation changes displayed text, not a
+validated numeric transaction or an immediate adjustment update. Later native spin
+activation/focus/formatting can parse/reformat it. Shared/custom raw buffers, undo,
+input validators and IME/preedit transactions are not added by these properties.
+
+**GTK's buffer setter deletes/emits changed before assigning its new max-length.**
+During a checked maxLength assignment the SDK pins the entry and any direct combo
+parent and temporarily defers SDK Entry changed/activate and parent ComboBox changed
+observations, including pre-existing connections. Changed emissions coalesce; queued
+observations remain deferred until their idle delivery, so they see the committed
+new limit and cannot close/reconfigure the buffer mid-setter. SDK entry selection
+and combo onTextChanged observations already run at idle. Disconnect/destruction
+cancels pending captures; exceptions remain contained. Ordinary entry/combo callback
+timing outside this scope or existing inline policy is unchanged. This is not a
+sandbox for raw synchronous notify/buffer handlers or arbitrary custom destructors.
+
+All four property setters pin their native entry through native notifications and
+cleanup. Truncation may update cursor/selection and native PRIMARY ownership on
+realized entries, just like other native text edits; observation does not suppress
+those effects. Valid maxLength assignments also invalidate queued SDK completion commits,
+actions and provisional/selection observations, even without truncation; invalid
+assignments do not. Presentation/default setters do not cancel completion. None
+silently rebinds/detaches its model, resets native prefix state, rewrites suggestions
+or implements an atomic text validation/rollback. Coordinate observations report
+actual final GTK positions after truncation.
+
+Future text assignment, insertion, paste and completion still use GTK's native limit.
+A suggestion longer than the limit is **not automatically filtered**: GTK can truncate
+its inserted text; the existing deferred completion commit's exact-text check then
+suppresses onSelected rather than falsely reporting a full successful choice. The
+partial native text can remain and normal text/coordinate observations can report it.
+Filter suggestions or choose a suitable limit in application policy if partial text
+is unacceptable. No hidden SDK all-or-nothing edit or guessed numeric validator runs.
+
+Raw gtk_entry_set_alignment now takes PEntry (not PWidget) and get_alignment returns
+gfloat. Obsolete activates_default/set_activates_default uint bitfield helpers are
+removed, without a shim; raw callers use get_activates_default and the native
+set_activates_default(PEntry,gboolean). ABI-required GtkEntry storage remains, but
+no ergonomic property uses guessed private flag offsets.
+
+Hidden tests/tgtk2entrypolicy.nim keep widgets unrealized: Unicode and byte-ceiling
+behavior, atomic failures, callbacks seeing committed limits, reentrant/destroy/
+disconnect cleanup, read-only/password/combo/SpinButton, completion cancellation,
+pure-function rejection and native pins even when a raw notify drops the final alias.
+C probes check all eight prototypes plus gfloat/gboolean argument/return ABI.
+The isolated opt-in testMappedEntryPolicy requires GTK2_TEST_VIRTUAL_DISPLAY=1;
+Unix X11 XTEST covers actual Return/default sensitivity, typed Unicode length limits,
+long completion truncation and mapped combo observer teardown past the buffer setter.
+Normal tests never realize entries, own PRIMARY, request selections or fake input.
 
 ## Synchronous model functions and cell presentation
 
@@ -4489,7 +4583,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4528,7 +4622,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

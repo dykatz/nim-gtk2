@@ -19,8 +19,6 @@ proc need_im_reset*(a: PEntry): guint
 proc set_need_im_reset*(a: PEntry, `need_im_reset`: guint)
 proc has_frame*(a: PEntry): guint
 proc set_has_frame*(a: PEntry, `has_frame`: guint)
-proc activates_default*(a: PEntry): guint
-proc set_activates_default*(a: PEntry, `activates_default`: guint)
 proc cursor_visible*(a: PEntry): guint
 proc set_cursor_visible*(a: PEntry, `cursor_visible`: guint)
 proc in_click*(a: PEntry): guint

@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Entry now exposes checked maxLength, widthChars, alignment and activatesDefault
+policies, with safe deferred truncation observations and native default activation.
+See [the policy guide](docs/gtk2.md#entry-limits-and-presentation-policy), expanded
+inputs/dialog examples, and opt-in isolated `testMappedEntryPolicy`.
 Entry selection observations now coalesce copied final coordinates at UI idle,
 with optional initial delivery, non-owning tokens and prompt cancellation/cleanup.
 The inputs example updates from real keyboard selection; see the

@@ -73,15 +73,6 @@ proc set_has_frame*(a: PEntry, `has_frame`: guint) =
       (uint16(`has_frame` shl bp_TGtkEntry_has_frame) and
       bm_TGtkEntry_has_frame)
 
-proc activates_default*(a: PEntry): guint =
-  result = (a.flag1 and bm_TGtkEntry_activates_default) shr
-      bp_TGtkEntry_activates_default
-
-proc set_activates_default*(a: PEntry, `activates_default`: guint) =
-  a.flag1 = a.flag1 or
-      (uint16(`activates_default` shl bp_TGtkEntry_activates_default) and
-      bm_TGtkEntry_activates_default)
-
 proc cursor_visible*(a: PEntry): guint =
   result = (a.flag1 and bm_TGtkEntry_cursor_visible) shr
       bp_TGtkEntry_cursor_visible

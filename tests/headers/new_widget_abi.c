@@ -3,6 +3,28 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gfloat (*NimEntryFloatPolicy)(GtkEntry *, gfloat);
+typedef gboolean (*NimEntryBoolPolicy)(GtkEntry *, gboolean);
+gboolean nim_gtk2_entry_policy_abi(NimEntryFloatPolicy align, NimEntryBoolPolicy activate) {
+  typedef void (*IntSet)(GtkEntry *, gint);
+  typedef gint (*IntGet)(GtkEntry *);
+  typedef void (*FloatSet)(GtkEntry *, gfloat);
+  typedef gfloat (*FloatGet)(GtkEntry *);
+  typedef void (*BoolSet)(GtkEntry *, gboolean);
+  typedef gboolean (*BoolGet)(GtkEntry *);
+  typedef char max_set[__builtin_types_compatible_p(IntSet, __typeof__(&gtk_entry_set_max_length)) ? 1 : -1];
+  typedef char max_get[__builtin_types_compatible_p(IntGet, __typeof__(&gtk_entry_get_max_length)) ? 1 : -1];
+  typedef char width_set[__builtin_types_compatible_p(IntSet, __typeof__(&gtk_entry_set_width_chars)) ? 1 : -1];
+  typedef char width_get[__builtin_types_compatible_p(IntGet, __typeof__(&gtk_entry_get_width_chars)) ? 1 : -1];
+  typedef char align_set[__builtin_types_compatible_p(FloatSet, __typeof__(&gtk_entry_set_alignment)) ? 1 : -1];
+  typedef char align_get[__builtin_types_compatible_p(FloatGet, __typeof__(&gtk_entry_get_alignment)) ? 1 : -1];
+  typedef char activate_set[__builtin_types_compatible_p(BoolSet, __typeof__(&gtk_entry_set_activates_default)) ? 1 : -1];
+  typedef char activate_get[__builtin_types_compatible_p(BoolGet, __typeof__(&gtk_entry_get_activates_default)) ? 1 : -1];
+  (void)sizeof(max_set); (void)sizeof(max_get); (void)sizeof(width_set); (void)sizeof(width_get);
+  (void)sizeof(align_set); (void)sizeof(align_get); (void)sizeof(activate_set); (void)sizeof(activate_get);
+  return align((GtkEntry *)(guintptr)0x91, 0.25f) == 0.75f &&
+    activate((GtkEntry *)(guintptr)0x92, -123) == 17;
+}
 typedef void (*NimEntrySelectionNotify)(GObject *, GParamSpec *, gpointer);
 void nim_gtk2_entry_selection_notify_abi(NimEntrySelectionNotify fn, GClosureNotify release) {
   typedef void (*Notify)(GObject *, GParamSpec *);

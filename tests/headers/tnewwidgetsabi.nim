@@ -13,6 +13,11 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  EntryFloatPolicy = proc (entry: gtk.PEntry, value: g.gfloat): g.gfloat {.cdecl.}
+  EntryBoolPolicy = proc (entry: gtk.PEntry, value: g.gboolean): g.gboolean {.cdecl.}
+proc invokeEntryPolicy(align: EntryFloatPolicy, activate: EntryBoolPolicy): g.gboolean
+  {.cdecl, importc: "nim_gtk2_entry_policy_abi".}
 type EntrySelectionNotify = proc (instance: g.PGObject, spec: g.PGParamSpec, data: pointer) {.cdecl.}
 proc invokeEntrySelectionNotify(fn: EntrySelectionNotify, release: g.TGClosureNotify)
   {.cdecl, importc: "nim_gtk2_entry_selection_notify_abi".}
@@ -210,6 +215,15 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry limit/width/alignment/default prototypes, native gfloat and gboolean":
+    proc align(entry: gtk.PEntry, value: g.gfloat): g.gfloat {.cdecl.} =
+      doAssert cast[uint](entry) == 0x91 and value == 0.25
+      g.gfloat(0.75)
+    proc activate(entry: gtk.PEntry, value: g.gboolean): g.gboolean {.cdecl.} =
+      doAssert cast[uint](entry) == 0x92 and g.gint(value) == -123
+      g.gboolean(17)
+    check g.toBool(invokeEntryPolicy(align, activate))
+
   test "Entry selection notify GObject/ParamSpec/data and closure-notify ABI":
     proc notify(instance: g.PGObject, spec: g.PGParamSpec, data: pointer) {.cdecl.} =
       doAssert cast[uint](instance) == 0x81 and cast[uint](spec) == 0x82

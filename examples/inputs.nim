@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 800, 590)
+  let window = newWindow("gtk2 measurement inputs and completion", 880, 660)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -13,6 +13,29 @@ proc main() =
   let name = newComboBoxText(["Length", "Width", "Height"], editable = true)
   name.activeIndex = 0
   layout.packStart(name, packShrink)
+  name.entry.widthChars = 24
+  let policyRow = newHBox(spacing = 6)
+  let limit = newSpinButton(0, 64, 1)
+  limit.numeric = true
+  limit.widthChars = 4
+  let width = newSpinButton(-1, 40, 1)
+  width.value = 24
+  width.widthChars = 4
+  let align = newComboBoxText(["Left", "Center", "Right"])
+  align.activeIndex = 0
+  policyRow.packStart(newLabel("Max code points (0=native cap):"), packShrink)
+  policyRow.packStart(limit, packShrink)
+  policyRow.packStart(newLabel("Requested width (-1=default):"), packShrink)
+  policyRow.packStart(width, packShrink)
+  policyRow.packStart(align, packShrink)
+  layout.packStart(policyRow, packShrink)
+  limit.onValueChanged(proc () = name.entry.maxLength = limit.value.int)
+  width.onValueChanged(proc () = name.entry.widthChars = width.value.int)
+  align.onChanged(proc () =
+    if align.activeIndex >= 0: name.entry.alignment = float64(align.activeIndex) / 2.0)
+  let activateDefault = newCheckButton("Activate host default on Return (this window has no implicit default)")
+  activateDefault.onToggled(proc () = name.entry.activatesDefault = activateDefault.active)
+  layout.packStart(activateDefault, packShrink)
   let suggestions = newEntryCompletion(
     ["Length", "Length unit", "Width", "Width offset", "Height", "Height λ🙂"],
     actions = ["Use current label (free text)", "Reset measurement to Length"])

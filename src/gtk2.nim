@@ -42,11 +42,12 @@ type
     id: g.gulong
   Callback = ref object
     fn: proc () {.closure.}
-    deferForCompletion, coalesce, cancelled: bool
+    deferForEntryPolicy, coalesce, cancelled: bool
     pending: int
     idle: g.guint
 
 const completionDeferredKey = "nim-gtk2-deferred-inline-observers"
+const entryPolicyDeferredKey = "nim-gtk2-deferred-entry-policy-observers"
 const objectStateKey = "nim-gtk2-owned-object-state"
 
 # Synchronous model functions consume copied data, not live GUI handles. Native
@@ -360,8 +361,9 @@ proc signalThunk(instance, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
     # Copy the closure before calling: the callback may disconnect itself.
     let callback = cast[Callback](data)
-    if callback.deferForCompletion and (callback.idle != 0 or
-        g.get_data(cast[g.PGObject](instance), completionDeferredKey) != nil):
+    if callback.deferForEntryPolicy and (callback.idle != 0 or
+        g.get_data(cast[g.PGObject](instance), completionDeferredKey) != nil or
+        g.get_data(cast[g.PGObject](instance), entryPolicyDeferredKey) != nil):
       if callback.coalesce: callback.pending = 1
       else: inc callback.pending
       if callback.idle == 0:
@@ -382,7 +384,7 @@ proc connect(w: ObjectHandle, name: cstring, fn: proc () {.closure.}, after = fa
   let isEntry = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.entry_get_type())
   let isCombo = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.combo_box_get_type())
   let callback = Callback(fn: fn, coalesce: $name == "changed",
-    deferForCompletion: (isEntry and $name in ["changed", "activate"]) or
+    deferForEntryPolicy: (isEntry and $name in ["changed", "activate"]) or
       (isCombo and $name == "changed"))
   GC_ref(callback)
   let id = g.g_signal_connect_data(p, name, cast[g.TGCallback](signalThunk),
@@ -478,6 +480,7 @@ include gtk2/completionmatch
 include gtk2/completionactions
 include gtk2/entryselection
 include gtk2/entryobservations
+include gtk2/entrypolicy
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors
