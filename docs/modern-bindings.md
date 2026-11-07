@@ -139,6 +139,30 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry icons and copied button observations
+
+Raw GtkEntryIconPosition is a C-width enum; icon getters/setters retain native
+pixbuf/string/gboolean signatures. Pixbuf and name getters are borrowed natively
+(ref/copy in the SDK); tooltip text is transfer-full (copy/free). Configuration uses
+public GTK APIs with pointer pins, validated positions/UTF-8 and plain tooltips,
+not private icon records, internal children or markup. Empty image clears retain
+native per-position policies; rendered named-icon pixbufs can be retained safely.
+
+onIconEvent copies EntryIconEvent(position, ButtonEvent) before returning to GTK;
+application code runs at UI idle, not inside icon press/release traversal. It is
+not a clicked command: preserve button/multi-press/outside-release semantics and
+leave gesture/authorization/text edits to application policy. No password text or
+borrowed event/window pointer escapes. Readonly/password icons remain native.
+
+Per-position generations cancel stale configuration events; hide/unmap/destroy,
+final sensitivity/public GdkWindow viewability checks and per-listener revalidation
+protect deferred delivery, including ancestor windows hiding without child unmap.
+Native/qdata/source pins retain bridges, not widgets; non-owning tokens release
+captures on disconnect and owner cleanup. Explicit GUI cycles/raw reentrancy remain
+application responsibilities. Inputs, unrealized ARC/ORC lifecycle tests, native
+icon/prototype/button ABI and isolated real-icon pointer regressions cover the API.
+Stock/GIcon providers, drag protocols and markup remain separate work.
+
 ### Entry limits/presentation/default activation
 
 maxLength validates 0..65535 native code points; zero retains GTK's stock allocation

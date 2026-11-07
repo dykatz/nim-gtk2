@@ -3984,6 +3984,102 @@ Unix X11 XTEST covers actual Return/default sensitivity, typed Unicode length li
 long completion truncation and mapped combo observer teardown past the buffer setter.
 Normal tests never realize entries, own PRIMARY, request selections or fake input.
 
+### Entry icons and deferred icon events
+
+```nim
+entry.setIconName(iconPrimary, "edit-find")
+entry.setIcon(iconSecondary, newPixbuf(16, 16, 0x3388ffff'u32))
+entry.setIconTooltip(iconSecondary, "Plain text: <b>not markup</b>")
+entry.setIconSensitive(iconSecondary, true)
+entry.setIconActivatable(iconSecondary, true)
+let connection = entry.onIconEvent(proc (value: EntryIconEvent) =
+  if value.position == iconSecondary and value.event.kind == buttonPress and
+      value.event.button == 1:
+    entry.text = "") # Explicit application policy, not a native/synthesized click.
+```
+
+EntryIconPosition is iconPrimary/iconSecondary, logical native positions (not
+hard-coded left/right under RTL). All position arguments are checked before native
+calls. setIcon refs a Pixbuf through GTK; it is not a deep pixel copy. Passing an
+empty Pixbuf, or clearIcon, removes the image. setIconName copies a validated nonempty
+UTF-8 icon name; use clearIcon rather than an empty name. Named-icon theme lookup,
+missing-image fallback and menu-icon sizing remain GTK's behavior. The expanded
+inputs example uses native named search/clear icons and explicit press policy.
+
+iconStorage reports native ImageStorage. iconName returns an owned copied name,
+empty for no image and raises for a non-name storage kind. iconPixbuf returns an
+owning reference to the rendered native pixbuf for **any** storage, including named
+icons, or an empty Pixbuf. It remains alive after replacement/entry destruction,
+but is not an immutable rendering snapshot: copy() it for independent pixels.
+No private icon-info records, child widgets or native event windows escape through
+the ergonomic API. Raw entry_get_icon_window is the public GTK2.20 API used by
+isolated geometry tests, not private-structure access or a GTK3 area workaround.
+
+iconSensitive/iconActivatable inspect native per-position flags; their set methods
+retain GTK's defaults and policy. GTK-created icon info defaults to sensitive and
+activatable, while queries on never-configured empty positions may differ. Clearing
+an image does **not** reset its native tooltip or policy; configure them explicitly.
+setIconTooltip takes plain validated UTF-8 and GTK escapes it. Empty text removes it.
+iconTooltip copies/frees GTK's transfer-full allocated text; iconName is borrowed
+natively and copied, while pixbuf is borrowed and ref'd. Generic widget tooltip/
+has-tooltip configuration can suppress icon tooltips under normal GTK rules.
+
+onIconEvent returns a non-owning EntryIconConnection (connected/idempotent disconnect).
+The payload is EntryIconEvent(position,event), where event is the existing copied
+ButtonEvent with press/double/triple/release kind, uint32 button/time, modifiers and
+local/root coordinates. Local coordinates are relative to the **icon GdkWindow**,
+not the entry allocation. There is no borrowed GdkEvent/window/pixbuf or entry text
+in the payload, including on password entries. Read-only/password entries may have
+active icons; these events do not authorize editing or password extraction.
+
+These are native **press/release observations, not a clicked/activated command**.
+GTK may report non-left buttons, multi-press kinds, or a release outside the original
+icon bounds. A release need not have a preceding SDK-observed press (for example,
+after disconnection/reconfiguration). Do not infer an inside-release gesture or
+privilege from receiving it; application policy chooses a gesture. The demo uses a
+left press explicitly. No button click, Return, text mutation, preview acceptance,
+drag source or default response is synthesized, and no native signal is consumed.
+
+Native handlers only validate/copy and queue, never call application code during
+GTK's icon-state/window traversal. UI-idle delivery preserves each emission in order,
+without coalescing, to listeners active at emission; later subscribers do not receive
+old events. Before each listener it checks owner lifetime, per-position generation,
+nonempty icon storage, effective widget sensitivity, per-icon sensitivity/
+activatability and public native icon-window viewability when realized. An SDK image/name/tooltip/policy mutation invalidates queued events
+for that position, even a same-value assignment. The other position is unaffected.
+An earlier callback replacing/disabling/clearing an icon suppresses later listeners
+and stale queued events for it. Hiding/unmapping/destroying the entry cancels queued events for
+both positions. Text edits, readonly/password changes and completion attachment
+changes alone do not cancel icon observations; no text is copied or authenticated.
+Ancestor sensitivity/viewability are final-state checks, not a record of every
+transient ancestor change. GTK2 can leave child widget mapped flags set under a
+hidden ancestor; the SDK queries public gdk_window_is_viewable, not private flags.
+
+Each metadata/native-hook/source pin is independent of widget ownership. Retaining
+a token or queued source does not itself retain an unparented entry; a native parent
+can retain its callbacks after public aliases disappear. Disconnect promptly releases
+that listener's captures, even with pending records; dropping a token does not
+disconnect. Destroy/finalization clears all callbacks and pending work without
+ref'ing a finalizing widget. Configuration pins its native entry across notifications
+and cleanup and rejects recursive SDK icon configuration on an existing bridge.
+Self-disconnect, widget/combo destruction and icon replacement from a callback are
+safe; exceptions are contained. Self-capturing GUI functions can still cycle: destroy
+their tree or disconnect explicitly. Checked configuration/getters/disconnect are
+forbidden in synchronous model/match functions. Raw hook/storage mutations are
+unsupported: public final-state checks cannot reliably identify same-kind raw image
+replacement, and raw/custom destructors must obey UI-thread/reentrancy rules.
+
+Hidden tests/tgtk2entryicons.nim keep widgets unrealized and cover reference/copy
+ownership, name/storage replacement, literal tooltips, atomic validation, ordered
+button copies, generation cancellation, policy, password/readonly, combo destruction,
+non-owning token/source, capture cleanup and pure-function guards. C probes check
+native icon enum width/values, twelve icon prototypes and GdkEvent/button fields.
+The opt-in isolated testMappedEntryIcons requires GTK2_TEST_VIRTUAL_DISPLAY=1;
+Unix X11 XTEST verifies both real icon windows, inert flags, no implicit text change,
+press-time replacement and release-time combo teardown. Hidden tests do not map,
+claim PRIMARY, issue selection requests or manipulate desktop input. Stock/GIcon
+providers, icon DnD, markup tooltips and custom renderers remain separate work.
+
 ## Synchronous model functions and cell presentation
 
 The expanded [proxies example](../examples/proxies.nim) combines a custom score
@@ -4583,7 +4679,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4622,7 +4718,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

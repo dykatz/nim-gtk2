@@ -3,6 +3,40 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef void (*NimEntryIconSignal)(GtkEntry *, GtkEntryIconPosition, GdkEvent *, gpointer);
+gboolean nim_gtk2_entry_icon_abi(NimEntryIconSignal fn) {
+  typedef void (*PixbufSet)(GtkEntry *, GtkEntryIconPosition, GdkPixbuf *);
+  typedef void (*NameSet)(GtkEntry *, GtkEntryIconPosition, const gchar *);
+  typedef const gchar *(*NameGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef gchar *(*TooltipGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef GdkPixbuf *(*PixbufGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef GtkImageType (*StorageGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef void (*BoolSet)(GtkEntry *, GtkEntryIconPosition, gboolean);
+  typedef gboolean (*BoolGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef GdkWindow *(*WindowGet)(GtkEntry *, GtkEntryIconPosition);
+  typedef gboolean (*WidgetSensitive)(GtkWidget *);
+#define ICON_PROTO(TYPE, FN) typedef char FN##_signature[__builtin_types_compatible_p(TYPE, __typeof__(&FN)) ? 1 : -1]; (void)sizeof(FN##_signature)
+  ICON_PROTO(PixbufSet, gtk_entry_set_icon_from_pixbuf);
+  ICON_PROTO(NameSet, gtk_entry_set_icon_from_icon_name);
+  ICON_PROTO(NameGet, gtk_entry_get_icon_name);
+  ICON_PROTO(PixbufGet, gtk_entry_get_icon_pixbuf);
+  ICON_PROTO(StorageGet, gtk_entry_get_icon_storage_type);
+  ICON_PROTO(NameSet, gtk_entry_set_icon_tooltip_text);
+  ICON_PROTO(TooltipGet, gtk_entry_get_icon_tooltip_text);
+  ICON_PROTO(BoolSet, gtk_entry_set_icon_sensitive);
+  ICON_PROTO(BoolGet, gtk_entry_get_icon_sensitive);
+  ICON_PROTO(BoolSet, gtk_entry_set_icon_activatable);
+  ICON_PROTO(BoolGet, gtk_entry_get_icon_activatable);
+  ICON_PROTO(WindowGet, gtk_entry_get_icon_window);
+  ICON_PROTO(WidgetSensitive, gtk_widget_is_sensitive);
+#undef ICON_PROTO
+  GdkEventButton event = {0};
+  event.type = GDK_3BUTTON_PRESS; event.button = G_MAXUINT; event.time = G_MAXUINT32;
+  event.x = 1.25; event.y = -2.5; event.x_root = 123.5; event.y_root = 456.25;
+  event.state = GDK_CONTROL_MASK;
+  fn((GtkEntry *)(guintptr)0xa1, GTK_ENTRY_ICON_SECONDARY, (GdkEvent *)&event, (gpointer)(guintptr)0xa2);
+  return sizeof(GtkEntryIconPosition) == sizeof(gint) && GTK_ENTRY_ICON_PRIMARY == 0 && GTK_ENTRY_ICON_SECONDARY == 1;
+}
 typedef gfloat (*NimEntryFloatPolicy)(GtkEntry *, gfloat);
 typedef gboolean (*NimEntryBoolPolicy)(GtkEntry *, gboolean);
 gboolean nim_gtk2_entry_policy_abi(NimEntryFloatPolicy align, NimEntryBoolPolicy activate) {

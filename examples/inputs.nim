@@ -12,6 +12,10 @@ proc main() =
   window.add(layout)
   let name = newComboBoxText(["Length", "Width", "Height"], editable = true)
   name.activeIndex = 0
+  name.entry.setIconName(iconPrimary, "edit-find")
+  name.entry.setIconTooltip(iconPrimary, "Press for input information")
+  name.entry.setIconName(iconSecondary, "edit-clear")
+  name.entry.setIconTooltip(iconSecondary, "Press to clear free text")
   layout.packStart(name, packShrink)
   name.entry.widthChars = 24
   let policyRow = newHBox(spacing = 6)
@@ -48,11 +52,15 @@ proc main() =
   let preview = newCheckButton("Inline popup preview")
   let popup = newCheckButton("Popup")
   popup.active = true
-  for option in [inline, preview, popup]: policies.packStart(option, packShrink)
+  let iconActions = newCheckButton("Icon actions")
+  iconActions.active = true
+  for option in [inline, preview, popup, iconActions]: policies.packStart(option, packShrink)
   layout.packStart(policies, packShrink)
   inline.onToggled(proc () = suggestions.inlineCompletion = inline.active)
   preview.onToggled(proc () = suggestions.inlineSelection = preview.active)
   popup.onToggled(proc () = suggestions.popupCompletion = popup.active)
+  iconActions.onToggled(proc () =
+    for pos in [iconPrimary, iconSecondary]: name.entry.setIconActivatable(pos, iconActions.active))
   layout.packStart(newLabel("Inline changes are provisional; SDK entry/combo observers run at idle."), packShrink)
   let matching = newCheckButton("Custom ASCII substring matching (not Unicode normalization)")
   layout.packStart(matching, packShrink)
@@ -82,6 +90,11 @@ proc main() =
   layout.packStart(output)
   let selected = newLabel("No completion selected")
   layout.packStart(selected, packShrink)
+  name.entry.onIconEvent(proc (value: EntryIconEvent) =
+    # Observe native presses, not a synthesized click. The payload has no entry text.
+    if value.event.kind == buttonPress and value.event.button == 1:
+      if value.position == iconSecondary: name.entryText = ""
+      selected.text = "Icon " & $value.position & " pressed (application policy)")
   suggestions.onSelected(proc (value: CompletionSelection) =
     selected.text = "Suggestion " & $value.index & ": " & value.text)
   suggestions.onActionActivated(proc (value: CompletionAction) =

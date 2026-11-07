@@ -5,6 +5,7 @@ import std/unittest
 import headers/gtk2 as gtk
 import headers/glib2 as g
 import headers/gdk2pixbuf as pb
+import headers/gdk2 as gd except string
 from headers/gdk2 import TColor, TEventExpose, TEventSelection, TNativeWindow, TAtom, TEventKey, TEventButton, TEventMotion, TEventScroll, TScrollDirection, TDragAction, PDragContext, DAMAGE
 
 when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
@@ -13,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type EntryIconSignal = proc (entry: gtk.PEntry, position: gtk.TEntryIconPosition,
+  event: gd.PEvent, data: pointer) {.cdecl.}
+proc invokeEntryIcon(fn: EntryIconSignal): g.gboolean {.cdecl, importc: "nim_gtk2_entry_icon_abi".}
 type
   EntryFloatPolicy = proc (entry: gtk.PEntry, value: g.gfloat): g.gfloat {.cdecl.}
   EntryBoolPolicy = proc (entry: gtk.PEntry, value: g.gboolean): g.gboolean {.cdecl.}
@@ -215,6 +219,19 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry icon enum, native prototypes and borrowed GdkEvent pointer ABI":
+    proc icon(entry: gtk.PEntry, position: gtk.TEntryIconPosition,
+        event: gd.PEvent, data: pointer) {.cdecl.} =
+      doAssert cast[uint](entry) == 0xa1 and cast[uint](data) == 0xa2
+      doAssert position == gtk.ENTRY_ICON_SECONDARY
+      let button = cast[gd.PEventButton](event)
+      doAssert button.type == gd.THREE_BUTTON_PRESS
+      doAssert button.button == high(g.guint) and button.time == high(g.guint32)
+      doAssert button.x == 1.25 and button.y == -2.5 and button.x_root == 123.5
+      doAssert button.state == gd.TModifierType(1 shl 2)
+    check sizeof(gtk.TEntryIconPosition) == sizeof(g.gint)
+    check g.toBool(invokeEntryIcon(icon))
+
   test "Entry limit/width/alignment/default prototypes, native gfloat and gboolean":
     proc align(entry: gtk.PEntry, value: g.gfloat): g.gfloat {.cdecl.} =
       doAssert cast[uint](entry) == 0x91 and value == 0.25

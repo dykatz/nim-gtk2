@@ -8,17 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry icons and icon activation
+## Next proposed batch: Entry editing and concealed-text presentation
 
-- [ ] Audit GTK2.24 primary/secondary icon ownership, storage replacement, enum/event
-      ABI and native traversal after icon press/release signals.
-- [ ] Add checked pixbuf/icon-name configuration, plain tooltips and per-icon
-      sensitivity/activatability without exposing internal widgets or markup policy.
-- [ ] Add copied deferred icon activation observations and safe cancellation/owner
-      cleanup; preserve native input/default behavior, not simulated button clicks.
-- [ ] Expand inputs example with hidden ARC/ORC/ABI and isolated pointer tests.
+- [ ] Audit native overwrite/frame and invisible-character/default-mask policies,
+      including keyboard editing, password PRIMARY display and combo/SpinButton.
+- [ ] Add checked native boolean/Unicode scalar controls and remove corresponding
+      obsolete raw bitfield helpers rather than using guessed private storage.
+- [ ] Preserve native insert/overwrite/IME behavior and password extraction safeguards;
+      do not synthesize key input, mask text or editing/undo transactions in the SDK.
+- [ ] Expand inputs with hidden ARC/ORC/ABI and isolated keyboard/password regressions.
 
-Icon drag sources/providers, custom renderers, undo and deeper IME work remain separate.
+Entry progress, icon drag sources/providers, custom renderers, undo and deeper IME
+work remain separate.
+
+## Completed batch: Entry icons and icon activation
+
+- [x] Audited public icon storage/ownership, allocated tooltip vs borrowed name/pixbuf,
+      native C-width positions and post-signal icon-state/window traversal.
+- [x] Checked pixbuf/named-icon configuration, owning rendered pixbuf getter, plain
+      escaped tooltips and native sensitivity/activatability. Clear preserves native
+      policies; no private structs, internal widgets, markup or simulated icon clicks.
+- [x] Copied deferred per-emission EntryIconEvent/ButtonEvent observations, listener
+      snapshots, non-owning tokens and independent metadata/native/source pins.
+- [x] Per-position generation cancellation, per-listener sensitivity/storage checks,
+      hide/unmap/destruction cleanup, prompt captures, reentrant replacement/self-close
+      and pure model-function guards. Password/readonly events never copy text.
+- [x] Expanded inputs/docs, unrealized hidden ARC/ORC ownership/lifetime tests, twelve
+      public icon prototypes/native enum/GdkEvent ABI and isolated real pointer input,
+      inert flags, press-time replacement and release-time combo teardown.
 
 ## Completed batch: Entry limits and presentation policy
 
@@ -248,7 +265,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry icons and icon activation (next proposed batch above).
+- [ ] Entry editing/concealed-text presentation (next proposed batch above).
+- [ ] Entry progress feedback.
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
@@ -306,6 +324,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Native Entry icons, owning image/tooltips and deferred copied pointer events,
+      independent per-position policy/cancellation and isolated pointer tests (above).
 - [x] Checked Entry native length/width/alignment/default policies, pinned/deferred
       truncation observations and actual default-response keyboard regression (above).
 - [x] Idle-coalesced copied Entry selection observations with independent native/source
