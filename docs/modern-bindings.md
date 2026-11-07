@@ -139,6 +139,26 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry Unicode cursor/selection
+
+EntrySelection copies ordered bounds and directed anchor/cursor in Unicode code
+points. Public GtkEditable APIs supply native gint/gboolean offsets and allocated
+get_chars strings; selectedText copies/frees the latter and rejects password text.
+Both range endpoints validate before side effects; explicit collapse/range helpers
+use select_region, preserving native PRIMARY ownership updates. Read-only selection
+is supported, including protected combo children and inherited SpinButton text.
+
+Entry.focus now restores selection direction, with native/state pins and destruction/
+bounds checks. Valid moves cancel queued SDK completion work without rewriting native
+preview/history or simulating input. Getters and mutators share the synchronous-model
+handle guard; copied snapshots remain ordinary values. No selection observer yet.
+
+Realized-but-unmapped entries can claim PRIMARY; unrealized ones cannot. Hidden
+ARC/ORC tests assert unrealized state throughout (including focus/draining), while
+explicit isolated tests own/request PRIMARY and use Shift-Left/focus/preview input.
+C probes cover pointer/signed offset/gboolean and get_chars/cursor/range prototypes.
+The expanded inputs example deliberately labels native selection ownership effects.
+
 ### Completion action rows
 
 Native insert_action_text/delete_action and action-activated use native signed gint,

@@ -8,15 +8,35 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry Unicode cursor and selection
+## Next proposed batch: Entry cursor/selection observations
 
-- [ ] Audit public GtkEditable cursor/selection semantics and PRIMARY ownership,
-      including ordinary Entry and protected editable ComboBoxText children.
-- [ ] Add checked Unicode cursor/selection snapshots and explicit selection helpers,
-      with atomic bounds validation and password/read-only policy.
-- [ ] Define native completion preview interaction without fake key input/history
-      resets, and ensure normal unrealized tests never claim desktop selections.
-- [ ] Expand inputs example, hidden ARC/ORC/ABI and isolated keyboard/selection tests.
+- [ ] Audit paired cursor-position/selection-bound notifications and native cleanup
+      timing, including text edits, PRIMARY loss, focus and completion preview.
+- [ ] Add copied final-state idle-coalesced observations without synchronous user
+      callbacks in native selection/ownership emitters; avoid selected password text.
+- [ ] Define initial delivery, disconnection, owner lifetime and cancellation, with
+      independent native/source pins and prompt capture release.
+- [ ] Expand inputs example to observe native keyboard selection; maintain unrealized
+      hidden ARC/ORC/ABI tests and isolated PRIMARY/keyboard regressions.
+
+## Completed batch: Entry Unicode cursor and selection
+
+- [x] Audited public GtkEditable bounds/direction and native PRIMARY updates:
+      realized-but-unmapped entries can claim, unrealized entries return early,
+      and realization can export a pre-existing selection.
+- [x] Copied code-point EntrySelection with oriented anchor/cursor, ordered bounds,
+      selectedText full-transfer copy/free, and checked cursor/range/all/clear helpers.
+      Atomic validation, no byte conversion, sentinel or silent clamping.
+- [x] Read-only navigation/copy allowed; password coordinate operations allowed but
+      selectedText rejected. Protected combo entries and inherited SpinButton work.
+- [x] Direction-preserving focus with native/state pins and destruction/bounds checks.
+      Collapse uses native select_region ownership behavior, not clipboard emulation.
+- [x] Valid mutations cancel stale queued SDK completion work without resetting native
+      popup/prefix history; native GTK IM resets remain normal. Invalid ranges preserve
+      pending work. Shared purity guard.
+- [x] Expanded inputs/docs and hidden ARC/ORC tests asserting unrealized state, native
+      cursor/bounds/get_chars ABI, isolated PRIMARY/password/combo and Shift-Left/focus/
+      inline-preview keyboard regressions. Normal tests make no selection requests.
 
 Completion markup/providers, arbitrary models/renderers and deeper IME integration
 remain separate, as do undo/redo and richer text-buffer insertion/transfer work.
@@ -193,7 +213,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry Unicode cursor/selection helpers (next proposed batch above).
+- [ ] Entry cursor/selection observations (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
@@ -249,6 +269,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Checked Unicode Entry cursor/selection snapshots/helpers, native PRIMARY policy,
+      reverse-selection focus preservation and isolated keyboard tests (above).
 - [x] Literal EntryCompletion action rows, detached configuration and copied deferred
       native activations with independent session/cancellation ownership (above).
 - [x] Pure copied-input custom EntryCompletion predicates, guarded replacement,

@@ -240,18 +240,8 @@ proc `text=`*(w: Label, text: string) = rawGtk.set_text(w.raw, checkedUtf8Text(t
 proc text*(w: Label): string = $rawGtk.get_text(w.raw)
 proc `text=`*(w: Entry, text: string) = rawGtk.set_text(w.raw, checkedUtf8Text(text))
 proc text*(w: Entry): string = $rawGtk.get_text(w.raw)
-proc focus*(w: Entry) =
-  ## Restore focus without GTK's default select-all-on-focus changing the edit.
-  let editable = cast[rawGtk.PEditable](w.raw)
-  let position = rawGtk.get_position(editable)
-  var first, last: g.gint
-  let selected = rawGtk.get_selection_bounds(editable, addr first, addr last)
-  rawGtk.grab_focus(cast[rawGtk.PWidget](w.raw))
-  if selected: rawGtk.select_region(editable, first, last)
-  else: rawGtk.set_position(editable, position)
-
-proc selectAll*(w: Entry) =
-  rawGtk.select_region(cast[rawGtk.PEditable](w.raw), 0, -1)
+proc focus*(w: Entry)
+proc selectAll*(w: Entry)
 
 proc insertText*(w: Entry, text: string) =
   ## Replace the selection, or insert at the cursor; positions are Unicode chars.
@@ -486,6 +476,7 @@ include gtk2/uimanager
 include gtk2/completion
 include gtk2/completionmatch
 include gtk2/completionactions
+include gtk2/entryselection
 include gtk2/modelfunctions
 include gtk2/iconselection
 include gtk2/textanchors

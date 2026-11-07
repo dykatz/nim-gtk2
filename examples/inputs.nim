@@ -5,7 +5,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("gtk2 measurement inputs and completion", 760, 510)
+  let window = newWindow("gtk2 measurement inputs and completion", 800, 590)
   defer: window.destroy()
   window.borderWidth = 12
   let layout = newVBox(spacing = 8)
@@ -73,6 +73,34 @@ proc main() =
   suggestions.onInlineChanged(proc (value: CompletionInlineState) =
     provisional.text = $value.kind & ": " & value.text & " — suffix " &
       $value.first & ".." & $value.last & " (key: " & value.key & ")")
+  let selectionStatus = newLabel("Inspect selection after keyboard navigation")
+  layout.packStart(selectionStatus, packShrink)
+  proc inspectSelection() =
+    let state = name.entry.selectionBounds
+    selectionStatus.text = "Code points: " & $name.entry.characterCount &
+      "; anchor/cursor " & $state.anchor & "/" & $state.cursor &
+      "; range " & $state.first & ".." & $state.last
+  let selectionRow = newHBox(spacing = 6)
+  let all = newButton("Select all")
+  let reverse = newButton("Reverse last 2 code points")
+  let clear = newButton("Clear selection")
+  let inspect = newButton("Inspect selection")
+  for button in [all, reverse, clear, inspect]: selectionRow.packStart(button, packShrink)
+  layout.packStart(selectionRow, packShrink)
+  layout.packStart(newLabel("Realized selections use native PRIMARY ownership; Inspect is read-only."), packShrink)
+  all.onClicked(proc () =
+    name.entry.selectAll()
+    name.entry.focus() # Keeps the active endpoint, including reverse selections.
+    inspectSelection())
+  reverse.onClicked(proc () =
+    let count = name.entry.characterCount
+    name.entry.selectRange(count, max(0, count - 2))
+    name.entry.focus()
+    inspectSelection())
+  clear.onClicked(proc () =
+    name.entry.clearSelection()
+    inspectSelection())
+  inspect.onClicked(proc () = inspectSelection())
   window.onDestroy(proc () = suggestions.close())
 
   proc refresh() =

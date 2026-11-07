@@ -13,6 +13,8 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type EditableBounds = proc (editable: gtk.PEditable, first, last: ptr g.gint): g.gboolean {.cdecl.}
+proc invokeEditableBounds(fn: EditableBounds): g.gboolean {.cdecl, importc: "nim_gtk2_editable_selection_abi".}
 type CompletionActionSignal = proc (completion: gtk.PEntryCompletion, index: g.gint, data: pointer) {.cdecl.}
 proc invokeCompletionAction(fn: CompletionActionSignal) {.cdecl, importc: "nim_gtk2_completion_action_abi".}
 proc invokeCompletionMatch(fn: gtk.TEntryCompletionMatchFunc, destroy: g.TGDestroyNotify): g.gboolean
@@ -205,6 +207,14 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "GtkEditable selection gint outputs/gboolean and cursor/chars prototypes":
+    proc bounds(editable: gtk.PEditable, first, last: ptr g.gint): g.gboolean {.cdecl.} =
+      doAssert cast[uint](editable) == 0x71
+      first[] = -123
+      last[] = high(int32)
+      g.gboolean(17)
+    check g.toBool(invokeEditableBounds(bounds))
+
   test "completion action signed index, data and native insert/delete prototypes":
     proc action(completion: gtk.PEntryCompletion, index: g.gint, data: pointer) {.cdecl.} =
       doAssert cast[uint](completion) == 0x61 and cast[uint](data) == 0x62

@@ -3729,6 +3729,91 @@ libXtst/XTEST Down/Return input to verify casefold matching, Unicode selection,
 combo coherence and safe observer-driven window teardown. Never run it on an
 ordinary desktop.
 
+### Entry Unicode cursor and selection
+
+Entry exposes characterCount, cursorOffset, hasSelection, selectionBounds and
+selectedText. Coordinates count Unicode **code points**, not UTF-8 bytes, grapheme
+clusters or pixels. For example λ🙂 has length two; a decomposed accented letter
+can occupy two positions. Native keyboard movement still follows GTK/Pango cursor
+rules and may move across a grapheme rather than exactly one code point.
+
+```nim
+let entry = newEntry("Aλ🙂e\u0301Z")
+entry.selectRange(5, 1) # anchor 5, active cursor 1: reverse selection.
+let state = entry.selectionBounds
+assert state.first == 1 and state.last == 5 # Ordered half-open bounds.
+assert state.anchor == 5 and state.cursor == 1
+entry.cursorOffset = 2 # Collapse at code-point offset 2.
+entry.clearSelection() # Collapse at the current active cursor.
+entry.selectAll()
+```
+
+EntrySelection is a copied value containing hasSelection, ordered first/last and
+oriented anchor/cursor. Without a selection all four offsets equal the cursor.
+Snapshots and selectedText copies do not retain the widget and survive its teardown;
+they are historical values, not live marks. selectedText copies GTK's allocated
+GtkEditable.get_chars result and frees that allocation. A visible entry without a
+selection returns an empty string. No selection observer is introduced in this
+batch: selection-only moves do not emit text onChanged. The inputs example has an
+explicit Inspect button rather than pretending text notifications track every
+cursor change.
+
+selectRange(anchor,cursor) and cursorOffset= accept only 0..characterCount, including
+the end position. Both endpoints are checked before any mutation, callback-work
+cancellation or ownership change; invalid/negative/past-end positions raise ValueError.
+Byte coordinates are never converted or inferred. There is no public -1 sentinel
+or silent bounds clamping. Reversed
+ranges are intentional; clearSelection keeps the active endpoint. selectAll uses
+the checked whole range. Ordinary entries, protected editable ComboBoxText children
+and inherited SpinButton GtkEditable text support these operations. Combo children
+remain protected against independent destroy/reparent; selection does not commit a
+combo choice or change activeIndex. Destroyed handles reject access.
+
+Read-only entries may move/select/copy visible selected text without editing it.
+Password entries allow coordinate snapshots and movement, but selectedText raises
+ValueError even for an empty selection: this API never silently copies selected
+password plaintext. It is not a security sandbox (explicit entry.text still exists).
+Native password PRIMARY replies use GTK's displayed/masked text, not this getter.
+
+**Realized selections can own PRIMARY, even when the widget/window is unmapped.**
+GTK returns before clipboard work only when the entry is unrealized. Selecting an
+unrealized entry and later realizing it can also claim PRIMARY. Public select_region
+performs native ownership updates; all these explicit range/collapse helpers use it.
+A collapsed cursor/clearSelection releases PRIMARY only when GTK says this entry
+owns it, and leaves other owners untouched. This differs from raw set_position,
+which does not update PRIMARY in GTK2.24. No SDK clipboard emulation, unconditional
+clear, ownership suppression or window realization is performed. Native ownership
+loss/refusal may itself collapse a selection; inspect the actual snapshot afterward.
+Do not use these APIs on realized desktop widgets if selection ownership is unwanted.
+
+Entry.focus preserves **direction** as well as bounds across GTK's select-all-on-focus
+behavior, restoring anchor/cursor through select_region. It pins the native widget
+and its state during focus/cleanup and skips restoration after destruction or when
+an endpoint no longer fits native focus-updated text. Focus may itself temporarily
+claim/change PRIMARY under GTK policy; it is not an ownership-neutral operation.
+The generic Widget.focus still has ordinary native focus behavior.
+
+Valid selection mutations/focus cancel queued SDK completion commits, action and
+provisional/selection observations before proceeding; invalid ranges cancel nothing.
+Getters have no such side effects. These operations do **not** hide/rebind the popup,
+accept an inline preview, undo inserted text, cancel native completion timers or
+reset GTK's historical prefix. Native selection/focus still performs GTK's normal
+IM-context reset behavior; this is not a separate preedit/IME control API.
+Future native edits/selection can still complete,
+and Escape after a programmatic cursor move can restore the native preview prefix.
+All checked getters/mutators are forbidden in synchronous model/match functions;
+computations on an already copied EntrySelection are fine.
+
+Hidden tests/tgtk2entryselection.nim assert entries remain unrealized before/after
+selection/focus and event draining: no windows, clipboard ownership or selection
+requests. They cover Unicode/direction/copies/atomicity, read-only/password, combo
+and SpinButton behavior, destruction, completion cancellation and purity guards.
+C probes check signed gint outputs, gboolean and cursor/range/get_chars prototypes.
+The opt-in testMappedEntrySelection requires GTK2_TEST_VIRTUAL_DISPLAY=1 on an
+isolated display. Unix X11 tests use real Shift-Left/focus/preview keys and explicitly
+exercise PRIMARY ownership, preserving another owner, masked password replies and
+combo cleanup. Never run those tests on an ordinary desktop.
+
 ## Synchronous model functions and cell presentation
 
 The expanded [proxies example](../examples/proxies.nim) combines a custom score
@@ -4328,7 +4413,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4367,7 +4452,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

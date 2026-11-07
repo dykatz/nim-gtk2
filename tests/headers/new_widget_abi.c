@@ -3,6 +3,25 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+typedef gboolean (*NimEditableBounds)(GtkEditable *, gint *, gint *);
+gboolean nim_gtk2_editable_selection_abi(NimEditableBounds fn) {
+  typedef void (*Select)(GtkEditable *, gint, gint);
+  typedef gint (*Position)(GtkEditable *);
+  typedef gchar *(*Chars)(GtkEditable *, gint, gint);
+  typedef char select_signature[__builtin_types_compatible_p(Select,
+    __typeof__(&gtk_editable_select_region)) ? 1 : -1];
+  typedef char position_signature[__builtin_types_compatible_p(Position,
+    __typeof__(&gtk_editable_get_position)) ? 1 : -1];
+  typedef char bounds_signature[__builtin_types_compatible_p(NimEditableBounds,
+    __typeof__(&gtk_editable_get_selection_bounds)) ? 1 : -1];
+  typedef char chars_signature[__builtin_types_compatible_p(Chars,
+    __typeof__(&gtk_editable_get_chars)) ? 1 : -1];
+  gint first = 0, last = 0;
+  (void)sizeof(select_signature); (void)sizeof(position_signature);
+  (void)sizeof(bounds_signature); (void)sizeof(chars_signature);
+  return fn((GtkEditable *)(guintptr)0x71, &first, &last) == 17 &&
+    first == -123 && last == G_MAXINT;
+}
 typedef void (*NimCompletionActionSignal)(GtkEntryCompletion *, gint, gpointer);
 void nim_gtk2_completion_action_abi(NimCompletionActionSignal fn) {
   typedef void (*Insert)(GtkEntryCompletion *, gint, const gchar *);
