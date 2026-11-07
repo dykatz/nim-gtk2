@@ -8,15 +8,28 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Entry progress feedback
+## Next proposed batch: Remaining raw GtkEntry bitfield audit
 
-- [ ] Audit public fraction/pulse-step/pulse behavior, native activity mode and
-      interaction with text, selection, icon geometry and widget lifetime.
-- [ ] Add finite checked native gdouble policy/helpers; pulse is an explicit UI-thread
-      operation, not an implicit timer, event pump, animation loop or job runner.
-- [ ] Preserve native determinate/activity transitions and readonly/password/combo/
-      SpinButton behavior; do not rebind models or simulate progress through text.
-- [ ] Expand inputs, hidden ARC/ORC/ABI and isolated native rendering regressions.
+- [ ] Inventory remaining legacy raw GtkEntry bitfield helpers against public GTK2.24
+      APIs; remove unsafe private-field helpers without compatibility aliases.
+- [ ] Keep ABI-required storage/layout, and document public replacements only where
+      real native APIs exist; do not invent getters for private editing/IME state.
+- [ ] Add compile-rejection/public-prototype tests and update raw migration docs,
+      ergonomic examples where relevant, and full hidden/cross-target regressions.
+
+## Completed batch: Entry progress feedback
+
+- [x] Audited public fraction/pulse-step/pulse, native geometry, notifications and
+      activity transitions. First pulse clears fraction without notify; zero getter
+      is not an activity query; explicit fraction assignment ends activity.
+- [x] Added finite 0..1 progressFraction/progressPulseStep gdouble policy and explicit
+      progressPulse with native lifetime pins. No timer/source, event pump, shadow
+      mode, private fields, model rebinding or simulated text progress.
+- [x] Preserved text/selection/icons/completion/readonly/password/combo/SpinButton
+      state, step endpoints, native theme/RTL/bounce and hide/show policy.
+- [x] Expanded inputs/docs, unrealized ARC/ORC transition/atomicity/purity/lifetime
+      tests, five native prototypes/precise gdouble and pulse callback ABI, isolated
+      native pixel and icon-geometry rendering regressions plus opt-in guard.
 
 Icon drag sources/providers, custom renderers, undo and deeper IME remain separate.
 
@@ -281,12 +294,11 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Completion and input
 
-- [ ] Entry progress feedback (next proposed batch above).
 - [ ] Arbitrary completion models/columns.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
-- [ ] Audit/remove remaining legacy raw GtkEntry bitfield helpers separately before
-      exposing corresponding policies; new SDK policies must use public native APIs.
+- [ ] Audit/remove remaining legacy raw GtkEntry bitfield helpers (next proposed batch)
+      before exposing corresponding policies; new SDK policies must use public native APIs.
 
 ### Clipboard and drag-and-drop
 
@@ -339,6 +351,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Native Entry progress fraction/step and explicit pulse, no shadow mode/timer,
+      notification/lifetime/atomicity and isolated native rendering coverage (above).
 - [x] Native Entry overwrite/frame and checked mask/default policies, pinned visibility,
       native keyboard/PRIMARY behavior and password-security caveats (above).
 - [x] Native Entry icons, owning image/tooltips and deferred copied pointer events,

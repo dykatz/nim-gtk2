@@ -139,6 +139,22 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Entry progress feedback
+
+Checked progressFraction/progressPulseStep float64 properties and progressPulse()
+use public gdouble APIs, pinning native lifetime through notification/drawing work.
+Finite 0..1 validation is atomic, including preserving activity on rejection.
+First pulse resets fraction to zero without notify::progress-fraction; fraction zero
+is not an activity query. Explicit fraction assignment, even zero, ends activity.
+No private/shadow mode, timer, event pump, job runner or simulated text is added.
+Native step endpoints, bounce, RTL/style and hide/show remain native policy.
+
+Unrealized ARC/ORC tests cover notification semantics, guards, pins and unchanged
+text/selection/completion/icon/read-only/password/combo/SpinButton state. Five
+prototype checks and a precise gdouble/pulse callback probe cover ABI. Isolated
+opt-in offscreen pixel/geometry tests cover rendering and clear/activity transitions;
+inputs offers requested fraction, pulse-once and explicit clear controls.
+
 ### Entry editing/concealed-text presentation
 
 Native overwriteMode/hasFrame bool controls and invisibleChar uint32 scalar policy

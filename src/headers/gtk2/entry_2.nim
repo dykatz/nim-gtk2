@@ -53,6 +53,11 @@ proc set_activates_default*(entry: PEntry, setting: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_entry_set_activates_default".}
 proc get_activates_default*(entry: PEntry): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_entry_get_activates_default".}
+proc set_progress_fraction*(entry: PEntry, fraction: gdouble) {.cdecl, dynlib: lib, importc: "gtk_entry_set_progress_fraction".}
+proc get_progress_fraction*(entry: PEntry): gdouble {.cdecl, dynlib: lib, importc: "gtk_entry_get_progress_fraction".}
+proc set_progress_pulse_step*(entry: PEntry, fraction: gdouble) {.cdecl, dynlib: lib, importc: "gtk_entry_set_progress_pulse_step".}
+proc get_progress_pulse_step*(entry: PEntry): gdouble {.cdecl, dynlib: lib, importc: "gtk_entry_get_progress_pulse_step".}
+proc entry_progress_pulse*(entry: PEntry) {.cdecl, dynlib: lib, importc: "gtk_entry_progress_pulse".}
 proc set_width_chars*(entry: PEntry, n_chars: gint){.cdecl, dynlib: lib,
     importc: "gtk_entry_set_width_chars".}
 proc get_width_chars*(entry: PEntry): gint{.cdecl, dynlib: lib,

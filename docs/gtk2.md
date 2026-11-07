@@ -4160,6 +4160,60 @@ Unix X11 XTEST verifies actual insert/overwrite/selection/Insert-key behavior an
 native PRIMARY display under each programmatic mask policy. Normal tests never
 realize widgets, claim ownership, request selections or fake input.
 
+### Entry progress feedback
+
+Entry has progressFraction and progressPulseStep float64 properties, plus
+progressPulse(). Native gdouble crosses the FFI unchanged. Both setters require
+finite values in 0..1 inclusive and reject invalid values before any native change;
+zero and one are deliberate valid endpoints. Native entry references are pinned
+through setters/pulse and notifications. Ordinary, protected editable-combo and
+inherited SpinButton entries share the API.
+
+```nim
+entry.progressFraction = 0.625 # Determinate overlay, not stored text.
+entry.progressPulseStep = 0.15
+entry.progressPulse()         # Enter activity; subsequent calls move the block.
+entry.progressFraction = 0    # Explicitly end activity and clear the overlay.
+```
+
+The first pulse enters GTK activity at the initial position and resets the native
+fraction to zero; it **does not emit notify::progress-fraction**. Later pulses move
+GTK's block according to native direction/step policy. There is no public activity
+getter, so progressFraction==0 cannot distinguish activity from an empty determinate
+indicator. The SDK deliberately keeps no guessed private flag or shadow mode. Every
+fraction assignment ends activity, including assigning zero when the getter is
+already zero. GTK emits its native fraction notification for that transition;
+assigning an unchanged determinate fraction does not force a notification. Invalid
+assignments leave native activity unchanged.
+
+Changing the step does not enter activity or reset its position; it sets the native
+width/movement fraction for subsequent drawing/pulses. Step zero can produce an
+invisible zero-width block; step one can span the available progress area. Geometry,
+bounce, clipping, theme styling and native determinate RTL direction remain GTK's
+policy. No independent promise of visual percentage, accessible job completion or
+animation duration is made. The progress overlay does not resize/reorder icons,
+rewrite text, change selection coordinates, select combo rows, validate spin values,
+authorize input, reset completion history or relax readonly/password-copy policy.
+
+progressPulse is **one explicit UI-thread operation**, not a timer, event pump,
+worker, source connection or job runner. Applications choose when to call it and
+when to assign a determinate/zero fraction. Hide/show retains native policy; no
+background animation is installed. GTK may redraw independently for normal reasons.
+Raw property observers still obey native callback rules; no new asynchronous
+progress-observation abstraction is implied by native notifications.
+
+The inputs example has requested-fraction, pulse-once and explicit clear controls;
+the requested fraction control is not an activity-mode getter. Hidden
+`tests/tgtk2entryprogress.nim` keeps entries unrealized and checks defaults,
+notifications/transitions, atomic NaN/infinity/range rejection, guards, notification
+pins and unchanged text/selection/completion/icons/readonly/password/combo/SpinButton
+behavior. Five native prototype checks and a double-precision callback/pulse probe
+cover ABI. Opt-in `testMappedEntryProgress` requires an isolated display with
+GTK2_TEST_VIRTUAL_DISPLAY=1: native offscreen pixels cover determinate/activity/clear,
+zero/full-width steps, RTL, hide/show, unchanged public icon-window geometry and
+password/read-only combo/SpinButton drawing. Normal tests never realize widgets,
+claim clipboard ownership, request selections or synthesize desktop input.
+
 ## Synchronous model functions and cell presentation
 
 The expanded [proxies example](../examples/proxies.nim) combines a custom score
@@ -4759,7 +4813,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -4798,7 +4852,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

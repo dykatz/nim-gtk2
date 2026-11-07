@@ -3,6 +3,20 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_entry_progress_abi(gdouble (*value)(GtkEntry *, gdouble), void (*pulse)(GtkEntry *)) {
+  typedef void (*Set)(GtkEntry *, gdouble);
+  typedef gdouble (*Get)(GtkEntry *);
+  typedef void (*Pulse)(GtkEntry *);
+#define PROGRESS_PROTO(TYPE, FN) typedef char FN##_signature[__builtin_types_compatible_p(TYPE, __typeof__(&FN)) ? 1 : -1]; (void)sizeof(FN##_signature)
+  PROGRESS_PROTO(Set, gtk_entry_set_progress_fraction);
+  PROGRESS_PROTO(Get, gtk_entry_get_progress_fraction);
+  PROGRESS_PROTO(Set, gtk_entry_set_progress_pulse_step);
+  PROGRESS_PROTO(Get, gtk_entry_get_progress_pulse_step);
+  PROGRESS_PROTO(Pulse, gtk_entry_progress_pulse);
+#undef PROGRESS_PROTO
+  pulse((GtkEntry *)(guintptr)0xe2);
+  return sizeof(gdouble) == 8 && value((GtkEntry *)(guintptr)0xe1, 0.1234567890123) == 0.9876543210123;
+}
 typedef gunichar (*NimEntryMaskPolicy)(GtkEntry *, gunichar);
 gboolean nim_gtk2_entry_editing_abi(NimEntryMaskPolicy mask) {
   typedef void (*BoolSet)(GtkEntry *, gboolean);

@@ -139,6 +139,10 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Entry progress now has checked native double-precision fraction/pulse-step controls
+and an explicit pulse operation—no timer or private activity state. See
+[Entry progress feedback](docs/gtk2.md#entry-progress-feedback), the inputs controls
+and opt-in isolated `testMappedEntryProgress` rendering tests.
 Entry now exposes native overwrite/frame and checked Unicode mask/default policies,
 with password-copy safeguards and native Insert/PRIMARY semantics documented.
 See [editing and concealed text](docs/gtk2.md#entry-editing-and-concealed-text-presentation),

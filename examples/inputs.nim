@@ -40,6 +40,22 @@ proc main() =
   let activateDefault = newCheckButton("Activate host default on Return (this window has no implicit default)")
   activateDefault.onToggled(proc () = name.entry.activatesDefault = activateDefault.active)
   layout.packStart(activateDefault, packShrink)
+  let progressRow = newHBox(spacing = 6)
+  let fraction = newSpinButton(0, 1, 0.05)
+  fraction.digits = 2
+  let pulse = newButton("Pulse once (no automatic timer)")
+  let clearProgress = newButton("Clear / end activity")
+  progressRow.packStart(newLabel("Requested determinate progress:"), packShrink)
+  progressRow.packStart(fraction, packShrink)
+  progressRow.packStart(pulse, packShrink)
+  progressRow.packStart(clearProgress, packShrink)
+  layout.packStart(progressRow, packShrink)
+  name.entry.progressPulseStep = 0.15
+  fraction.onValueChanged(proc () = name.entry.progressFraction = fraction.value)
+  pulse.onClicked(proc () = name.entry.progressPulse())
+  clearProgress.onClicked(proc () =
+    name.entry.progressFraction = 0 # Explicit assignment ends activity even at zero.
+    fraction.value = 0)
   let editingRow = newHBox(spacing = 6)
   let overwrite = newCheckButton("Overwrite typed input (Insert also toggles natively)")
   let frame = newCheckButton("Entry frame (not combo outer frame)")

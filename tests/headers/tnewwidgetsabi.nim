@@ -14,6 +14,10 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  EntryProgressValue = proc (entry: gtk.PEntry, value: g.gdouble): g.gdouble {.cdecl.}
+  EntryProgressPulse = proc (entry: gtk.PEntry) {.cdecl.}
+proc invokeEntryProgress(value: EntryProgressValue, pulse: EntryProgressPulse): g.gboolean {.cdecl, importc: "nim_gtk2_entry_progress_abi".}
 type EntryMaskPolicy = proc (entry: gtk.PEntry, value: g.gunichar): g.gunichar {.cdecl.}
 proc invokeEntryEditing(mask: EntryMaskPolicy): g.gboolean {.cdecl, importc: "nim_gtk2_entry_editing_abi".}
 type EntryIconSignal = proc (entry: gtk.PEntry, position: gtk.TEntryIconPosition,
@@ -221,6 +225,16 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Entry progress native prototypes, pointer and gdouble/pulse callback ABI":
+    var pulses {.global.} = 0
+    proc value(entry: gtk.PEntry, input: g.gdouble): g.gdouble {.cdecl.} =
+      doAssert cast[uint](entry) == 0xe1 and input == 0.1234567890123
+      0.9876543210123
+    proc pulse(entry: gtk.PEntry) {.cdecl.} =
+      doAssert cast[uint](entry) == 0xe2
+      inc pulses
+    check g.toBool(invokeEntryProgress(value, pulse)) and pulses == 1
+
   test "Entry overwrite/frame/visibility/mask prototypes and 32-bit Unicode scalar ABI":
     proc mask(entry: gtk.PEntry, value: g.gunichar): g.gunichar {.cdecl.} =
       doAssert cast[uint](entry) == 0xb1 and value == 0x1f512
