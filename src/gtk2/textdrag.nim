@@ -66,11 +66,11 @@ proc textSiteDestroyed(instance, data: pointer) {.cdecl, gcsafe.} =
 proc connectTextSite(s: TextSiteState, signal: cstring, thunk: g.TGCallback) =
   let id = g.g_signal_connect_data(s.widget, signal, thunk, cast[pointer](s), nil, g.TGConnectFlags(0))
   s.handlers.add(id)
-proc checkTextPad(w: Widget): rawGtk.PWidget =
+proc checkTransferPad(w: Widget): rawGtk.PWidget =
   result = w.raw
   let kind = g.G_OBJECT_TYPE(result)
   if kind != rawGtk.drawing_area_get_type() and kind != rawGtk.event_box_get_type():
-    raise newException(ValueError, "SDK text DnD requires an ordinary DrawingArea or EventBox pad")
+    raise newException(ValueError, "SDK DnD requires an ordinary DrawingArea or EventBox pad")
 proc sourceBegin(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
     let s = cast[TextSiteState](data)
@@ -141,7 +141,7 @@ proc destData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
       if valid: queueRecent(cast[pointer](s.queue), value)
       return
 proc installTextSite(w: Widget, source: bool): TextSiteState =
-  let p = checkTextPad(w)
+  let p = checkTransferPad(w)
   let key = if source: textSourceKey.cstring else: textDestKey.cstring
   if g.get_data(cast[g.PGObject](p), key) != nil:
     raise newException(ValueError, "widget already has this SDK text transfer site")

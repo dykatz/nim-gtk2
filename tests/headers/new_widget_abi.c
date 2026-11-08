@@ -3,6 +3,30 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_uri_drag_abi(gboolean (*drop)(GtkWidget *, GdkDragContext *, gint, gint, guint),
+  void (*data)(GtkWidget *, GdkDragContext *, gint, gint, GtkSelectionData *, guint, guint),
+  void (*del)(GtkWidget *, GdkDragContext *)) {
+  typedef void (*Get)(GtkWidget *, GdkDragContext *, GdkAtom, guint32);
+  typedef void (*Finish)(GdkDragContext *, gboolean, gboolean, guint32);
+  typedef GdkAtom (*Find)(GtkWidget *, GdkDragContext *, GtkTargetList *);
+  typedef void (*Source)(GtkWidget *, GdkModifierType, const GtkTargetEntry *, gint, GdkDragAction);
+  typedef void (*Dest)(GtkWidget *, GtkDestDefaults, const GtkTargetEntry *, gint, GdkDragAction);
+#define URI_DRAG_ABI(TYPE, EXPR) typedef char checked[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(checked)
+  { URI_DRAG_ABI(Get, &gtk_drag_get_data); }
+  { URI_DRAG_ABI(Finish, &gtk_drag_finish); }
+  { URI_DRAG_ABI(Find, &gtk_drag_dest_find_target); }
+  { URI_DRAG_ABI(Source, &gtk_drag_source_set); }
+  { URI_DRAG_ABI(Dest, &gtk_drag_dest_set); }
+  { URI_DRAG_ABI(__typeof__(drop), ((GtkWidgetClass *)0)->drag_drop); }
+  { URI_DRAG_ABI(__typeof__(data), ((GtkWidgetClass *)0)->drag_data_received); }
+  { URI_DRAG_ABI(__typeof__(del), ((GtkWidgetClass *)0)->drag_data_delete); }
+#undef URI_DRAG_ABI
+  if (drop((GtkWidget *)(guintptr)0xc1, (GdkDragContext *)(guintptr)0xc2, -456789, 123456, 0xf2345678u) != -33) return FALSE;
+  data((GtkWidget *)(guintptr)0xc1, (GdkDragContext *)(guintptr)0xc2, -400000, 500000,
+       (GtkSelectionData *)(guintptr)0xc3, 0x89abcdefu, 0xf2345678u);
+  del((GtkWidget *)(guintptr)0xc1, (GdkDragContext *)(guintptr)0xc2);
+  return sizeof(GtkDragResult) == sizeof(gint);
+}
 gboolean nim_gtk2_uri_selection_abi(gboolean (*set)(GtkSelectionData *, gchar **),
                                   gchar **(*get)(GtkSelectionData *)) {
   typedef gboolean (*Set)(GtkSelectionData *, gchar **);

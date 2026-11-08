@@ -30,6 +30,29 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### URI COPY-only drag/drop functionality
+
+Ordinary DrawingArea/EventBox pads now offer URI-only drag-begin snapshots and
+copied per-drop idle observations. Native action is checked twice; empty lists
+succeed, malformed/unavailable/text/MOVE drops do not deliver. Completion uses
+exactly one finish/delete=false per tracked request and never DEFAULT_DROP.
+Observation is not application authorization, pre-finish acceptance or automatic
+file opening. Source URI values can be replaced atomically for later drags.
+
+Disconnect/destroy promptly releases observations, but separate wire/context/widget
+pins and an unrealized same-screen receiver survive until the true native reply/
+timeout. This avoids GTK's removal of the destroyed pad's signal handlers. A native
+URI destination reservation blocks replacement while draining; cleanup gets its
+own idle pin and never accesses private GTK state or realizes/maps the receiver.
+GTK2's XDND source-success reporting is not destination acceptance proof; no patch,
+extra finish or simulated history/cancel is added.
+
+Five public prototypes/three callback signatures and signed-coordinate/full unsigned
+payload probes supplement hidden ownership/purity/conflict tests and isolated real
+XTEST/local/foreign/delayed-reply regressions. Desktop example adds URI inspection
+pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Application-controlled
+acceptance, images/binary/MOVE remain separate; private layout audits remain deferred.
+
 ### URI clipboard functionality
 
 Copied `UriList` values, URI-only ownership offers and cancelable/owner-bound
@@ -45,7 +68,8 @@ get results are copied/freed with `g_strfreev`; setter inputs stay live until GT
 copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
-URI DnD, images/binary and MOVE remain separate; private layout audits are deferred.
+URI pads are described above; images/binary and MOVE remain separate, and private
+layout audits are deferred.
 
 ### Rich clipboard negotiation
 

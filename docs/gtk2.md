@@ -2854,9 +2854,87 @@ handles without realizing widgets, claiming PRIMARY or requesting selections.
 owners, malformed/empty/unavailable results, cancellation, replacement, dropped
 tokens, owner destruction and reentrant/throwing callbacks. Native header probes
 check both public signatures and `char**`/full signed `gboolean` callback ABI.
-URI drag/drop, images/binary payloads, MOVE and asynchronous application acceptance
-remain separate functionality batches. Raw TextLayout audits are deferred, not
+URI COPY-only pads are described below. Images/binary payloads, MOVE and
+application-controlled acceptance remain separate functionality batches. Raw TextLayout audits are deferred, not
 continued or certified by this feature.
+
+## URI COPY-only drag/drop pads
+
+`DrawingArea` and `EventBox` pads provide `enableUriDrag(UriList | openArray[string])`
+and `onUriDrop(proc(value: UriDrop))`. Only exact ordinary pad types are supported,
+not editor/model/native private DnD sites or arbitrary subclasses. Source and
+destination may share a pad; only one native site per direction is allowed. Text
+and URI SDK sites cannot overwrite each other in that direction. Existing public
+native target lists are rejected. GTK has no public registration query for every
+empty-list/proxy raw site: do not preconfigure such sites on these pads or combine
+raw site mutation with SDK ownership. No private registry inspection is guessed.
+No widget is shown,
+realized or reparented by configuration. Native UI operations/callbacks/final
+releases stay on the UI thread and mutable site operations obey pure-function guards.
+
+```nim
+let source = sourcePad.enableUriDrag(["file:///tmp/a%20b", "urn:example:token"])
+let site = destinationPad.onUriDrop(proc (value: UriDrop) =
+  echo value.uris, " at ", value.x, ",", value.y) # Inspect only; never auto-open.
+source.uris = newUriList(["urn:example:next-drag"])
+# source.uris also accepts openArray[string]; its getter returns a copied sequence.
+# site.disconnect() cancels observation; site.draining tells whether cleanup awaits a wire reply.
+```
+
+Source URI data is copied/validated before configuration or replacement, and
+snapshotted at native **drag-begin**. Mid-drag changes affect only later drags.
+Targets advertise only text/uri-list and only COPY; no plain-text fallback, DELETE,
+MOVE semantics, custom drag icon or model/editor rebinding is installed. Disconnect
+removes the source; outstanding native requests cannot extract a newer snapshot
+through a disconnected source. Dropped source/drop tokens do not cancel sites.
+
+The destination requires the actual selected action to be COPY at both drop and
+receipt. It reuses public URI type/format/UTF-8/NUL/token checks and native comment/
+line parsing. Valid empty URI lists succeed; malformed/unavailable/wrong-type data
+fails as a whole and emits no observation. Each tracked request is finished exactly
+once with delete=false; DEFAULT_DROP is not set. Selected COPY alone does not imply
+a valid URI reply. `UriDrop` contains copied uris, original pad-local x/y and uint32
+native event time; no context, selection pointer or C vector escapes.
+
+`onUriDrop` is a **per-drop idle observation, not an acceptance predicate**. Native
+completion precedes application delivery; transfer success means only valid URI
+transport, not scheme/authority/file authorization or successful application work.
+Validate every use independently. Nothing is decoded, opened, launched or inserted.
+GTK2's X11 source handler treats received XDND Finished as source success without
+honoring its failure bit; `drag-end`/absence of `drag-failed` cannot prove destination
+acceptance. No synthetic correction, second finish or native patch is introduced.
+
+Disconnect or widget destruction promptly releases callback captures and queued
+values. A completed transfer is not rolled back when its observation is canceled.
+A pending native selection cannot be canceled: it drains to the actual reply/timeout,
+then finishes false, without calling application code. Finishing prematurely can
+retire the source before it answers, so the SDK does not do so. The independent wire
+pin owns context, destination and a separate **unrealized receiver Window on the
+same screen**. GTK's public drag_get_data creates its own native IPC resource, as
+usual; the SDK never realizes/maps that receiver or the user's pad. Destroying the
+pad clears its signals, but not the independent receiver. Raw drag-data-received
+on the original pad is consequently not a second delivery interface for this API.
+
+An inactive destination retains its native URI site/reservation while draining,
+blocking both URI and text SDK replacement. Cleanup runs after native receipt (at
+idle when necessary), with a separate widget/state pin; `site.connected` is false
+immediately and `site.draining` stays true until cleanup. Retry configuration only
+from a later event after draining becomes false, never with a nested event pump.
+Do not replace target lists, unset native sites, disconnect handlers or destroy
+SDK-owned receiver windows through raw APIs while a site is active/draining.
+No private GTK bookkeeping, layout/cache repair or invented wire cancellation is used.
+
+[examples/desktop.nim](../examples/desktop.nim) has URI COPY source/inspection pads.
+`tests/tgtk2uridrag.nim` covers unrealized configuration, copied/atomic values, type/
+site conflicts, teardown/capture ownership and pure guards without requesting data,
+claiming PRIMARY or synthesizing input. `nimble testMappedUriDrag` requires isolated
+DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST for real input. It tests actual
+local/foreign XDND, begin snapshots/empty lists, malformed/text/MOVE/source-canceled
+rejection, no DELETE, reentrant/throwing observations, queued cancellation and delayed
+foreign replies surviving disconnect/destruction without reaching replacement sites.
+Other platforms receive semantic checks, not simulated native drags. Native header
+probes verify five public function prototypes, three widget callback signatures,
+signed coordinates/booleans and full unsigned info/time payloads.
 
 ## Clipboard and copy-only text drag/drop
 

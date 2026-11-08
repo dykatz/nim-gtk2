@@ -48,6 +48,11 @@ type TextCoords = proc (view: gtk.PTextView, window: gtk.TTextWindowType, x, y: 
 proc textWindowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_text_window_type_size_abi".}
 proc publicTextPaths(coords: TextCoords): g.gboolean {.cdecl, importc: "nim_gtk2_public_text_paths_abi".}
 type
+  UriDropAbi = proc (w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint, time: g.guint): g.gboolean {.cdecl.}
+  UriDataAbi = proc (w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint, data: gtk.PSelectionData, info, time: g.guint) {.cdecl.}
+  UriDeleteAbi = proc (w: gtk.PWidget, context: gd.PDragContext) {.cdecl.}
+proc uriDragAbi(drop: UriDropAbi, data: UriDataAbi, del: UriDeleteAbi): g.gboolean {.cdecl, importc: "nim_gtk2_uri_drag_abi".}
+type
   UriSet = proc (data: gtk.PSelectionData, uris: g.PPgchar): g.gboolean {.cdecl.}
   UriGet = proc (data: gtk.PSelectionData): g.PPgchar {.cdecl.}
 proc uriSelectionAbi(set: UriSet, get: UriGet): g.gboolean {.cdecl, importc: "nim_gtk2_uri_selection_abi".}
@@ -337,6 +342,18 @@ suite "new raw binding native header ABI":
     check sizeof(gtk.PIconSet) == sizeof(pointer)
     check textWindowTypeSize().int == sizeof(gtk.TTextWindowType)
     check g.toBool(publicTextPaths(coords))
+
+  test "URI drag public prototypes and signed-coordinate/full-width signal ABI":
+    proc drop(w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint, time: g.guint): g.gboolean {.cdecl.} =
+      doAssert cast[uint](w) == 0xc1 and cast[uint](context) == 0xc2
+      doAssert x == -456789 and y == 123456 and time == 0xf2345678'u32
+      g.gboolean(-33)
+    proc data(w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint, data: gtk.PSelectionData, info, time: g.guint) {.cdecl.} =
+      doAssert cast[uint](w) == 0xc1 and cast[uint](context) == 0xc2 and cast[uint](data) == 0xc3
+      doAssert x == -400000 and y == 500000 and info == 0x89abcdef'u32 and time == 0xf2345678'u32
+    proc del(w: gtk.PWidget, context: gd.PDragContext) {.cdecl.} =
+      doAssert cast[uint](w) == 0xc1 and cast[uint](context) == 0xc2
+    check g.toBool(uriDragAbi(drop, data, del))
 
   test "URI selection native prototypes, char** and signed gboolean callbacks":
     proc set(data: gtk.PSelectionData, uris: g.PPgchar): g.gboolean {.cdecl.} =

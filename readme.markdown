@@ -116,6 +116,12 @@ selection. See the [extension guide](docs/gtk2.md#drawinginput-rich-text-and-edi
 TreeView selection observers are deferred/coalesced; edits are copied observations,
 not automatic commits. Pixel/native-editor tests use the separate opt-in
 `nimble testMappedExtensions` task on an isolated virtual display.
+URI COPY-only drag/drop pads now provide drag-begin snapshots and copied idle
+observations, with safe pending-reply teardown and no file opening, text fallback
+or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pads)
+and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
+isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
+
 URI clipboard transfers now offer copied URI-only lists and cancelable asynchronous
 reads, with distinct empty/unavailable/rejected results and no automatic file opening
 or text fallback. See the [URI guide](docs/gtk2.md#uri-clipboard-transfers) and

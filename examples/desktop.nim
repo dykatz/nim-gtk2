@@ -6,7 +6,7 @@ import gtk2
 
 proc main() =
   gtk2.init()
-  let window = newWindow("GTK2 desktop infrastructure", 600, 300)
+  let window = newWindow("GTK2 desktop infrastructure", 600, 420)
   defer: window.destroy()
   let invisible = newInvisible()
   defer: invisible.destroy() # Realized input-only resource; not a visual child.
@@ -43,6 +43,23 @@ proc main() =
         status.text = if value.uris.len == 0: "Available empty URI list" else: value.uris.join("\n")
       of urisUnavailable: status.text = "No text/uri-list target available"
       of urisRejected: status.text = "Rejected URI data: " & value.error))
+  let uriPads = newHBox(spacing = 16)
+  layout.packStart(uriPads, packShrink)
+  let uriSource = newEventBox()
+  let uriDest = newEventBox()
+  uriSource.add(newLabel("Drag URI samples (COPY)"))
+  uriDest.add(newLabel("Drop URI list: inspect only"))
+  for pad in [uriSource, uriDest]:
+    pad.setSizeRequest(240, 60)
+    uriPads.packStart(pad)
+  let uriDrag = uriSource.enableUriDrag(["file:///tmp/example%20name", "urn:example:sample"])
+  let uriDrop = uriDest.onUriDrop(proc (value: UriDrop) =
+    # Native transfer is already finished: this is observation, not an accept hook.
+    # Validate scheme/authority/application policy before ever using received data.
+    status.text = "URI COPY at " & $value.x & "," & $value.y & ":\n" & value.uris.join("\n"))
+  defer:
+    uriDrag.disconnect()
+    uriDrop.disconnect() # A pending native request drains without delivering to this observer.
   when defined(posix) and not defined(macosx):
     let socket = newSocket()
     socket.setSizeRequest(320, 100)

@@ -68,6 +68,15 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_uri_drag_keeps_native_finish_and_receiver_scope_explicit(self):
+        text = (ROOT / 'src/gtk2/uridrag.nim').read_text()
+        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
+        self.assertIn('rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('readSelectionUris(selection)', text)
+        self.assertNotRegex(text, r'rawGtk\.(?:realize|show|show_all|map|drag_(?:source|dest)_add_text_targets)\s*\(')
+        self.assertNotIn('DEST_DEFAULT_DROP', text)
+        self.assertNotIn('gtk-drag-dest', text) # No private native qdata access.
+
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):
             if module.stem != 'gtk2': # src/gtk2.nim is now the ergonomic public API.

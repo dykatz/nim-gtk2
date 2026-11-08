@@ -8,14 +8,37 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: URI COPY-only drag-and-drop pads
+## Next proposed functionality batch: copied URI drop acceptance predicates
 
-- [ ] Extend copied URI tokens to explicit non-editable source/drop pads, preserving
-      native COPY-only completion, cancellation and independent wire pin lifetimes.
-- [ ] Define application observation/acceptance scope without auto-opening files,
-      inventing MOVE deletion, modifying private native sites or implicit text fallback.
-- [ ] Update existing examples/docs plus hidden ARC/ORC/native ABI and isolated
-      real transfer regressions. Image/binary transfers remain separately scoped.
+- [ ] Add explicit synchronous application acceptance over copied URI drop values,
+      separate from post-finish observations, with pure-function guards/contained errors.
+- [ ] Define closure/owner/native lifetime and reentrancy semantics without event pumps,
+      file opening, MOVE deletion or pretending GTK2 source completion proves acceptance.
+- [ ] Expand existing examples/docs and hidden ARC/ORC/native ABI/isolated real transfers;
+      asynchronous acceptance, image/binary payloads and private audits stay separate.
+
+## Completed functionality batch: URI COPY-only drag-and-drop pads
+
+- [x] Added URI-only ordinary DrawingArea/EventBox source/drop sites, copied values,
+      drag-begin snapshots/atomic updates and per-drop copied idle observations.
+      COPY checked at drop/receipt, valid empty supported, malformed/text/MOVE/source-
+      disconnected replies rejected, no DELETE, implicit text fallback or file opening.
+- [x] Defined post-finish observation (not authorization/acceptance), prompt capture/
+      queue cancellation and independent wire/context/widget/receiver pins. Unrealized
+      same-screen receiver survives original pad destruction; native selection drains
+      before failure finish and cleanup, blocking replacement until draining=false.
+      No private state, implicit realization/reparenting, cache repair or native patch.
+- [x] Added five native function/three widget callback signature checks plus full signed
+      coordinate/gboolean and unsigned info/time probes. Recorded native GTK2 XDND
+      source-success reporting limitation; no duplicate finish/source-success repair.
+- [x] Added unrealized value/conflict/lifetime/purity tests and actual isolated XTEST
+      local/foreign/empty/malformed/text/MOVE/source-cancel/queued-cancel/teardown tests,
+      including delayed foreign replies and blocked replacement after disconnect/destroy.
+      Updated desktop example, API/migration guides and tasks; audits remain deferred.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/calculator/
+      bindings/raw/layout/native ABI suites, Windows amd64/i386/macOS amd64 semantic
+      checks, all examples, generator/package/diff checks, all isolated mapped tasks
+      and the missing-opt-in guard. No installed GTK/source patch changes.
 
 ## Completed functionality batch: URI clipboard transfers
 
@@ -494,7 +517,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 ### Clipboard and drag-and-drop
 
 - [x] URI clipboard offers/requests with copied tokens (functionality batch above).
-- [ ] URI COPY-only drag/drop pads (next proposed functionality batch).
+- [x] URI COPY-only drag/drop pads with independent wire teardown (batch above).
+- [ ] Copied synchronous URI drop acceptance (next proposed functionality batch).
 - [ ] Image and binary transfers.
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
@@ -544,6 +568,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] URI COPY-only pad snapshots/observations, draining reply/receiver lifetimes and
+      isolated real local/foreign cancellation/destruction regressions (above).
 - [x] URI clipboard offers/async requests with copied values, explicit failure modes,
       independent native pins and isolated local/foreign transfer regressions (above).
 - [x] Private line/segment APIs/guessed types removed, opaque pointer boundaries and
