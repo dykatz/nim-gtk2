@@ -30,6 +30,29 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied binary clipboard publication
+
+`newBinaryData(mime, bytes)` and `Clipboard.offerBinary(value | mime, bytes)` add
+opaque outgoing format-8 publication, copied storage/access and native-pinned
+`BinaryClipboardOffer.active/clear` lifetimes. Empty is available; default/invalid
+MIME is not. All byte values/NUL/non-UTF-8 remain unchanged. Conservative lowercase
+application MIME/subtype rules exclude parameters, other top-level types and known
+GTK/GDK/color/root-drop protocol names, not every application's special format.
+Maximum length is gint minus one because native GTK allocates length+1; this is not
+a promise of allocation success or a security sandbox.
+
+Early shared pure guards, preclaim validation, callback-local storage roots, exact
+native type/format/count and idempotent failed-candidate cleanup preserve the existing
+offer ownership/reentrant-clear model. No parser, text/image/URI fallback, persistence,
+startup publication, DnD or delivery acknowledgment is invented. Data declared as
+JSON/PDF/etc. is not validated or made trustworthy by its MIME name.
+
+Desktop adds explicit copy-byte/clear buttons. Hidden no-claim tests, native setter/
+length/unsigned-byte/signed-count probes, source guards and isolated exact local/
+foreign/empty/replacement/PRIMARY/reentrant failure tests cover the path, including
+large foreign X11 INCR transfers. Incoming requests remain separate. See
+[binary clipboard guide](gtk2.md#copied-binary-clipboard-offers).
+
 ### Copied image clipboard publication
 
 `Clipboard.offerImage(Pixbuf)` publishes a private native pixel copy and returns an
@@ -47,9 +70,9 @@ of alpha/metadata retention in every encoder, and active does not imply delivery
 
 Desktop adds explicit copy/clear buttons. Hidden no-publication and isolated real
 local/foreign/PRIMARY PNG fixture tests cover mutation/source release, dropped tokens,
-replacement/stale clear and absence of text/URI fallback. Incoming image decoding,
-image DnD and binary payloads remain separate; no untrusted parser is automatically
-invoked. See [image clipboard guide](gtk2.md#copied-image-clipboard-offers).
+replacement/stale clear and absence of text/URI fallback. Binary offers are described
+above; incoming image decoding and image DnD remain separate. No untrusted parser
+is automatically invoked. See [image clipboard guide](gtk2.md#copied-image-clipboard-offers).
 
 ### Copied URI drop acceptance
 
@@ -95,7 +118,7 @@ Five public prototypes/three callback signatures and signed-coordinate/full unsi
 payload probes supplement hidden ownership/purity/conflict tests and isolated real
 XTEST/local/foreign/delayed-reply regressions. Desktop example adds URI inspection
 pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Copied synchronous acceptance is described above; asynchronous acceptance and
-images/binary/MOVE remain separate, and private layout audits remain deferred.
+image/binary DnD and MOVE remain separate, and private layout audits remain deferred.
 
 ### URI clipboard functionality
 
@@ -112,8 +135,8 @@ get results are copied/freed with `g_strfreev`; setter inputs stay live until GT
 copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
-URI pads are described above; images/binary and MOVE remain separate, and private
-layout audits are deferred.
+URI pads and image/binary offers are described above; incoming image/binary requests,
+image/binary DnD and MOVE remain separate, and private layout audits are deferred.
 
 ### Rich clipboard negotiation
 

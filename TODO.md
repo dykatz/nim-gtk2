@@ -8,14 +8,38 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied binary clipboard offers
+## Next proposed functionality batch: copied binary clipboard requests
 
-- [ ] Add explicit copied byte publication with an application MIME target, atomic
-      validation, native callback/clear ownership and no text/image decoding fallback.
-- [ ] Define reserved target/format/size boundaries and clear/token lifetimes; keep
-      incoming parsing, image requests/DnD, persistence and async acknowledgment separate.
-- [ ] Update existing examples/docs, hidden ARC/ORC/purity/ABI tests and isolated
-      local/foreign real byte transfers. Private audits remain deferred.
+- [ ] Add explicit application-MIME byte requests with exact type/format validation,
+      available-empty/unavailable/rejected distinctions and bounded application copies.
+- [ ] Defer copied observations to idle, support cancellation/owner destruction with
+      prompt capture release and independent native wire pins; no parser/fallback or
+      invented native cancellation. Native receipt allocation is not a security limit.
+- [ ] Update existing examples/docs and hidden ARC/ORC/ABI/isolated local/foreign/
+      large-transfer/cancellation regressions. Image decoding, persistence, binary
+      DnD, acknowledgments and private audits remain separate/deferred.
+
+## Completed functionality batch: copied binary clipboard offers
+
+- [x] Added newBinaryData, copied MIME/len/bytes access and offerBinary value/byte
+      overloads with BinaryClipboardOffer.active/clear. NUL/all byte values preserved,
+      valid empty distinct from default/invalid target; no parsing or fallback.
+- [x] Defined conservative lowercase application MIME/subtype subset, known native
+      protocol exclusions and gint-minus-one length bound for native length+1 arithmetic.
+      Pure value helpers plus early guarded publication/clear; invalid data before claim.
+- [x] Used native single application target/set_with_data/set format-8/type/count,
+      callback-local storage roots, native offer pins and idempotent clear/failure
+      release. Dropped tokens do not revoke; reentrant winners are not overwritten.
+      No startup publication, set_can_store/persistence, incoming parsing or DnD.
+- [x] Added hidden copies/MIME/bounds-source/purity tests, native setter/length/signed
+      format/count/unsigned-byte probes and isolated all-byte/empty/exact type-format/
+      repeat/drop/replacement/stale-clear/reentrant-failure/PRIMARY/no-fallback/foreign
+      ownership regressions including a real large foreign X11 INCR transfer. Desktop
+      has explicit byte-copy/clear buttons; API/migration/readme and scope docs updated.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, all hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff checks, every isolated mapped task and
+      missing-opt-in guard. Installed GTK unchanged; private audits remain deferred.
 
 ## Completed functionality batch: copied image clipboard offers
 
@@ -566,7 +590,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied synchronous URI drop acceptance (functionality batch above).
 - [x] Copied outgoing image clipboard snapshots (functionality batch above).
 - [ ] Incoming image requests, image drag/drop and clipboard-manager persistence.
-- [ ] Binary transfers (copied binary clipboard offers proposed next).
+- [x] Copied outgoing binary clipboard offers (functionality batch above).
+- [ ] Copied binary clipboard requests (proposed next) and binary drag/drop.
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
 - [x] Copied synchronous application URI drop acceptance (batch above).
@@ -616,6 +641,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Opaque binary clipboard offers, conservative MIME/size boundaries, exact native
+      byte/type/format publication and isolated foreign large transfer/clear regressions.
 - [x] Copied image clipboard offers, native writable encoding/clear pins and actual
       local/foreign trusted PNG mutation/ownership regressions (above).
 - [x] Copied pre-finish URI acceptance with pure guards, capture lifetimes and actual

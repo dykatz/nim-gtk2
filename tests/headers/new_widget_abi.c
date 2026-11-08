@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_binary_offer_abi(void (*set)(GtkSelectionData *, GdkAtom, gint, const guchar *, gint)) {
+  typedef void (*Set)(GtkSelectionData *, GdkAtom, gint, const guchar *, gint);
+  typedef char checked[__builtin_types_compatible_p(Set, __typeof__(&gtk_selection_data_set)) ? 1 : -1];
+  (void)sizeof(checked);
+  { typedef gint (*Length)(GtkSelectionData *);
+    typedef char length_checked[__builtin_types_compatible_p(Length, __typeof__(&gtk_selection_data_get_length)) ? 1 : -1];
+    (void)sizeof(length_checked); }
+  { static const guchar bytes[] = {0, 255, 128, 0};
+    set((GtkSelectionData *)(guintptr)0xc1, (GdkAtom)(guintptr)0xc2, -37, bytes, -83); }
+  return TRUE;
+}
+
 gboolean nim_gtk2_image_offer_abi(gboolean (*set)(GtkSelectionData *, GdkPixbuf *),
                                 GdkPixbuf *(*get)(GtkSelectionData *)) {
   typedef void (*Targets)(GtkTargetList *, guint, gboolean);

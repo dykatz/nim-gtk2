@@ -36,6 +36,19 @@ proc main() =
   clearImage.onClicked(proc () =
     imageOffer.clear()
     status.text = "Cleared our image offer if still current; no incoming image decoding.")
+  let copyBinary = newButton("Copy sample bytes")
+  let clearBinary = newButton("Clear byte offer")
+  imageRow.packStart(copyBinary, packShrink)
+  imageRow.packStart(clearBinary, packShrink)
+  let sampleBytes = newBinaryData("application/vnd.example.gtk2-demo", [0'u8, 255, 128, 0, 13, 10])
+  var binaryOffer: BinaryClipboardOffer
+  defer: binaryOffer.clear()
+  copyBinary.onClicked(proc () =
+    binaryOffer = getClipboard().offerBinary(sampleBytes)
+    status.text = "Offered " & $sampleBytes.len & " opaque bytes as " & sampleBytes.mime & "; no text/image fallback.")
+  clearBinary.onClicked(proc () =
+    binaryOffer.clear()
+    status.text = "Cleared our byte offer if still locally active.")
   let uriRow = newHBox(spacing = 8)
   layout.packStart(uriRow, packShrink)
   let copyUris = newButton("Copy sample URIs")

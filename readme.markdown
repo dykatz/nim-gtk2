@@ -126,6 +126,12 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied binary clipboard offers now publish opaque byte snapshots to explicit
+application MIME targets, including NUL/non-UTF-8 and valid empty data, without
+parsing or fallback. See the [binary guide](docs/gtk2.md#copied-binary-clipboard-offers)
+and explicit desktop copy/clear buttons. `testMappedBinaryClipboard` requires an
+isolated display and opt-in.
+
 Copied image clipboard offers now publish private Pixbuf snapshots through native
 writable encoders, with explicit offer tokens/clear and no automatic decoding or
 persistence. The desktop example adds user-triggered copy-image/clear buttons.

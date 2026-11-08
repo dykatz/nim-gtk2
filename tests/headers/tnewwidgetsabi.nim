@@ -14,6 +14,9 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type BinarySetAbi = proc (selection: gtk.PSelectionData, atom: gd.TAtom, format: g.gint,
+    data: g.Pguchar, length: g.gint) {.cdecl.}
+proc binaryOfferAbi(set: BinarySetAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_offer_abi".}
 type
   ImageSetAbi = proc (selection: gtk.PSelectionData, image: pb.PPixbuf): g.gboolean {.cdecl.}
   ImageGetAbi = proc (selection: gtk.PSelectionData): pb.PPixbuf {.cdecl.}
@@ -287,6 +290,15 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "opaque byte selection setter/length signatures and signed format/count, unsigned bytes":
+    proc set(selection: gtk.PSelectionData, atom: gd.TAtom, format: g.gint,
+        data: g.Pguchar, length: g.gint) {.cdecl.} =
+      doAssert cast[uint](selection) == 0xc1 and cast[uint](atom) == 0xc2
+      doAssert format == -37 and length == -83
+      let bytes = cast[ptr UncheckedArray[byte]](data)
+      doAssert bytes[0] == 0 and bytes[1] == 255 and bytes[2] == 128 and bytes[3] == 0
+    let nativeSet: BinarySetAbi = gtk.set
+    check nativeSet != nil and g.toBool(binaryOfferAbi(set))
   test "image selection prototypes and full signed gboolean/pointer return ABI":
     proc set(selection: gtk.PSelectionData, image: pb.PPixbuf): g.gboolean {.cdecl.} =
       doAssert cast[uint](selection) == 0xc1 and cast[uint](image) == 0xc2

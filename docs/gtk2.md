@@ -2854,9 +2854,78 @@ handles without realizing widgets, claiming PRIMARY or requesting selections.
 owners, malformed/empty/unavailable results, cancellation, replacement, dropped
 tokens, owner destruction and reentrant/throwing callbacks. Native header probes
 check both public signatures and `char**`/full signed `gboolean` callback ABI.
-URI COPY-only pads are described below. Images/binary payloads, MOVE and
-application-controlled acceptance remain separate functionality batches. Raw TextLayout audits are deferred, not
-continued or certified by this feature.
+URI COPY-only pads/copied acceptance and image/binary offers are described below.
+Incoming image/binary requests, MOVE and asynchronous acceptance remain separate
+functionality batches. Raw TextLayout audits are deferred, not continued or certified
+by these features.
+
+## Copied binary clipboard offers
+
+`newBinaryData(mime, openArray[byte])` creates an immutable-by-API copied value;
+`.mime`, `.len` and `.bytes` return its target, byte count and independent copied byte
+storage. Embedded NUL, invalid UTF-8 and all 256 byte values are ordinary data. No
+string overload, decoding, normalization, framing or compression is implicit.
+
+```nim
+let value = newBinaryData("application/vnd.example.sample", [0'u8, 255, 128, 0])
+let offer = getClipboard().offerBinary(value) # Explicit user action only.
+# Also: clipboard.offerBinary(mime, bytes)
+# offer.active / offer.clear(); dropping tokens alone does not revoke ownership.
+```
+
+MIME validation deliberately accepts a **conservative subset**, not arbitrary atom
+names or every valid MIME spelling: exactly lowercase `application/`, followed by
+1..127 ASCII subtype characters. The first must be a lowercase letter/digit; the
+rest may additionally contain `!#$&-^_.+`. Whitespace, NUL, uppercase, parameters,
+extra slashes and other top-level types are errors, never silently normalized.
+`application/octet-stream`, `application/json`, vendor names and custom x- names are
+allowed; x-gtk-/x-gdk- prefixes and exact x-color/x-rootwindow-drop subtypes are
+reserved. This prevents use as GTK rich-text/color/root-drop or bare TARGETS,
+TIMESTAMP, MULTIPLE, DELETE, SAVE_TARGETS/text/image protocol adapters. It is **not**
+a universal registry of every application's special target or a claim that JSON,
+PDF or other declared data is valid, trusted or authorized. Applications must know
+their chosen format and independently validate every later use.
+
+The private payload is copied before publication. Byte count must fit **gint minus
+one** (at most 2147483646), because GTK2's public selection setter allocates length+1
+using gint arithmetic. Actual memory/platform limits may be smaller; no allocation
+success or denial-of-service boundary is promised. Default BinaryData has no valid
+MIME and cannot be offered; a constructed zero-length value is a valid available
+empty payload, not clear/unavailable. Validation/copy failure precedes native atom/
+ownership changes and leaves the old offer alone. Pure value construction/access
+uses no GTK; both offer overloads and clear reject synchronous model/URI predicate
+calls before native lookup or publication. GTK initialization/display and UI-thread
+operation/callback/final-release requirements apply.
+
+`offerBinary` uses native `set_with_data` with one ordinary application-data target
+(flags/info zero). GTK's own housekeeping protocol targets remain native. The get
+callback roots the original storage and calls `gtk_selection_data_set` with the
+selected MIME as type, format **8** and the exact byte length. GTK copies bytes;
+its trailing terminator is not part of the payload. No UTF-8/string conversion,
+text/URI/image fallback, format-16/32 reinterpretation or invented INCR transport is
+installed. Large foreign transfers use GTK's actual selection protocol.
+
+`BinaryClipboardOffer.active` follows native clear notifications, not an atomic
+cross-process ownership check or delivery acknowledgment. Native pins retain payload/
+clipboard references after token loss, until clear/replacement/ownership loss.
+Inactive retained tokens no longer retain the payload; stale inactive clear and
+repeated clear are no-ops. Reentrant old-owner clear may install a winner and cause
+GTK itself to clear the failed candidate before returning false. Cleanup is
+idempotent, raises for the failed claim and never retries over the winner. Already-
+started requests may complete old data; clear is not a secure eraser or transaction.
+No persistence/set_can_store, startup publication, incoming request/parser API,
+application acknowledgment or binary DnD is added. PRIMARY is explicit only.
+
+[examples/desktop.nim](../examples/desktop.nim) has user-triggered opaque byte copy/
+clear buttons. Hidden value/MIME/invalid-handle/purity tests never claim ownership,
+request data or realize widgets. `nimble testMappedBinaryClipboard` requires isolated
+DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1. It verifies exact type/format/length, all byte
+values, empty/unavailable, copied input/getters, dropped tokens, replacement/stale
+clear, actual reentrant claim failure, no fallback, independent explicit PRIMARY,
+foreign ownership loss and a 600013-byte foreign transfer exceeding GTK2 X11's INCR
+threshold. The test-only raw receiver copies bytes without parsing; an ergonomic
+incoming API remains separate. Native setter/length prototypes and signed format/
+count/unsigned-byte ABI probes plus source ownership/size/scope guards cover this path.
 
 ## Copied image clipboard offers
 
@@ -5338,7 +5407,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -5346,7 +5415,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, incoming images/binary transfers, image DnD, asynchronous URI
+additional rich clipboard protocols, incoming image/binary requests, image/binary DnD, asynchronous URI
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

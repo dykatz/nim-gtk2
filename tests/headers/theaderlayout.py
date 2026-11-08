@@ -68,6 +68,18 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_binary_clipboard_keeps_byte_length_copy_and_protocol_scope_explicit(self):
+        text = (ROOT / 'src/gtk2/binaryclipboard.nim').read_text()
+        self.assertIn('bytes.len > high(g.gint).int - 1', text)
+        self.assertIn('copyMem(addr result.payload[0], unsafeAddr bytes[0], bytes.len)', text)
+        self.assertIn('rawGtk.set(selection, s.atom, 8, p, g.gint(value.payload.len))', text)
+        self.assertIn('s.value = BinaryData()', text)
+        self.assertIn('GC_unref(s)', text)
+        self.assertIn('checkBinaryMime(value.target)', text)
+        for forbidden in ('set_can_store', 'request_contents', 'set_text(', 'set_uris(',
+                          'get_pixbuf(', 'realize(', 'show(', 'main_iteration'):
+            self.assertNotIn(forbidden, text)
+
     def test_image_clipboard_keeps_copy_encoding_and_native_clear_explicit(self):
         text = (ROOT / 'src/gtk2/imageclipboard.nim').read_text()
         self.assertLess(text.index('let snapshot = image.copy()'), text.index('rawGtk.set_with_data('))
