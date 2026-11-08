@@ -14,6 +14,10 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  ImageSetAbi = proc (selection: gtk.PSelectionData, image: pb.PPixbuf): g.gboolean {.cdecl.}
+  ImageGetAbi = proc (selection: gtk.PSelectionData): pb.PPixbuf {.cdecl.}
+proc imageOfferAbi(set: ImageSetAbi, get: ImageGetAbi): g.gboolean {.cdecl, importc: "nim_gtk2_image_offer_abi".}
 type TagEvent = proc (tag: gtk.PTextTag, obj: g.PGObject, event: gd.PEvent, iter: gtk.PTextIter): g.gboolean {.cdecl.}
 proc tagStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_tag_storage_abi".}
 proc tagApi(event: TagEvent): g.gboolean {.cdecl, importc: "nim_gtk2_tag_api_abi".}
@@ -283,6 +287,16 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "image selection prototypes and full signed gboolean/pointer return ABI":
+    proc set(selection: gtk.PSelectionData, image: pb.PPixbuf): g.gboolean {.cdecl.} =
+      doAssert cast[uint](selection) == 0xc1 and cast[uint](image) == 0xc2
+      g.gboolean(-73)
+    proc get(selection: gtk.PSelectionData): pb.PPixbuf {.cdecl.} =
+      doAssert cast[uint](selection) == 0xc1
+      cast[pb.PPixbuf](0xc2)
+    let nativeSet: ImageSetAbi = gtk.set_pixbuf
+    let nativeGet: ImageGetAbi = gtk.get_pixbuf
+    check nativeSet != nil and nativeGet != nil and g.toBool(imageOfferAbi(set, get))
   test "TextTag/table layout, public priority/membership and event ABI":
     let layout = [sizeof(gtk.TTextTag), offsetOf(gtk.TTextTag, table),
       offsetOf(gtk.TTextTag, name), offsetOf(gtk.TTextTag, priority),

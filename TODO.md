@@ -8,15 +8,36 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied image clipboard offers
+## Next proposed functionality batch: copied binary clipboard offers
 
-- [ ] Add explicit clipboard image publication from an owned copied Pixbuf snapshot,
-      isolating later source-pixel changes and auditing native target/clear lifetimes.
-- [ ] Keep native encoding/ownership semantics, GTK UI-thread/pure-function guards and
-      no automatic publication at startup; defer incoming decoding, binary formats,
-      image drag/drop and clipboard-manager persistence to separately scoped work.
-- [ ] Update existing examples/docs plus hidden ARC/ORC/native ABI and isolated
-      native image transfer/ownership regressions. Private audits remain deferred.
+- [ ] Add explicit copied byte publication with an application MIME target, atomic
+      validation, native callback/clear ownership and no text/image decoding fallback.
+- [ ] Define reserved target/format/size boundaries and clear/token lifetimes; keep
+      incoming parsing, image requests/DnD, persistence and async acknowledgment separate.
+- [ ] Update existing examples/docs, hidden ARC/ORC/purity/ABI tests and isolated
+      local/foreign real byte transfers. Private audits remain deferred.
+
+## Completed functionality batch: copied image clipboard offers
+
+- [x] Added explicit offerImage(Pixbuf), ImageClipboardOffer.active/clear and private
+      native pixel copies, isolating source mutation/release; dropped tokens do not
+      revoke native ownership. Invalid/copy/target preparation errors precede claim.
+- [x] Public writable-image target discovery/table allocation and native set_pixbuf
+      encoding preserve codec semantics; temporary list/table cleanup, callback-local
+      pixel pin and independent native offer pin/clear release. No set_can_store,
+      persistence, automatic startup publication, decoding, fallback or private state.
+- [x] Added early shared pure-function guards, native UI-thread/lifetime rules, six
+      public prototype/pointer/full gboolean probes and source ownership/scope guards.
+- [x] Added hidden no-claim/no-request/no-realization validation/purity tests and isolated
+      local/foreign trusted PNG fixture pixel/alpha/dimension, mutation/source release,
+      dropped-token/repeat/replacement/stale-clear/ownership-loss/reentrant-clear/
+      failed-candidate-cleanup/PRIMARY/no-fallback
+      regressions. Desktop has explicit copy-image/clear buttons; guides document
+      encoder failures/loss/metadata boundaries and non-atomic ownership semantics.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, all hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff checks, every isolated mapped task and
+      missing-opt-in guard. Installed GTK unchanged; private audits remain deferred.
 
 ## Completed functionality batch: copied URI drop acceptance predicates
 
@@ -543,7 +564,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] URI clipboard offers/requests with copied tokens (functionality batch above).
 - [x] URI COPY-only drag/drop pads with independent wire teardown (batch above).
 - [x] Copied synchronous URI drop acceptance (functionality batch above).
-- [ ] Image and binary transfers (copied image clipboard offers proposed next).
+- [x] Copied outgoing image clipboard snapshots (functionality batch above).
+- [ ] Incoming image requests, image drag/drop and clipboard-manager persistence.
+- [ ] Binary transfers (copied binary clipboard offers proposed next).
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
 - [x] Copied synchronous application URI drop acceptance (batch above).
@@ -593,6 +616,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied image clipboard offers, native writable encoding/clear pins and actual
+      local/foreign trusted PNG mutation/ownership regressions (above).
 - [x] Copied pre-finish URI acceptance with pure guards, capture lifetimes and actual
       X11 outcome-bit/copy/error/deferred-release/foreign cancellation regressions (above).
 - [x] URI COPY-only pad snapshots/observations, draining reply/receiver lifetimes and

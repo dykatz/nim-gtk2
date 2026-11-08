@@ -3,6 +3,26 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_image_offer_abi(gboolean (*set)(GtkSelectionData *, GdkPixbuf *),
+                                GdkPixbuf *(*get)(GtkSelectionData *)) {
+  typedef void (*Targets)(GtkTargetList *, guint, gboolean);
+  typedef GtkTargetEntry *(*Table)(GtkTargetList *, gint *);
+  typedef void (*Free)(GtkTargetEntry *, gint);
+  typedef gboolean (*Set)(GtkSelectionData *, GdkPixbuf *);
+  typedef GdkPixbuf *(*Get)(GtkSelectionData *);
+  typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);
+#define IMAGE_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  IMAGE_ABI(Targets, gtk_target_list_add_image_targets);
+  IMAGE_ABI(Table, gtk_target_table_new_from_list);
+  IMAGE_ABI(Free, gtk_target_table_free);
+  IMAGE_ABI(Set, gtk_selection_data_set_pixbuf);
+  IMAGE_ABI(Get, gtk_selection_data_get_pixbuf);
+  IMAGE_ABI(Copy, gdk_pixbuf_copy);
+#undef IMAGE_ABI
+  return set((GtkSelectionData *)(guintptr)0xc1, (GdkPixbuf *)(guintptr)0xc2) == -73 &&
+    get((GtkSelectionData *)(guintptr)0xc1) == (GdkPixbuf *)(guintptr)0xc2;
+}
+
 gboolean nim_gtk2_uri_drag_abi(gboolean (*drop)(GtkWidget *, GdkDragContext *, gint, gint, guint),
   void (*data)(GtkWidget *, GdkDragContext *, gint, gint, GtkSelectionData *, guint, guint),
   void (*del)(GtkWidget *, GdkDragContext *), gboolean (*succeeded)(GdkDragContext *)) {

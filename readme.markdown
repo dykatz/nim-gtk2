@@ -126,6 +126,12 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied image clipboard offers now publish private Pixbuf snapshots through native
+writable encoders, with explicit offer tokens/clear and no automatic decoding or
+persistence. The desktop example adds user-triggered copy-image/clear buttons.
+See the [image guide](docs/gtk2.md#copied-image-clipboard-offers);
+`testMappedImageClipboard` requires an isolated display and explicit opt-in.
+
 URI clipboard transfers now offer copied URI-only lists and cancelable asynchronous
 reads, with distinct empty/unavailable/rejected results and no automatic file opening
 or text fallback. See the [URI guide](docs/gtk2.md#uri-clipboard-transfers) and

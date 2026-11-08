@@ -30,6 +30,27 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied image clipboard publication
+
+`Clipboard.offerImage(Pixbuf)` publishes a private native pixel copy and returns an
+`ImageClipboardOffer` with notification-based `active` and explicit idempotent clear.
+Dropping tokens does not revoke the native offer; replacement/ownership loss releases
+snapshot/clipboard roots. Invalid images/copy/target preparation fail before claim.
+Early pure-function guards and UI-thread rules match other clipboard operations.
+
+Public writable-image target discovery/table allocation and native set_pixbuf encoding
+preserve installed GTK codec behavior; no MIME registry, fallback or private layouts
+are invented. Callback-local pins cover encoding, temporary native targets are freed,
+and six public prototypes/pointer/full gboolean probes verify the adapters. No
+set_can_store/persistence is enabled. Pixels are not original file bytes or a guarantee
+of alpha/metadata retention in every encoder, and active does not imply delivery.
+
+Desktop adds explicit copy/clear buttons. Hidden no-publication and isolated real
+local/foreign/PRIMARY PNG fixture tests cover mutation/source release, dropped tokens,
+replacement/stale clear and absence of text/URI fallback. Incoming image decoding,
+image DnD and binary payloads remain separate; no untrusted parser is automatically
+invoked. See [image clipboard guide](gtk2.md#copied-image-clipboard-offers).
+
 ### Copied URI drop acceptance
 
 `onUriDrop(observer, accept = predicate)` now optionally evaluates a fixed

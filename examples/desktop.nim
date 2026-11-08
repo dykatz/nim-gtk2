@@ -20,6 +20,22 @@ proc main() =
   let status = newLabel("Desktop events appear here.")
   status.setAlignment(0, 0.5)
   layout.packEnd(status, packShrink)
+  let imageRow = newHBox(spacing = 8)
+  layout.packStart(imageRow, packShrink)
+  let imageSample = newPixbuf(32, 24, 0x3377cc90'u32)
+  imageRow.packStart(newImage(imageSample), packShrink)
+  let copyImage = newButton("Copy sample image")
+  let clearImage = newButton("Clear image offer")
+  imageRow.packStart(copyImage, packShrink)
+  imageRow.packStart(clearImage, packShrink)
+  var imageOffer: ImageClipboardOffer
+  defer: imageOffer.clear()
+  copyImage.onClicked(proc () =
+    imageOffer = getClipboard().offerImage(imageSample) # Private pixel copy, not a shared preview.
+    status.text = "Image offered using native writable formats; paste in another application.")
+  clearImage.onClicked(proc () =
+    imageOffer.clear()
+    status.text = "Cleared our image offer if still current; no incoming image decoding.")
   let uriRow = newHBox(spacing = 8)
   layout.packStart(uriRow, packShrink)
   let copyUris = newButton("Copy sample URIs")

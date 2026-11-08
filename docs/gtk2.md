@@ -2858,6 +2858,70 @@ URI COPY-only pads are described below. Images/binary payloads, MOVE and
 application-controlled acceptance remain separate functionality batches. Raw TextLayout audits are deferred, not
 continued or certified by this feature.
 
+## Copied image clipboard offers
+
+`clipboard.offerImage(image: Pixbuf): ImageClipboardOffer` explicitly replaces
+clipboard ownership with an **independent native pixel copy**. For example:
+
+```nim
+let pixels = newPixbuf(32, 24, 0x3377cc90'u32)
+let offer = getClipboard().offerImage(pixels) # Only in an explicit user action.
+# Later source pixel mutations/releases cannot change the offer.
+# offer.active follows native ownership notifications, not an atomic desktop lock.
+# offer.clear() releases this offer if still locally active; stale tokens are no-ops.
+```
+
+There is no startup publication, widget realization, automatic paste, incoming
+image request API, image DnD or clipboard-manager persistence in this batch.
+`getClipboard(clipboardPrimary)` is supported only as an explicit application choice;
+normal tests never publish to either selection. GTK initialization/display and UI-
+thread operation/callback/final-release rules apply. Offer and clear reject inside
+synchronous model functions/URI predicates before native clipboard work or copying.
+
+An empty/uninitialized Pixbuf is an error, **not** an empty image or clear request.
+Pixel allocation/copy and target discovery finish before claiming ownership, so
+invalid input leaves the previous contents alone. A failed native claim releases
+its own snapshot/pin and raises; native ownership races are not rollback transactions.
+If an old raw owner's clear callback installs a reentrant winner, GTK may clear the
+failed candidate itself before returning false. Cleanup is idempotent and does not
+revoke that winner; no forced second ownership claim is attempted.
+The source Pixbuf is neither retained nor exposed as an offer getter. The private
+snapshot's lifetime is owned by the attachment/native pin, not by the token. Dropping
+all tokens does not revoke it; clear/replacement/native ownership loss promptly drops
+the snapshot and clipboard reference even if an inactive token is retained. Repeated
+clear is harmless. As with URI offers, process death, display shutdown and foreign
+ownership changes follow native GTK semantics, not a synthesized desktop-state cache.
+
+Targets come from public `gtk_target_list_add_image_targets(..., writable=TRUE)` and
+`gtk_target_table_new_from_list`; the temporary table/list are freed with their native
+functions after `set_with_data` copies them. No hardcoded PNG-only offer or guessed
+codec/target registry is maintained. The native getter callback pins the original
+private Pixbuf locally through encoding and calls `gtk_selection_data_set_pixbuf`,
+which selects a native encoder for the requested MIME target. Clear releases the
+independent native callback pin. Unlike `gtk_clipboard_set_image`, this API does **not**
+call `set_can_store`: persistence is deliberately not enabled.
+
+An active offer means claimed/not yet notified lost, **not** delivery or encoding
+success. Installed writable encoders determine available targets and may fail, be
+lossy or discard alpha/metadata. A pixel snapshot does not promise original encoded
+file bytes, codec, file metadata or identical output in every format. No text/URI
+fallback is advertised, and observations/async delivery acknowledgments are not
+invented. Already-started requests may finish with old data during replacement;
+clear is not a secure eraser or an atomic cross-process ownership check.
+
+[examples/desktop.nim](../examples/desktop.nim) adds explicit copy-image/clear buttons
+and an independent preview. `tests/tgtk2imageclipboard.nim` covers invalid handles,
+idempotent empty tokens and early pure-function guards without claiming ownership,
+requesting data or realizing widgets. `nimble testMappedImageClipboard` requires
+isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1; its tiny **trusted fixture PNG**
+decoding is test-only and requires a writable PNG codec. It verifies local/foreign
+encoding, exact pixel/alpha/dimension snapshots, mutation/source release, dropped
+tokens, repeated requests, replacement/stale clear/ownership loss, reentrant native
+clear/failed-candidate cleanup, explicit independent
+PRIMARY and absence of text/URI fallback. Six native prototype checks plus pointer/
+signed-gboolean probes cover the public adapter ABI. No untrusted desktop image is
+automatically decoded by the SDK; incoming decoding/security policy remains separate.
+
 ## URI COPY-only drag/drop pads
 
 `DrawingArea` and `EventBox` pads provide `enableUriDrag(UriList | openArray[string])`
@@ -5274,7 +5338,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -5282,7 +5346,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, image/binary transfers, asynchronous URI
+additional rich clipboard protocols, incoming images/binary transfers, image DnD, asynchronous URI
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

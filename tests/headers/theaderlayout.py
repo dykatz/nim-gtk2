@@ -68,6 +68,18 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_image_clipboard_keeps_copy_encoding_and_native_clear_explicit(self):
+        text = (ROOT / 'src/gtk2/imageclipboard.nim').read_text()
+        self.assertLess(text.index('let snapshot = image.copy()'), text.index('rawGtk.set_with_data('))
+        self.assertIn('rawGtk.add_image_targets(list, 0, g.gbool(true))', text)
+        self.assertIn('rawGtk.set_pixbuf(selection, snapshot.raw)', text)
+        self.assertIn('s.snapshot = Pixbuf()', text)
+        self.assertIn('GC_unref(s)', text)
+        self.assertIn('rawGtk.target_table_free(targets, count)', text)
+        for forbidden in ('set_can_store', 'request_contents', 'get_pixbuf(', 'set_image(',
+                          'image/png', 'text/plain', 'realize(', 'show(', 'main_iteration'):
+            self.assertNotIn(forbidden, text)
+
     def test_uri_drag_keeps_native_finish_and_receiver_scope_explicit(self):
         text = (ROOT / 'src/gtk2/uridrag.nim').read_text()
         self.assertEqual(text.count('rawGtk.drag_finish('), 1)

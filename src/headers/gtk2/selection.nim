@@ -53,6 +53,16 @@ proc set_uris*(selection_data: PSelectionData, uris: PPgchar): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_selection_data_set_uris".}
 proc get_uris*(selection_data: PSelectionData): PPgchar{.cdecl,
     dynlib: lib, importc: "gtk_selection_data_get_uris".}
+proc add_image_targets*(list: PTargetList, info: guint, writable: gboolean) {.cdecl,
+    dynlib: lib, importc: "gtk_target_list_add_image_targets".}
+proc target_table_new_from_list*(list: PTargetList, nTargets: Pgint): PTargetEntry {.cdecl,
+    dynlib: lib, importc: "gtk_target_table_new_from_list".}
+proc target_table_free*(targets: PTargetEntry, nTargets: gint) {.cdecl,
+    dynlib: lib, importc: "gtk_target_table_free".}
+proc set_pixbuf*(selection: PSelectionData, pixbuf: gdk2pixbuf.PPixbuf): gboolean {.cdecl,
+    dynlib: lib, importc: "gtk_selection_data_set_pixbuf".}
+proc get_pixbuf*(selection: PSelectionData): gdk2pixbuf.PPixbuf {.cdecl,
+    dynlib: lib, importc: "gtk_selection_data_get_pixbuf".}
 proc targets_include_text*(selection_data: PSelectionData): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_selection_data_targets_include_text".}
 proc selection_remove_all*(widget: PWidget){.cdecl, dynlib: lib,
