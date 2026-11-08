@@ -49,8 +49,14 @@ proc save*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
                   error: pointer): gboolean{.cdecl, varargs, dynlib: pixbuflib,
     importc: "gdk_pixbuf_save".}
 proc savev*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
-                   option_keys: PPchar, option_values: PPchar, error: pointer): gboolean{.
+                   option_keys: PPchar, option_values: PPchar, error: ptr ptr GError): gboolean{.
     cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_savev".}
+when defined(windows):
+  proc savev_utf8*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
+                  option_keys: PPchar, option_values: PPchar, error: ptr ptr GError): gboolean {.
+    cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_savev_utf8".}
+  proc pixbuf_new_from_file_utf8*(filename: cstring, error: ptr ptr GError): PPixbuf {.
+    cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_new_from_file_utf8".}
 proc add_alpha*(pixbuf: PPixbuf, substitute_color: gboolean, r: guchar,
                        g: guchar, b: guchar): PPixbuf{.cdecl, dynlib: pixbuflib,
     importc: "gdk_pixbuf_add_alpha".}

@@ -41,8 +41,26 @@ proc main() =
   defer: imageDrag.disconnect()
   let copyImage = newButton("Copy sample image")
   let clearImage = newButton("Clear image offer")
+  let saveImage = newButton("Save sample PNG…")
   imageRow.packStart(copyImage, packShrink)
   imageRow.packStart(clearImage, packShrink)
+  imageRow.packStart(saveImage, packShrink)
+  saveImage.onClicked(proc () =
+    let dialog = newFileChooserDialog(window, "Save sample as PNG", fileSave)
+    dialog.overwriteConfirmation = true # UI confirmation, not atomic save/permission enforcement.
+    dialog.setCurrentName("sample.png")
+    dialog.onResponse(proc (id: ResponseId, selection: FileSelection) =
+      defer: dialog.destroy()
+      if id != responseAccept: return
+      if selection.filenames.len != 1:
+        status.text = "Choose one native local filename; no URI-to-path authorization is inferred."
+        return
+      try:
+        imageSample.savePng(selection.filenames[0]) # Synchronous explicit write, always PNG regardless of extension.
+        status.text = "PNG saved. Native encoding is not an atomic/rollback transaction."
+      except PixbufError as error:
+        status.text = "PNG save failed (native " & $error.domain & ":" & $error.code & "): " & error.msg)
+    dialog.present())
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()
   copyImage.onClicked(proc () =

@@ -3,6 +3,23 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_png_files_abi(gboolean (*probe)(GdkPixbuf *, const char *, const char *, char **, char **, GError **)) {
+  typedef gboolean (*Save)(GdkPixbuf *, const char *, const char *, char **, char **, GError **);
+  typedef GdkPixbuf *(*Load)(const char *, GError **);
+  typedef char save_proto[__builtin_types_compatible_p(Save, __typeof__(&gdk_pixbuf_savev)) ? 1 : -1];
+  typedef char load_proto[__builtin_types_compatible_p(Load, __typeof__(&gdk_pixbuf_new_from_file)) ? 1 : -1];
+  (void)sizeof(save_proto); (void)sizeof(load_proto);
+#ifdef G_OS_WIN32
+  typedef char save_utf8_proto[__builtin_types_compatible_p(Save, __typeof__(&gdk_pixbuf_savev_utf8)) ? 1 : -1];
+  typedef char load_utf8_proto[__builtin_types_compatible_p(Load, __typeof__(&gdk_pixbuf_new_from_file_utf8)) ? 1 : -1];
+  (void)sizeof(save_utf8_proto); (void)sizeof(load_utf8_proto);
+#endif
+  /* ABI-only stack GError, not a real save call or synthesized SDK failure. */
+  GError error = {(GQuark)0x1234, -77, "native error pointer probe"};
+  GError *slot = &error;
+  return probe((GdkPixbuf *)(guintptr)0xf2, "probe.png", "png", NULL, NULL, &slot) == -19 && slot == &error;
+}
+
 gboolean nim_gtk2_rgba_pixels_abi(gint (*inspect)(GdkPixbuf *, const guchar *, gint, gint, gint, gint)) {
   typedef GdkPixbuf *(*New)(GdkColorspace, gboolean, gint, gint, gint);
   typedef GdkColorspace (*Color)(const GdkPixbuf *);

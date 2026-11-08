@@ -1058,6 +1058,70 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Explicit PNG file encoding
+
+`pixbuf.savePng(filename)` synchronously writes **PNG**, regardless of the filename's
+extension. It uses the installed native writer through non-varargs `gdk_pixbuf_savev`,
+with NULL option vectors: no format guessing, extension append, options, codec fallback,
+implicit decoding or clipboard publication is added. A PNG writer must be installed.
+
+```nim
+let pixels = newRgbaPixels(2, 1, [255'u8, 0, 128, 0, 17, 34, 51, 127])
+let image = newPixbuf(pixels)
+image.savePng(explicitlyChosenFilename) # Caller decides authority and replacement policy.
+```
+
+Filenames reject embedded NUL **before** native file access; empty names and other
+OS/path failures are delegated to native errors. Unix/POSIX paths retain native
+filename bytes (not forced UTF-8). Windows uses public `savev_utf8`; loadPixbuf now
+also uses native `new_from_file_utf8` there, matching GTK chooser UTF-8 filenames
+instead of old GdkPixbuf locale-ABI exports. These are actual platform entry points,
+not fallback/compatibility emulation. Raw savev remains available, with corrected
+GError** type. Other platforms use their native savev/new_from_file directly. Native
+Windows/macOS behavior is semantically checked, not claimed runtime-tested here.
+
+The SDK owns a copied filename buffer and a native image reference for the entire
+encoder call, releasing both on success/error. The pin preserves object lifetime,
+**not pixel immutability**: do not mutate aliased pixels, pump events or tear down
+controllers from native codec/module hooks. The SDK does not pump a nested loop.
+GTK calls and final releases remain on the UI thread. Early pure-function guards
+reject save and load before filename/handle/codecs/file work. No encoded buffer or
+file handle escapes; completed saves do not retain image/controller/filename roots.
+
+Actual native GErrors raise `PixbufError` with copied message and exact numeric
+`.domain/.code`; native error storage is freed on all SDK error exits. The domain may
+be G_FILE_ERROR or a GdkPixbuf/encoder error; no custom errno/quark remapping or global
+error reconstruction occurs. If native false supplies no GError, a generic PixbufError
+has default domain/code zero, not invented native diagnostics. Empty handles/NUL and
+pure-scope violations raise ValueError before file access. Encoding RGB preserves
+native RGB behavior; RGBA PNG pixels, metadata/options and encoded bytes follow the
+installed writer, not an original encoded-file or general color-management guarantee.
+
+**This is not atomic save or durable persistence.** Native GdkPixbuf opens/truncates
+the path before encoder success is known. It may follow symlinks, replace existing
+contents, remove the target after encoder failure, or leave partial data on close/
+I/O failure. Even a missing writer/module can therefore damage an existing path.
+The SDK does not preflight filesystem permissions/encoder availability, unlink,
+restore old contents, fsync, rename a temporary file or roll back. Success reports
+native encoder/close success, not power-loss durability. Filename/URI/MIME validity
+is not authority; applications must decide path/overwrite policy. A chooser's
+confirmation is UX, not race-free authorization. Use an application-owned transaction
+protocol when atomic replacement or stronger filesystem guarantees are required.
+
+Desktop adds an explicit Save sample PNG chooser action, local filename checks and
+native error display; no startup writes occur. Hidden tests only validate pre-I/O
+errors/purity. `testMappedPngFiles` requires isolated DISPLAY and
+GTK2_TEST_VIRTUAL_DISPLAY=1 and writes only private temporary tiny fixtures: fixed
+format despite suffix, exact RGBA/transparent RGB/all byte values, RGB, Unicode/native
+POSIX filename bytes, overwrite, real missing-parent/directory/non-directory/empty-name
+GErrors compared with raw native results, retained copies and successful/failed image
+pin cleanup. Only these self-produced trusted PNG files are decoded. Runtime tests
+require PNG support; encoder absence/forced close failure are not simulated or claimed
+exercised on every build. Native save/load prototypes, NULL vectors/GError double-
+pointer/signed gboolean ABI and source guards plus ARC/ORC/cross-target checks cover
+the bridge. Native codecs/installed caches are never changed. PNG bytes, broader
+formats/options, asynchronous saving and clipboard-manager persistence stay separate.
+
 ### IconView
 
 `newIconView(model, pixbufColumn, textColumn = -1)` accepts a **flat** model with

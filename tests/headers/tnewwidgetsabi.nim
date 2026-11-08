@@ -14,6 +14,18 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type PngSaveAbi = proc (image: pb.PPixbuf, filename, format: cstring, keys, values: g.PPchar,
+  error: ptr ptr g.GError): g.gboolean {.cdecl.}
+proc pngFilesAbi(probe: PngSaveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_png_files_abi".}
+var pngSaveCalls: int
+proc pngSaveProbe(image: pb.PPixbuf, filename, format: cstring, keys, values: g.PPchar,
+    error: ptr ptr g.GError): g.gboolean {.cdecl.} =
+  doAssert cast[uint](image) == 0xf2 and $filename == "probe.png" and $format == "png"
+  doAssert keys == nil and values == nil and error != nil and error[] != nil
+  doAssert error[].domain == g.TGQuark(0x1234) and error[].code == -77
+  doAssert $error[].message == "native error pointer probe"
+  inc pngSaveCalls
+  g.gboolean(-19)
 type RgbaInspectAbi = proc (image: pb.PPixbuf, data: g.Pguchar, width, height, stride, channels: g.gint): g.gint {.cdecl.}
 proc rgbaPixelsAbi(inspect: RgbaInspectAbi): g.gboolean {.cdecl, importc: "nim_gtk2_rgba_pixels_abi".}
 var rgbaCalls: int
@@ -368,6 +380,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "PNG vector save/native load prototypes, NULL options, GError double pointer and signed gboolean ABI":
+    check g.toBool(pngFilesAbi(pngSaveProbe))
+    check pngSaveCalls == 1
   test "RGBA public pixel constructor/accessor prototypes, colorspace width and unsigned rows/signed ABI":
     check sizeof(pb.TColorspace) == sizeof(cint)
     check g.toBool(rgbaPixelsAbi(rgbaInspectProbe))

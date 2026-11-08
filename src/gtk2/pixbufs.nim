@@ -30,15 +30,22 @@ proc newPixbuf*(width, height: int, rgba = 0x00000000'u32): Pixbuf =
   result = requiredPixbuf(rawPixbuf.pixbuf_new(rawPixbuf.COLORSPACE_RGB, g.gbool(true), 8, w, h))
   rawPixbuf.fill(result.raw, rgba)
 proc loadPixbuf*(filename: string): Pixbuf =
-  let name = checkedString(filename)
+  requireOutsideModelFunction()
+  discard checkedString(filename)
+  var name = newString(filename.len)
+  if name.len > 0: copyMem(addr name[0], unsafeAddr filename[0], name.len)
   var error: ptr g.GError
-  let p = rawPixbuf.pixbuf_new_from_file(name, addr error)
+  let p = when defined(windows):
+    rawPixbuf.pixbuf_new_from_file_utf8(name.cstring, addr error)
+  else:
+    rawPixbuf.pixbuf_new_from_file(name.cstring, addr error)
   if error != nil:
+    defer: g.g_error_free(error)
+    defer:
+      if p != nil: g.g_object_unref(p)
     let failure = newException(PixbufError, $error.message)
     failure.domain = error.domain
     failure.code = error.code.int
-    g.g_error_free(error)
-    if p != nil: g.g_object_unref(p)
     raise failure
   requiredPixbuf(p)
 proc width*(p: Pixbuf): int = rawPixbuf.get_width(p.raw).int

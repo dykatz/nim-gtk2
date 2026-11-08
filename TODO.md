@@ -8,18 +8,43 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: explicit Pixbuf PNG file encoding
+## Next proposed functionality batch: copied PNG byte encoding
 
-- [ ] Add explicit checked PNG file saving from owning Pixbufs via the public native
-      non-varargs vector API, preserving GError/domain/code and native writer behavior.
-      No format guessing, automatic decoding, silent codec fallback or file authority
-      inferred from MIME/URI values; filenames reject NUL.
-- [ ] Define synchronous UI-thread image/filename/native lifetime pins, pure guards,
-      encoder absence/error and partial-file semantics. Do not claim atomic save,
-      overwrite authorization, rollback or clipboard-manager persistence.
+- [ ] Add explicit bounded copied PNG byte results from owning Pixbufs through public
+      non-varargs native buffer encoding, with native buffer/gsize/error cleanup and
+      copied value access. No decoder, format guessing, file writes or automatic offers.
+- [ ] Define UI-thread image/native lifetime pins, pure guards and native errors. Bound
+      application byte copies before allocation, without claiming limits on native
+      encoder buffers/CPU, total memory or hostile-codec sandboxing.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      trusted tiny-fixture actual save/load/error/lifetime tests. Private audits and
-      broader codec options/formats/async file protocols remain separate.
+      trusted tiny-fixture actual encoding/pixel/error/lifetime regressions. Broader
+      formats/options, file transactions/persistence and private audits remain separate.
+
+## Completed functionality batch: explicit Pixbuf PNG file encoding
+
+- [x] Added savePng fixed native PNG/NULL-option savev with early filename/handle/pure
+      validation, owned filename bytes and native image ref across encoding. Copied
+      actual GError domain/code/message with deferred native cleanup; generic false/
+      no-error failure retains zero domain/code instead of invented native diagnostics.
+- [x] Corrected raw savev to typed GError** and added public Windows UTF-8 save/load
+      bindings; SDK uses those entries to match chooser filenames rather than legacy
+      locale exports. loadPixbuf also has early pure guards/copied filename lifetime.
+- [x] Documented native pre-encode open/truncate, encoder-failure unlink and possible
+      partial close/I/O failure behavior, without SDK cleanup/rollback/authority/
+      atomic/durability/fallback/clipboard persistence claims. Inspected actual native
+      2.42.12 and legacy 2.24.1 paths; installed codecs/caches/libraries unchanged.
+- [x] Added hidden pre-I/O validation/purity and isolated private tiny trusted PNG
+      RGBA/transparent RGB/all-byte/RGB/Unicode/POSIX-byte filenames/overwrite/retained
+      image/real filesystem error/native GError comparison/success-failure pin cleanup
+      regressions. Save/load prototypes plus NULL-options/GError**/signed gboolean ABI
+      and source guards; desktop explicit save chooser/native error UI and guides.
+      PNG is required by runtime tests; missing writer/forced close failures are not
+      faked or claimed runtime-tested on this PNG-capable installation.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff, every isolated mapped task and missing-
+      opt-in guard. Native Windows filename runtime tests remain platform-specific;
+      installed GTK/codecs unchanged, byte encoding/persistence/private audits deferred.
 
 ## Completed functionality batch: copied Pixbuf RGBA pixel values
 
@@ -745,7 +770,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Explicitly trusted copied incoming image requests (functionality batch above).
 - [x] Explicitly trusted COPY-only image drag/drop pads (functionality batch above).
 - [x] Copied Pixbuf RGBA pixel values (functionality batch above).
-- [ ] Explicit Pixbuf PNG file encoding (proposed next).
+- [x] Explicit Pixbuf PNG file encoding (functionality batch above).
+- [ ] Copied PNG byte encoding (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -800,6 +826,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Explicit pinned PNG file encoding/native errors/Windows UTF-8 entries and actual
+      trusted tiny-fixture file/pixel/error/lifetime regressions (above).
 - [x] Pure copied RGBA8 values, native stride-aware snapshots/native-owned construction
       and actual offscreen pixels/lifetime/overflow/purity regressions (above).
 - [x] Trusted image COPY pads with actual begin snapshots, metadata-only acceptance,

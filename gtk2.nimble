@@ -41,6 +41,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2proxies.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2icons.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2rgbapixels.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pngfiles.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2selectors.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2ranges.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2containers.nim"
@@ -107,6 +108,9 @@ task testMappedExtensions, "Test Cairo pixels and native editing (isolated virtu
 
 task testMappedUriDrag, "Test URI COPY-only pads (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduridrag.nim"
+
+task testMappedPngFiles, "Test native PNG files on trusted tiny fixtures (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedpngfiles.nim"
 
 task testMappedRgbaPixels, "Test copied RGBA native rendering (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedrgbapixels.nim"

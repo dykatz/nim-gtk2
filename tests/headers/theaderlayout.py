@@ -68,6 +68,26 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_png_files_use_pinned_vector_encoding_and_owned_native_errors(self):
+        text = (ROOT / 'src/gtk2/pngfiles.nim').read_text()
+        self.assertLess(text.index('requireOutsideModelFunction()'), text.index('checkedString(filename)'))
+        self.assertIn('var name = newString(filename.len)', text)
+        self.assertIn('g.g_object_ref(p)', text)
+        self.assertIn('defer: g.g_object_unref(p)', text)
+        self.assertIn('if error != nil: g.g_error_free(error)', text)
+        self.assertIn('failure.domain = error.domain', text)
+        self.assertIn('failure.code = error.code.int', text)
+        self.assertIn('rawPixbuf.savev(p, name.cstring, "png", nil, nil, addr error)', text)
+        self.assertIn('rawPixbuf.savev_utf8(p, name.cstring, "png", nil, nil, addr error)', text)
+        raw = (ROOT / 'src/headers/gdk2pixbuf/core_2.nim').read_text()
+        self.assertIn('option_keys: PPchar, option_values: PPchar, error: ptr ptr GError)', raw)
+        load = (ROOT / 'src/gtk2/pixbufs.nim').read_text().split('proc loadPixbuf*', 1)[1].split('proc width*', 1)[0]
+        self.assertLess(load.index('requireOutsideModelFunction()'), load.index('pixbuf_new_from_file'))
+        self.assertIn('pixbuf_new_from_file_utf8(name.cstring, addr error)', load)
+        for forbidden in ('rawPixbuf.save(', 'loadPixbuf(', 'rename', 'removeFile(', 'g_unlink',
+                          'set_can_store', 'store(', 'request_', 'realize(', 'main_iteration'):
+            self.assertNotIn(forbidden, text)
+
     def test_rgba_values_are_copied_pure_and_native_rows_are_bounded(self):
         text = (ROOT / 'src/gtk2/rgbapixels.nim').read_text()
         pure = text.split('proc checkPixelSpan', 1)[0]

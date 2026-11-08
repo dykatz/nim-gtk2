@@ -30,6 +30,33 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Explicit Pixbuf PNG file encoding
+
+Pixbuf.savePng(filename) now invokes native non-varargs savev with fixed PNG/NULL
+options, owning filename bytes and a native image pin across synchronous UI-thread
+encoding. NUL/empty handles/pure scope reject before file work; native filesystem/
+writer GError domain/code/message are copied exactly and freed, with no fabricated
+native code on false-without-error. A pin is not an immutable pixel snapshot.
+
+Windows selects real public savev_utf8/new_from_file_utf8 entries for GTK chooser
+UTF-8 filenames, correcting legacy locale-export use in loadPixbuf. Raw savev GError**
+is now typed. Native filename bytes remain unchanged on Unix; load/save early guards
+and owned filename storage preserve lifetimes without a platform emulation shim.
+
+Native save opens/truncates before encoding, can unlink after encoder failure or leave
+partial data on close/I/O failure, and does not supply atomic save/durability/overwrite
+authority. No SDK rollback, permission inference, format/extension guessing, options,
+clipboard persistence, decoder or installed-codec changes are introduced.
+
+Desktop adds explicit chooser-driven PNG save with native error display. Hidden no-I/O
+validation/purity, actual isolated private trusted tiny-fixture save/load/RGB/RGBA/
+alpha/all-byte/native-filename/overwrite/error/lifetime tests, save/load prototype and
+NULL-vector/GError double-pointer/signed gboolean ABI/source guards plus ARC/ORC/
+cross-target checks cover the path. PNG support is required by runtime tests;
+unavailable-writer/close failure is handled natively, not simulated as tested behavior.
+See [PNG file guide](gtk2.md#explicit-png-file-encoding). Byte encoding, broader options/
+formats, async file transactions and private audits remain separate.
+
 ### Copied Pixbuf RGBA8 values
 
 RgbaPixels/newRgbaPixels provide pure owning tightly packed straight RGBA8 values,
