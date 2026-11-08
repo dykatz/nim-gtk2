@@ -139,6 +139,24 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextBTree private entry-point audit
+
+Removed 57 private BTree imports plus five adjacent buffer/debug/mark-segment hooks,
+without aliases. Twelve empty fragments/includes are gone; public instance/class
+storage and opaque tree pointers remain. No SDK tree access, stamps/validation/cache
+repair, private ownership wrapper or synthetic rebind/reset. Legacy line/segment/
+layout APIs/types stay separately scoped; existing line-data masks moved alongside
+their old helpers, not reintroduced as public policy.
+
+PIconSet is now a typed opaque pointer to prevent accidental tree ref/unref fallback;
+TextWindowType uses native sizeof(cint), not a byte enum. Seventeen public signature
+checks, native enum width, signed coordinate/out-pointer probes and all former
+call-signature/source guards accompany Unicode line char/byte, tags/toggles, stable
+marks and image/anchor tests. Isolated actual wrapped geometry/transform/reacquisition
+coverage uses public APIs only; no ordinary test realizes widgets or claims PRIMARY.
+The text example reports native logical counts/clean state and navigates by marks.
+See [tree migration](raw-widgets.md#gtktextbtree-private-entry-point-removal).
+
 ### Raw GtkTextBuffer flag/public-state audit
 
 Removed private modified-bit getter/unsigned setter and two constants, preserving

@@ -2,7 +2,7 @@
 type
   PTextWindow* = pointer
   PTextPendingScroll* = pointer
-  TTextWindowType* = enum
+  TTextWindowType* {.size: sizeof(cint).} = enum
     TEXT_WINDOW_PRIVATE, TEXT_WINDOW_WIDGET, TEXT_WINDOW_TEXT, TEXT_WINDOW_LEFT,
     TEXT_WINDOW_RIGHT, TEXT_WINDOW_TOP, TEXT_WINDOW_BOTTOM
   PTextWindowType* = ptr TTextWindowType

@@ -520,6 +520,29 @@ useAlign = false, xalign = 0, yalign = 0)` scrolls to the native insertion mark,
 allowing GTK to defer scrolling until layout is ready. The finite margin must be
 in `[0, 0.5)` and alignments in `[0, 1]`.
 
+### Private tree removal and public positions
+
+All 57 private BTree imports and five adjacent buffer/debug/mark-segment hooks are
+removed, without aliases or validation/reset substitutes. Use public buffer edits,
+iterators/tag toggles/slices, stable marks and TextView geometry instead. There is
+no public tree ref/stamp/cache-validity/segment-registration interface. Iterators
+are invalidated by edits: reacquire from marks/checked offsets, never repair them.
+Logical line/code-point offsets differ from UTF-8 byte indices and wrapped display
+geometry. Raw public get_tags owns GSList nodes but borrows its tag elements.
+
+Typed opaque PIconSet prevents old tree ref/unref calls accidentally resolving to
+unrelated pointer overloads. Native GtkTextWindowType geometry uses sizeof(cint),
+not a byte enum. Seventeen public signature checks, native enum width and signed
+coordinate/out-pointer probes extend existing ABI tests; no private tree layout
+is guessed or accessed. Private line/segment/layout types/APIs remain a separately
+scoped audit, not a certified replacement path. See [tree removal](raw-widgets.md#gtktextbtree-private-entry-point-removal).
+
+Unrealized removal/Unicode/tag/mark/object tests accompany opt-in
+testMappedTextGeometry for actual wrapped geometry, coordinate round-trips and
+post-edit mark reacquisition. No implicit realization, synthetic invalidation,
+buffer rebinding or history reset is added. The text example uses public logical
+counts and stable bookmarks, and labels clean state without implying file save.
+
 ### Buffer signals and lifetime
 
 Raw modified-bit helpers/masks are removed without shims; use native gboolean
@@ -4989,7 +5012,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2textbufferaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2textbufferaudit.nim`, `tests/tgtk2textbtreeaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,
@@ -5028,7 +5051,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

@@ -9,6 +9,73 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextBTree private entry-point removal
+
+Removed **57 _gtk_text_btree_* imports** across buffer/iterator/anchor/table
+fragments, plus five adjacent private hooks: buffer get_btree, spew,
+get_line_log_attrs, notify_will_remove_tag and mark_segment_new. No aliases,
+compatibility stubs, native tree constructor/refcount/debug/check/validation facade
+or replacement registry/stamp/cache is provided. Twelve now-empty fragments and
+umbrella includes are removed. Source/compile guards cover all 62 former signatures.
+
+The SDK never used these hooks. GTK2.24.33 gtktextbtree.h and existing buffer/iterator
+source audits confirm they operate on internal tree ownership, segment mutation,
+view registration/validation and iterator stamps. They are not public APIs merely
+because a particular GTK binary exports a symbol. One obsolete invalidate_region
+binding even omitted native cursors_only; it is removed, not repaired/exposed.
+No private routine is called to test recovery or force validation, and no installed
+GTK, private runtime state, warning policy or native source is changed.
+
+Use these **public operation families**, not one-for-one tree aliases:
+
+- Create/ref owning GtkTextBuffer handles, not trees. Public get_iter_at_offset,
+  get_iter_at_line_offset (code points) and get_iter_at_line_index (UTF-8 bytes)
+  establish fresh locations; byte indices must be valid character boundaries.
+  Checked SDK offsets are stricter than native raw clamping/sentinels.
+- Insert/delete text, pixbufs and child anchors through buffer APIs, preserving
+  native signals, modified state, ownership and view invalidation. Removing anchor
+  ranges performs native cleanup; never unregister anchors or free mark segments.
+- Query public iterator tags/slices/visibility and tag-toggle traversal. get_tags
+  returns owned GSList nodes with borrowed tags, not a tree-owned tag array: free
+  the list and explicitly ref any tag needed beyond its owner/membership lifetime.
+  Native slice text uses U+FFFC for object positions; plain text excludes objects.
+- Use public mark identities/name lookup, gravity and buffer select_range/place_cursor
+  for marks/selections. After edits, discard invalid iterators and reacquire via a
+  retained mark/checked offset. There is no public replacement for tree stamps,
+  segment mutation counters, arbitrary iterator-string parsing or segment ownership.
+- Realized TextView get_iter_location/get_iter_at_location, get_line_yrange/
+  get_line_at_y, get_visible_rect and buffer/window coordinate transforms expose
+  native geometry without PTextLine/view-ID/cache access. Logical lines and wrapped
+  display lines differ. Native layout timing/theme/BiDi/rounding remain GTK's; there
+  is no public validity bit, tree validation budget, universal flush or repair API.
+  SDK scroll-to-mark keeps its normal native deferred behavior, never realizes views.
+
+Raw PIconSet is now a typed opaque GtkIconSet pointer, preserving pointer ABI. It
+was previously untyped pointer, allowing a removed tree reference/unref call to
+silently resolve to unrelated IconSet ref functions. Compile tests now reject those
+positional calls and exact tree procedure types, while testing native IconSet refs.
+Do not cast trees to IconSets/other opaque types; IconSets are native boxed refs,
+not GObjects and not storage that applications should allocate/dereference.
+
+Public instance/class ABI is unchanged, including opaque PTextBTree storage. Other
+legacy private line/segment/layout APIs/types are **not** certified by this batch;
+they remain separately scoped for removal/audit. Four preexisting line-data masks
+were relocated beside their existing helpers in textlayout_4.nim, not newly added
+or reinterpreted. No SDK accesses tree/flag storage. Seventeen new public signature
+checks and an enum plus signed coordinate/out-pointer probe complement existing
+buffer/class layout tests; no guessed private tree layout is probed. Public
+TTextWindowType is corrected from Nim's default byte enum to native sizeof(cint),
+with native-size and cross-target static checks.
+
+Unrealized tests/tgtk2textbtreeaudit.nim covers all removals, typed IconSet refs,
+Unicode line char/byte boundaries, tag lists/toggles, iterator reacquisition and
+native image/anchor deletion. Isolated testMappedTextGeometry checks real wrapped
+layout/coordinate round-trips and mark-based reacquisition after genuine edits,
+without rebinding or fabricated cache resets. It requires an isolated display and
+GTK2_TEST_VIRTUAL_DISPLAY=1; normal tests never realize/map, claim PRIMARY, request
+selections or synthesize input. The text example labels native characters/logical
+lines/clean state accurately and navigates by stable marks, not cached iterators.
+
 ## GtkTextBuffer raw migration: public state and signal lifetimes
 
 Removed the private modified getter/unsigned setter and both mask/shift constants,

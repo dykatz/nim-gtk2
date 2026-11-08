@@ -45,4 +45,5 @@ type
     bottom*: gint
 
   PBorder* = ptr TBorder
-  PIconSet* = pointer
+  TIconSet = object # Opaque native GtkIconSet, not an untyped pointer or GObject.
+  PIconSet* = ptr TIconSet

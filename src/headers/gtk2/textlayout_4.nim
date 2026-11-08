@@ -1,4 +1,10 @@
 # Included by headers/gtk2.nim; do not import directly.
+# Legacy line-data helpers/constants remain for the separate private line audit.
+const
+  bm_TGtkTextLineData_width* = 0x00FFFFFF'u32
+  bp_TGtkTextLineData_width* = 0'u32
+  bm_TGtkTextLineData_valid* = 0xFF000000'u32
+  bp_TGtkTextLineData_valid* = 24'u32
 proc width*(a: PTextLineData): guint =
   result = a.flag0 and bm_TGtkTextLineData_width
 

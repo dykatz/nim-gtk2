@@ -1,9 +1,4 @@
 # Included by headers/gtk2.nim; do not import directly.
-proc release_mark_segment*(tree: PTextBTree,
-                                      segment: PTextLineSegment){.cdecl,
-    dynlib: lib, importc: "_gtk_text_btree_release_mark_segment".}
-proc notify_will_remove_tag*(tree: PTextBTree, tag: PTextTag){.cdecl,
-    dynlib: lib, importc: "_gtk_text_btree_notify_will_remove_tag".}
 proc TYPE_TEXT_BUFFER*(): GType
 proc TEXT_BUFFER*(obj: pointer): PTextBuffer
 proc TEXT_BUFFER_CLASS*(klass: pointer): PTextBufferClass
@@ -149,16 +144,6 @@ proc begin_user_action*(buffer: PTextBuffer){.cdecl, dynlib: lib,
     importc: "gtk_text_buffer_begin_user_action".}
 proc end_user_action*(buffer: PTextBuffer){.cdecl, dynlib: lib,
     importc: "gtk_text_buffer_end_user_action".}
-proc spew*(buffer: PTextBuffer){.cdecl, dynlib: lib,
-    importc: "_gtk_text_buffer_spew".}
-proc get_btree*(buffer: PTextBuffer): PTextBTree{.cdecl,
-    dynlib: lib, importc: "_gtk_text_buffer_get_btree".}
-proc get_line_log_attrs*(buffer: PTextBuffer,
-                                     anywhere_in_line: PTextIter,
-                                     char_len: Pgint): pango.PLogAttr{.cdecl,
-    dynlib: lib, importc: "_gtk_text_buffer_get_line_log_attrs".}
-proc notify_will_remove_tag*(buffer: PTextBuffer, tag: PTextTag){.
-    cdecl, dynlib: lib, importc: "_gtk_text_buffer_notify_will_remove_tag".}
 proc get_has_selection*(buffer: PTextBuffer): gboolean {.cdecl,
     dynlib: lib, importc: "gtk_text_buffer_get_has_selection".}
 proc select_range*(buffer: PTextBuffer, ins,

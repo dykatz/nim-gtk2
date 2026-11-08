@@ -3,6 +3,46 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_text_window_type_size_abi(void) { return sizeof(GtkTextWindowType); }
+gboolean nim_gtk2_public_text_paths_abi(void (*coords)(GtkTextView *, GtkTextWindowType, gint, gint, gint *, gint *)) {
+  typedef void (*Offset)(GtkTextBuffer *, GtkTextIter *, gint);
+  typedef void (*Line)(GtkTextBuffer *, GtkTextIter *, gint, gint);
+  typedef void (*Mark)(GtkTextBuffer *, GtkTextIter *, GtkTextMark *);
+  typedef GSList *(*Tags)(const GtkTextIter *);
+  typedef gboolean (*Toggle)(GtkTextIter *, GtkTextTag *);
+  typedef gchar *(*Slice)(const GtkTextIter *, const GtkTextIter *);
+  typedef void (*Visible)(GtkTextView *, GdkRectangle *);
+  typedef void (*Location)(GtkTextView *, const GtkTextIter *, GdkRectangle *);
+  typedef void (*AtLocation)(GtkTextView *, GtkTextIter *, gint, gint);
+  typedef void (*YRange)(GtkTextView *, const GtkTextIter *, gint *, gint *);
+  typedef void (*AtY)(GtkTextView *, GtkTextIter *, gint, gint *);
+  typedef void (*Coords)(GtkTextView *, GtkTextWindowType, gint, gint, gint *, gint *);
+  typedef GtkIconSet *(*IconNew)(void);
+  typedef GtkIconSet *(*IconRef)(GtkIconSet *);
+  typedef void (*IconUnref)(GtkIconSet *);
+#define PUBLIC_TEXT_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { PUBLIC_TEXT_AUDIT(Offset, &gtk_text_buffer_get_iter_at_offset); }
+  { PUBLIC_TEXT_AUDIT(Line, &gtk_text_buffer_get_iter_at_line_offset); }
+  { PUBLIC_TEXT_AUDIT(Line, &gtk_text_buffer_get_iter_at_line_index); }
+  { PUBLIC_TEXT_AUDIT(Mark, &gtk_text_buffer_get_iter_at_mark); }
+  { PUBLIC_TEXT_AUDIT(Tags, &gtk_text_iter_get_tags); }
+  { PUBLIC_TEXT_AUDIT(Toggle, &gtk_text_iter_forward_to_tag_toggle); }
+  { PUBLIC_TEXT_AUDIT(Slice, &gtk_text_iter_get_slice); }
+  { PUBLIC_TEXT_AUDIT(Visible, &gtk_text_view_get_visible_rect); }
+  { PUBLIC_TEXT_AUDIT(Location, &gtk_text_view_get_iter_location); }
+  { PUBLIC_TEXT_AUDIT(AtLocation, &gtk_text_view_get_iter_at_location); }
+  { PUBLIC_TEXT_AUDIT(YRange, &gtk_text_view_get_line_yrange); }
+  { PUBLIC_TEXT_AUDIT(AtY, &gtk_text_view_get_line_at_y); }
+  { PUBLIC_TEXT_AUDIT(Coords, &gtk_text_view_buffer_to_window_coords); }
+  { PUBLIC_TEXT_AUDIT(Coords, &gtk_text_view_window_to_buffer_coords); }
+  { PUBLIC_TEXT_AUDIT(IconNew, &gtk_icon_set_new); }
+  { PUBLIC_TEXT_AUDIT(IconRef, &gtk_icon_set_ref); }
+  { PUBLIC_TEXT_AUDIT(IconUnref, &gtk_icon_set_unref); }
+#undef PUBLIC_TEXT_AUDIT
+  gint x = 0, y = 0;
+  coords((GtkTextView *)(guintptr)0xb1, GTK_TEXT_WINDOW_TEXT, -71, -72, &x, &y);
+  return x == -81 && y == -82 && sizeof(GtkIconSet *) == sizeof(gpointer);
+}
 size_t nim_gtk2_buffer_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextBuffer), offsetof(GtkTextBuffer, tag_table),
     offsetof(GtkTextBuffer, btree), offsetof(GtkTextBuffer, clipboard_contents_buffers),

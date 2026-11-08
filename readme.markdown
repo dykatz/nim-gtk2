@@ -139,6 +139,9 @@ UIManager owns native menu/toolbar layouts with removable merge tokens, checked
 paths, scoped shortcuts and native tearoffs. See the
 [managed UI guide](docs/gtk2.md#radio-commands-and-uimanager-merges) and expanded
 menu/toolbar examples. `testMappedUIManager` is isolated-display opt-in only.
+Private GtkTextBTree entry points are removed, without cache/validation shims.
+Use [public positions/geometry](docs/raw-widgets.md#gtktextbtree-private-entry-point-removal)
+and stable marks after edits; IconSet pointer typing and TextWindowType width are corrected.
 GtkTextBuffer modified-bit helpers are removed; public dirty/selection/user-action
 semantics and native lifetime pins are covered by [the buffer audit](docs/raw-widgets.md#gtktextbuffer-raw-migration-public-state-and-signal-lifetimes).
 The native paste_done class slot/opaque guint storage are corrected without SDK subclassing.

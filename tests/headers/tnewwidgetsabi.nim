@@ -44,6 +44,9 @@ proc bufferMark(buffer: gtk.PTextBuffer, it: gtk.PTextIter, mark: gtk.PTextMark)
 proc bufferPaste(buffer: gtk.PTextBuffer, clipboard: gtk.PClipboard) {.cdecl.} =
   doAssert cast[uint](buffer) == 0xe1 and cast[uint](clipboard) == 0xe4
   bufferCallbackMask = bufferCallbackMask or 4
+type TextCoords = proc (view: gtk.PTextView, window: gtk.TTextWindowType, x, y: g.gint, outX, outY: g.Pgint) {.cdecl.}
+proc textWindowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_text_window_type_size_abi".}
+proc publicTextPaths(coords: TextCoords): g.gboolean {.cdecl, importc: "nim_gtk2_public_text_paths_abi".}
 type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
 proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
 proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
@@ -316,6 +319,17 @@ suite "new raw binding native header ABI":
     bufferCallbackMask = 0
     check g.toBool(bufferApi(addr klass))
     check bufferCallbackMask == 7
+
+  test "public text iter/geometry and opaque IconSet pointer ABI":
+    proc coords(view: gtk.PTextView, window: gtk.TTextWindowType, x, y: g.gint, outX, outY: g.Pgint) {.cdecl.} =
+      doAssert cast[uint](view) == 0xb1 and window == gtk.TEXT_WINDOW_TEXT and x == -71 and y == -72
+      outX[] = -81
+      outY[] = -82
+    let nativeCoords: TextCoords = gtk.buffer_to_window_coords
+    check nativeCoords != nil
+    check sizeof(gtk.PIconSet) == sizeof(pointer)
+    check textWindowTypeSize().int == sizeof(gtk.TTextWindowType)
+    check g.toBool(publicTextPaths(coords))
 
   test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
     let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),

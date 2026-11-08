@@ -130,9 +130,10 @@ proc main() =
   layout.packStart(status, packShrink)
 
   proc refresh() =
-    status.text = $buffer.characterCount & " characters; " & $buffer.lineCount &
-      " lines; cursor " & $buffer.cursorOffset &
-      (if buffer.modified: " — modified" else: " — saved")
+    # Public logical counts/coordinates, never BTree lines or layout cache stamps.
+    status.text = $buffer.characterCount & " native chars; " & $buffer.lineCount &
+      " logical lines; cursor " & $buffer.cursorOffset &
+      (if buffer.modified: " — modified" else: " — clean flag")
 
   proc watchBuffer() =
     buffer.onChanged(proc () = refresh())
@@ -226,6 +227,7 @@ proc main() =
     else: status.text = "Not found: " & query.text)
   saveMark.onClicked(proc () = buffer.moveMark(bookmark, buffer.cursorOffset))
   goMark.onClicked(proc () =
+    # Marks survive edits; reacquire their public position, never cache iterators.
     buffer.cursorOffset = bookmark.offset
     editor.scrollToMark(bookmark))
   let sampleImage = newPixbuf(16, 16, 0x2090ffff'u32)
