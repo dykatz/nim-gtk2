@@ -63,6 +63,30 @@ gboolean nim_gtk2_binary_drag_abi(
   return drop(w, c, -17, 23, 0xfedcba98u, data) == -31;
 }
 
+gboolean nim_gtk2_image_drag_abi(
+  void (*begin)(GtkWidget *, GdkDragContext *, gpointer),
+  void (*source)(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint, guint, gpointer),
+  gboolean (*drop)(GtkWidget *, GdkDragContext *, gint, gint, guint, gpointer),
+  void (*received)(GtkWidget *, GdkDragContext *, gint, gint, GtkSelectionData *, guint, guint, gpointer)) {
+  typedef GtkTargetList *(*New)(const GtkTargetEntry *, guint);
+  typedef void (*Unref)(GtkTargetList *);
+  typedef void (*Add)(GtkTargetList *, guint, gboolean);
+  typedef GtkTargetEntry *(*Table)(GtkTargetList *, gint *);
+  typedef void (*Free)(GtkTargetEntry *, gint);
+  typedef gboolean (*Set)(GtkSelectionData *, GdkPixbuf *);
+  typedef GdkPixbuf *(*Get)(GtkSelectionData *);
+#define IMAGE_DRAG_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  IMAGE_DRAG_ABI(New, gtk_target_list_new);
+  IMAGE_DRAG_ABI(Unref, gtk_target_list_unref);
+  IMAGE_DRAG_ABI(Add, gtk_target_list_add_image_targets);
+  IMAGE_DRAG_ABI(Table, gtk_target_table_new_from_list);
+  IMAGE_DRAG_ABI(Free, gtk_target_table_free);
+  IMAGE_DRAG_ABI(Set, gtk_selection_data_set_pixbuf);
+  IMAGE_DRAG_ABI(Get, gtk_selection_data_get_pixbuf);
+#undef IMAGE_DRAG_ABI
+  return nim_gtk2_binary_drag_abi(begin, source, drop, received);
+}
+
 gboolean nim_gtk2_binary_request_abi(GtkClipboardReceivedFunc received,
   GClosureNotify release, void (*destroy)(GtkWidget *, gpointer)) {
   typedef void (*Request)(GtkClipboard *, GdkAtom, GtkClipboardReceivedFunc, gpointer);

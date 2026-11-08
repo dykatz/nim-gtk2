@@ -77,7 +77,7 @@ when defined(posix) and not defined(macosx):
   doAssert XTestQueryExtension(display, addr event, addr error, addr major, addr minor) != 0
   suite "native copied drag icons, all COPY source families":
     test "caller release/mutation, active/future updates/reset, cursor/window pixels and disconnected contexts":
-      for kind in 0..2:
+      for kind in 0..3:
         let host = newWindow("Native copied drag icons", 420, 140)
         defer: host.destroy()
         let row = newHBox(spacing = 30)
@@ -90,6 +90,7 @@ when defined(posix) and not defined(macosx):
         var text: TextDragSource
         var uri: UriDragSource
         var binary: BinaryDragSource
+        var imageSource: ImageDragSource
         var observations = 0
         case kind
         of 0:
@@ -102,26 +103,34 @@ when defined(posix) and not defined(macosx):
           discard destPad.onUriDrop(proc (value: UriDrop) =
             check value.uris == @["urn:example:icon"]
             inc observations)
-        else:
+        of 2:
           binary = sourcePad.enableBinaryDrag("application/vnd.example.icon", [0'u8, 255])
           discard destPad.onBinaryDrop("application/vnd.example.icon", proc (value: BinaryDrop) =
             check value.bytes == @[0'u8, 255]
+            inc observations)
+        else:
+          imageSource = sourcePad.enableImageDrag(newPixbuf(2, 3, 0xabcdef80'u32))
+          discard destPad.onImageDrop(true, proc (value: ImageDrop) =
+            check value.info.width == 2 and value.info.height == 3 and value.info.hasAlpha
             inc observations)
         proc set(image: Pixbuf) =
           case kind
           of 0: text.setIcon(image)
           of 1: uri.setIcon(image)
-          else: binary.setIcon(image)
+          of 2: binary.setIcon(image)
+          else: imageSource.setIcon(image)
         proc clear() =
           case kind
           of 0: text.clearIcon()
           of 1: uri.clearIcon()
-          else: binary.clearIcon()
+          of 2: binary.clearIcon()
+          else: imageSource.clearIcon()
         proc disconnect() =
           case kind
           of 0: text.disconnect()
           of 1: uri.disconnect()
-          else: binary.disconnect()
+          of 2: binary.disconnect()
+          else: imageSource.disconnect()
         var stats: Stats
         discard g.g_signal_connect_data(sourcePad.raw, "drag-end", cast[g.TGCallback](ended), addr stats, nil, g.TGConnectFlags(0))
         discard g.g_signal_connect_data(sourcePad.raw, "drag-failed", cast[g.TGCallback](failed), nil, nil, g.TGConnectFlags(0))

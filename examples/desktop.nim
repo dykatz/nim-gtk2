@@ -23,7 +23,13 @@ proc main() =
   let imageRow = newHBox(spacing = 8)
   layout.packStart(imageRow, packShrink)
   let imageSample = newPixbuf(32, 24, 0x3377cc90'u32)
-  imageRow.packStart(newImage(imageSample), packShrink)
+  let imageSourcePad = newEventBox()
+  imageSourcePad.setSizeRequest(48, 40)
+  imageSourcePad.add(newImage(imageSample))
+  imageRow.packStart(imageSourcePad, packShrink)
+  let imageDrag = imageSourcePad.enableImageDrag(imageSample) # Drag this preview: private begin snapshots.
+  imageDrag.setIcon(imageSample)
+  defer: imageDrag.disconnect()
   let copyImage = newButton("Copy sample image")
   let clearImage = newButton("Clear image offer")
   imageRow.packStart(copyImage, packShrink)
@@ -43,7 +49,10 @@ proc main() =
   let incomingImage = newImage()
   imageRequestRow.packStart(trustImages, packShrink)
   imageRequestRow.packStart(inspectImage, packShrink)
-  imageRequestRow.packStart(incomingImage, packShrink)
+  let imageDestPad = newEventBox()
+  imageDestPad.setSizeRequest(64, 48)
+  imageDestPad.add(incomingImage)
+  imageRequestRow.packStart(imageDestPad, packShrink)
   inspectImage.sensitive = false
   var imageRequest: ImageRequest
   defer: imageRequest.cancel()
@@ -69,6 +78,24 @@ proc main() =
       of imageRejected:
         status.text = "Rejected image copy: " & value.error,
       maxPixels = 4096)) # Post-decode copy limit, NOT codec/native allocation protection.
+  let trustImageDrops = newCheckButton("Trust image drops onto preview (native codecs; initially OFF)")
+  layout.packStart(trustImageDrops, packShrink)
+  var imageDrop: ImageDropSite
+  defer: imageDrop.disconnect()
+  let smallImage: ImageDropPredicate = proc (value: ImageDropInfo): bool =
+    value.width <= 64 and value.height <= 64 # Copied metadata only; NOT permission or codec validation.
+  trustImageDrops.onToggled(proc () =
+    if not trustImageDrops.active:
+      imageDrop.disconnect() # Native wires drain; already-started decoders cannot be stopped.
+    elif imageDrop.draining:
+      trustImageDrops.active = false
+      status.text = "Previous image drop is draining; retry enabling from a later event."
+    else:
+      imageDrop = imageDestPad.onImageDrop(true, proc (value: ImageDrop) =
+        incomingImage.pixbuf = value.image # Native COPY is already finished.
+        status.text = "Trusted image COPY at " & $value.info.x & "," & $value.info.y & ": " &
+          $value.info.width & "x" & $value.info.height,
+        maxPixels = 4096, accept = smallImage))
   let binaryRow = newHBox(spacing = 8)
   layout.packStart(binaryRow, packShrink)
   let copyBinary = newButton("Copy sample bytes")

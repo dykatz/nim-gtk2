@@ -126,6 +126,12 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Explicitly trusted COPY-only image pads now provide private begin snapshots, bounded
+post-decode copies, pure metadata acceptance and post-finish owned observations.
+Pending receivers drain after teardown. See the [image pad guide](docs/gtk2.md#explicitly-trusted-copy-only-image-dragdrop-pads)
+and desktop's separate initially-off drop trust control. `testMappedImageDrag` uses
+real isolated XTEST with trusted tiny fixtures, not a codec sandbox.
+
 Explicitly trusted image clipboard requests now provide idle owned Pixbuf copies,
 post-decode copy limits and weak-owner cancellation. Trust is required before native
 codecs run; cancellation/limits do not sandbox decoding or native memory. See the
@@ -133,7 +139,7 @@ codecs run; cancellation/limits do not sandbox decoding or native memory. See th
 and the desktop's initially-off trust/preview controls. Isolated regressions decode
 only trusted tiny fixtures.
 
-Copied drag-source Pixbuf icons now support text/URI/binary pads: setIcon copies
+Copied drag-source Pixbuf icons now support text/URI/binary/image pads: setIcon copies
 pixels, clearIcon restores actual native defaults on later drags, and active contexts
 retain their own icons. See the [icon guide](docs/gtk2.md#copied-drag-source-pixbuf-icons).
 `testMappedDragIcons` adds genuine XTEST cursor/popup pixel checks (isolated opt-in

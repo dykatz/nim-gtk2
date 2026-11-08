@@ -31,6 +31,8 @@ type
     selection: gtk.PSelectionData, info, time: g.guint, data: pointer) {.cdecl.}
 proc binaryDragAbi(begin: BinaryBeginAbi, source: BinarySourceAbi, drop: BinaryDropAbi,
     received: BinaryReceiveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_drag_abi".}
+proc imageDragAbi(begin: BinaryBeginAbi, source: BinarySourceAbi, drop: BinaryDropAbi,
+    received: BinaryReceiveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_image_drag_abi".}
 proc imageRequestAbi(received: gtk.TClipboardImageReceivedFunc, destroy: proc (w: gtk.PWidget,
   data: pointer) {.cdecl.}, notify: proc (data: pointer, closure: g.PGClosure) {.cdecl.}): g.gboolean
   {.cdecl, importc: "nim_gtk2_image_request_abi".}
@@ -363,7 +365,12 @@ suite "new raw binding native header ABI":
   test "copied drag icon/copy native prototypes and pointer/signed hotspot callback ABI":
     check g.toBool(dragIconAbi(dragIconProbe))
     check dragIconCalls == 1
+  test "image target/encoding/decoding prototypes plus shared native DnD callback ABI":
+    binaryDragMask = 0
+    check g.toBool(imageDragAbi(binaryBeginProbe, binarySourceProbe, binaryDropProbe, binaryReceiveProbe))
+    check binaryDragMask == 15
   test "binary COPY pad prototypes and source/drop/receive signed and full unsigned callback ABI":
+    binaryDragMask = 0
     check g.toBool(binaryDragAbi(binaryBeginProbe, binarySourceProbe, binaryDropProbe, binaryReceiveProbe))
     check binaryDragMask == 15
   test "binary request/getter prototypes and received callback pointer ABI":

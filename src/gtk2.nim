@@ -480,6 +480,7 @@ include gtk2/binaryrequests
 include gtk2/textdrag
 include gtk2/uridrag
 include gtk2/binarydrag
+include gtk2/imagedrag
 include gtk2/dragicons
 include gtk2/actions
 include gtk2/radioactions

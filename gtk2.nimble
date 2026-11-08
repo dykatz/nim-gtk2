@@ -58,6 +58,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uriclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2imageclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2imagerequests.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2imagedrag.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binaryclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binaryrequests.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binarydrag.nim"
@@ -105,6 +106,9 @@ task testMappedExtensions, "Test Cairo pixels and native editing (isolated virtu
 
 task testMappedUriDrag, "Test URI COPY-only pads (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduridrag.nim"
+
+task testMappedImageDrag, "Test explicitly trusted image COPY pads (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1, X11/XTEST)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedimagedrag.nim"
 
 task testMappedDragIcons, "Test copied drag icons (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1, X11/XTEST/XFixes and GTK headers)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappeddragicons.nim"

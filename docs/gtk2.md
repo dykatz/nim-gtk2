@@ -3056,6 +3056,98 @@ PRIMARY and absence of text/URI fallback. Six native prototype checks plus point
 signed-gboolean probes cover the public adapter ABI. No untrusted desktop image is
 automatically decoded by the SDK; explicit trusted request/security policy follows below.
 
+## Explicitly trusted COPY-only image drag/drop pads
+
+Exact ordinary DrawingArea/EventBox pads support:
+
+- `enableImageDrag(image: Pixbuf): ImageDragSource`; `setImage(image)` copies new
+  payload pixels for later actual begins. No getter exposes mutable payload storage.
+- `onImageDrop(trusted: bool, fn, maxPixels = 4*1024*1024, accept: ImageDropPredicate = nil)`
+  returns ImageDropSite. False trust rejects before native registration/decoding.
+- Source/site connected/disconnect; destination draining. Image sources also support
+  copied setIcon/clearIcon, independently of their payload.
+- `ImageDrop` owns `.image: Pixbuf` and copied `.info: ImageDropInfo`: width/height/
+  hasAlpha, original pad-local x/y and uint32 time. ImageDropPredicate receives **only
+  ImageDropInfo**, never a Pixbuf, borrowed pixels or context.
+
+```nim
+let source = sourcePad.enableImageDrag(newPixbuf(32, 24, 0x339966dd'u32))
+let small: ImageDropPredicate = proc (info: ImageDropInfo): bool =
+  info.width <= 64 and info.height <= 64 # Metadata policy, not trust/authorization.
+# Only after explicitly trusting incoming native codec data:
+let site = destinationPad.onImageDrop(true, proc (value: ImageDrop) =
+  preview.pixbuf = value.image, maxPixels = 4096, accept = small)
+source.setImage(newPixbuf(24, 32, 0x99663380'u32)) # Active drags retain old pixels.
+```
+
+Payload construction/update copies before replacing state; caller mutation/release
+and invalid updates cannot change actual begin snapshots. Flights retain immutable
+private pixel refs; callback/state/pixel pins span native encoding reentrancy. Dropped
+tokens do not revoke sites. Native targets use installed writable source/readable
+receiver formats, with PNG prioritized when available. Temporary public lists/tables
+are freed; encoder alpha/loss/metadata behavior remains native, not encoded-file
+preservation. Payload is not automatically the drag icon.
+
+One site owns each direction: image/text/URI/binary/native target lists conflict rather
+than overwrite; opposite directions are independent. Public GTK cannot enumerate every
+empty/proxy raw registration: do not preconfigure/mutate SDK pads via raw handlers.
+No private registry, guessed layout or implicit realization/mapping/reparenting is used.
+
+Destination trust is fixed per attachment and must cover all responding data/owners;
+MIME labels, copied metadata policies and checkbox state authenticate nothing. Selected
+action must be COPY at drop and receipt. Reply target/type must match the negotiated
+native target, format must be 8, length positive and bytes present **before** decode.
+GTK get_pixbuf uses an autodetecting loader (transfer-full result freed): installed
+loaders are not sandboxed or confined to a MIME security allowlist. A drop requests one
+negotiated target; no alternate-format/text/URI/rich fallback is added. Native NULL
+and invalid/absent/empty transfer envelopes fail without observation. A non-NULL native
+Pixbuf is not independent bitstream/completeness validation: GTK may return partially
+decoded pixels even when its loader reported errors, which the SDK cannot reconstruct.
+
+maxPixels shares trusted requests' **0..536870911** post-decode copy bound: positive
+int64 dimension product is checked before allocating the private pixel copy. Zero
+rejects every image. This does not limit native receipt/INCR/decoded image allocations,
+codec CPU/timeouts, owner work or total queued/retained memory. A predicate **cannot
+authorize decoding**: it runs after trusted decode/bounded copy and before native
+finish, over independent metadata only. Nil accepts valid transport; false/errors
+reject without observation. Invalid/non-COPY/canceled/over-bound replies never call
+policy. Shared pure guards reject checked GTK/clipboard/teardown access, contain
+exceptions and restore scope. Do not pump events, block, use raw GTK or invoke arbitrary
+controller teardown. This is a contract, not whole-program interposition or a sandbox.
+
+Each tracked selection finishes exactly once, always **delete=false**, without
+DEFAULT_DROP, MOVE, synthetic cancellation/acceptance or source-success repair. Idle
+owning observations queue only after finish and may retain/mutate images, reenter GTK,
+disconnect/destroy or throw. Delivered handles alias ordinary mutable application
+storage; use copy() for another image. Canceling a queued observer releases images/
+captures but cannot undo native completion. GTK2 X11 drag-end still looks success-like
+on rejected Finished; tests inspect the actual public GDK outcome bit, not that signal
+as acceptance or application acknowledgment.
+
+Disconnect/destruction promptly clears observer/policy/payload/icon config. Pending
+native wires pin original pad/context and an independent **unrealized same-screen
+receiver Window**, preserving replies after original handlers disappear. Inactive sites
+reserve against image/text/URI/binary replacement until actual receipt/timeout plus
+separate idle cleanup. Late canceled replies skip SDK decoding/copy/policy, then finish
+false; already-entered decoders/native encoding/receipt cannot be stopped. No early
+finish or timeout repair is fabricated. Pads are weakly owned outside wire/cleanup
+work; application closures can still create their own cycles. GTK owns IPC resources;
+no user pad or receiver is implicitly realized.
+
+Desktop makes the sample preview an image source and incoming preview a destination
+only while a **separate initially-off drop trust checkbox** is enabled. Re-enable while
+draining is refused until a later event; demo policy/copy bounds are small. Hidden tests
+cover copies/weak pads/trust/conflicts/purity without selections/decoding.
+`testMappedImageDrag` requires isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST.
+Real local/foreign tiny trusted PNG tests cover exact pixels/alpha/snapshots/updates,
+bounds/zero, metadata copies/fixed identity/policy/errors/guards, wrong envelopes/text/
+MOVE/source-cancel, no DELETE, retained/reentrant observers, queued cancel and delayed
+disconnect/destroy/drain/replacement. Icon cursor/popup tests include this fourth source
+family. Seven image-target/codec plus shared seven DnD native prototypes/four signed/
+full-width signal ABI probes and source guards pin scope. Other platforms get semantic
+checks, not simulated drags. Untrusted decoding, model/editor sources, MOVE, async
+acceptance, persistence and private audits remain separate.
+
 ## Explicitly trusted copied image clipboard requests
 
 `Clipboard.requestImage(trusted: bool, fn, maxPixels = 4*1024*1024)` and its leading
@@ -3135,12 +3227,12 @@ local/foreign idle/pixel/alpha/dimension/bound/retention/reentrant/error/PRIMARY
 delayed cancel/destruction/last-owner disposal regressions; a second real reply drains
 canceled native wires without exposing private bookkeeping. Four native request/copy/
 dimension prototypes plus nullable-image/destroy/closure ABI and source guards cover
-this path with ARC/ORC and cross-target checks. Image DnD, persistence and private
-layout audits remain separate.
+this path with ARC/ORC and cross-target checks. Trusted image pads are described above;
+persistence and private layout audits remain separate.
 
 ## Copied drag-source Pixbuf icons
 
-`TextDragSource`, `UriDragSource` and `BinaryDragSource` support the same explicit
+`TextDragSource`, `UriDragSource`, `BinaryDragSource` and `ImageDragSource` support the same explicit
 `setIcon(image: Pixbuf)` and `clearIcon()` operations:
 
 ```nim
@@ -3195,7 +3287,7 @@ the observation probe allows that one-unit visual tolerance, without changing pi
 caches or outcomes. Two native copy/context-icon prototypes and pointer/signed-hotspot
 ABI probes plus source guards accompany ARC/ORC and cross-target checks. Other platforms
 receive semantic checks, not simulated native rendering claims. Trusted image requests
-are described above; image DnD and private layout audits remain separate.
+and pads are described above; private layout audits remain separate.
 
 ## Binary COPY-only drag/drop pads
 
@@ -3228,7 +3320,7 @@ is installed. Only COPY is advertised; selected action must be COPY at drop and 
 receipt. No MOVE, source deletion or editor/model/private-site override is provided.
 
 Only one native site per direction may own a pad. The other direction is independent;
-text/URI/binary sites in the same direction conflict rather than overwrite each other.
+text/URI/binary/image sites in the same direction conflict rather than overwrite each other.
 Existing native target lists reject configuration. Public GTK cannot enumerate every
 empty-target/proxy raw registration: do not preconfigure raw sites on SDK pads or
 mutate their target lists/handlers while active or draining. No private registry,
@@ -3286,7 +3378,7 @@ independent receivers and blocked replacement. Seven public native prototypes/fo
 callback signatures probe signed coordinates/gboolean and full unsigned info/time;
 source guards pin finish, copy validation and scope. Other platforms receive semantic
 checks, not simulated native drags. Trusted image requests are described above;
-image DnD and async acceptance stay separate.
+trusted image pads are also available; async acceptance stays separate.
 
 ## URI COPY-only drag/drop pads
 
@@ -5704,7 +5796,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard/testMappedBinaryDrag/testMappedDragIcons tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard/testMappedBinaryDrag/testMappedDragIcons/testMappedImageDrag tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -5712,7 +5804,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, untrusted image decoding, image DnD, asynchronous acceptance
+additional rich clipboard protocols, untrusted image decoding, asynchronous acceptance
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

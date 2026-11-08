@@ -68,6 +68,28 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_image_drag_has_trust_envelope_metadata_only_policy_and_single_finish(self):
+        text = (ROOT / 'src/gtk2/imagedrag.nim').read_text()
+        self.assertIn('if not trusted: raise', text)
+        self.assertIn('ImageDropPredicate* = proc (value: ImageDropInfo)', text)
+        metadata = text.split('ImageDropInfo* = object', 1)[1].split('ImageDrop* = object', 1)[0]
+        self.assertNotIn('Pixbuf', metadata)
+        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
+        self.assertIn('g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('selection_data_get_data_type(selection) == wire.target', text)
+        self.assertIn('selection_data_get_format(selection) == 8', text)
+        self.assertIn('copyClipboardImage(decoded, s.maxPixels)', text)
+        self.assertIn('if decoded != nil and s.active:', text)
+        self.assertIn('if decoded != nil: g.g_object_unref(decoded)', text)
+        self.assertIn('finally: dec modelFunctionDepth', text)
+        self.assertIn('s.accept = nil', text)
+        self.assertIn('receiver: Window', text)
+        self.assertIn('target_table_free(targets.table, targets.count)', text)
+        self.assertLess(text.index('valid = acceptImageDrop(s, value.info)'), text.index('rawGtk.drag_finish('))
+        for forbidden in ('DEST_DEFAULT_DROP', 'set_text(', 'set_uris(', 'realize(', 'show(',
+                          '"gtk-drag-dest"', 'loadPixbuf(', 'set_can_store'):
+            self.assertNotIn(forbidden, text)
+
     def test_image_requests_gate_decode_bound_copy_and_keep_owner_weak(self):
         text = (ROOT / 'src/gtk2/imagerequests.nim').read_text()
         self.assertLess(text.index('if not trusted:'), text.index('rawGtk.request_image('))

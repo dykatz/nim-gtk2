@@ -30,6 +30,37 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Explicitly trusted COPY-only image drag/drop pads
+
+Ordinary DrawingArea/EventBox pads now support enableImageDrag(Pixbuf), copied
+setImage updates, ImageDragSource and trust-required onImageDrop. Private caller pixel
+copies and actual begin snapshots isolate mutation/release; no mutable payload getter.
+Readable/writable image targets use public native lists/tables; COPY at drop/receipt,
+exact selected target/type/format-8/positive-envelope checks before native decoding.
+
+ImageDrop owns a private Pixbuf and copied ImageDropInfo dimensions/alpha/coordinates/
+time. Optional fixed ImageDropPredicate receives only that metadata, after trusted
+decode/bounded copy and before native finish, under shared pure guards. It is not a
+codec trust gate. maxPixels bounds post-decode app copying, not receipt/INCR/decoder
+memory/CPU; installed autodetecting loaders are not a MIME security allowlist.
+
+One tracked native finish/delete=false, idle owning observers and independent pending
+pad/context/unrealized same-screen receivers preserve teardown. Disconnect clears
+captures/config promptly; inactive pads block image/text/URI/binary replacement until
+real drain/idle cleanup. Late replies skip SDK decode/copy; already-entered codecs,
+native encoders/receipt cannot be stopped. No fallback, MOVE, source-success repair,
+private bookkeeping or implicit user realization is added.
+
+Image sources also support copied icon APIs, independently of payload. Desktop uses
+source preview plus separate initially-off trusted drop preview control. Hidden ARC/ORC
+copies/trust/weak-pad/conflict/purity tests, seven target/codec plus shared seven native
+DnD prototype/four callback ABI probes/source guards, genuine local/foreign XTEST tiny
+PNG pixel/alpha/snapshot/bound/policy/error/guard/no-DELETE/queued/pending/destroy/drain
+regressions and fourth-family icon cursor/popup tests cover this functionality.
+See [trusted image pad guide](gtk2.md#explicitly-trusted-copy-only-image-dragdrop-pads).
+Untrusted decoding, model/editor sources, MOVE, async acceptance/persistence and private
+audits remain separate.
+
 ### Explicitly trusted copied image clipboard requests
 
 requestImage requires an explicit true trust argument before any native decoding,
@@ -58,11 +89,11 @@ Hidden no-wire/purity tests, four native prototype/nullable image/destroy/closur
 and source guards plus real local/foreign trusted tiny PNG pixel/alpha/bound/idle/
 retention/error/reentrant/PRIMARY/queued/delayed cancel/weak-owner regressions cover
 the path. See [trusted image guide](gtk2.md#explicitly-trusted-copied-image-clipboard-requests).
-Untrusted decoding, image DnD, persistence and private audits remain separate.
+Trusted image pads are described above; untrusted decoding, persistence and private audits remain separate.
 
 ### Copied drag-source Pixbuf icons
 
-Text/URI/binary source tokens now expose setIcon(Pixbuf)/clearIcon. Configuration
+Text/URI/binary/image source tokens now expose setIcon(Pixbuf)/clearIcon. Configuration
 copies pixels atomically and is guarded; caller mutation/release cannot alter later
 drags. No getter or alias to caller storage is offered. Actual native begin applies
 through public context icon API with GTK's source hotspot. Active contexts retain
@@ -107,7 +138,7 @@ Desktop adds explicit count-only sample pads. Hidden configuration/lifetime/puri
 and actual XTEST local/foreign/snapshot/all-byte INCR/bounds/type/format/policy/error/
 source cancellation/queued cancel/destroy/drain tests accompany seven native public
 prototype/four callback signed/full-unsigned ABI probes and source scope guards.
-See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Image DnD/broader custom icons,
+See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Broader custom icons,
 asynchronous acceptance, persistence and private layout audits remain separate.
 
 ### Bounded copied binary clipboard requests
@@ -174,7 +205,7 @@ of alpha/metadata retention in every encoder, and active does not imply delivery
 Desktop adds explicit copy/clear buttons. Hidden no-publication and isolated real
 local/foreign/PRIMARY PNG fixture tests cover mutation/source release, dropped tokens,
 replacement/stale clear and absence of text/URI fallback. Binary offers are described
-above; trusted incoming image requests are also described above, while image DnD remains separate. No untrusted parser
+above; trusted incoming image requests/pads are also described above. No untrusted parser
 is automatically invoked. See [image clipboard guide](gtk2.md#copied-image-clipboard-offers).
 
 ### Copied URI drop acceptance
@@ -221,7 +252,7 @@ Five public prototypes/three callback signatures and signed-coordinate/full unsi
 payload probes supplement hidden ownership/purity/conflict tests and isolated real
 XTEST/local/foreign/delayed-reply regressions. Desktop example adds URI inspection
 pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Copied synchronous acceptance is described above; asynchronous acceptance and
-image DnD and MOVE remain separate, and private layout audits remain deferred.
+trusted image pads are also available; MOVE and private layout audits remain deferred.
 
 ### URI clipboard functionality
 
@@ -239,7 +270,7 @@ copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
 URI pads, image/binary offers and binary/trusted image requests are described above;
-image DnD and MOVE remain separate, and private layout audits are deferred.
+trusted image pads are also available; MOVE and private layout audits are deferred.
 
 ### Rich clipboard negotiation
 
