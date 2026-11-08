@@ -4,6 +4,7 @@ type
     uris*: seq[string]
     x*, y*: int
     time*: uint32
+  UriDropPredicate* = proc (value: UriDrop): bool {.closure.}
   UriSourceFlight = object
     context: rawGdk.PDragContext
     value: UriList
@@ -24,6 +25,7 @@ type
     flights: seq[UriSourceFlight]
     wires: seq[UriWire]
     queue: RecentBinding[UriDrop]
+    accept: UriDropPredicate
     cleanupIdle: g.guint
     cleanupWidget: rawGtk.PWidget
   UriDragSource* = object
@@ -72,6 +74,7 @@ proc disconnectUriSite(s: UriSiteState) =
   requireOutsideModelFunction()
   if s == nil or not s.active: return
   s.active = false
+  s.accept = nil # Wire pins must not retain application policy captures after cancel.
   if s.queue != nil:
     releaseRecentBinding[UriDrop](cast[pointer](s.queue), nil)
     s.queue = nil
@@ -136,6 +139,19 @@ proc uriSourceData(instance: pointer, context: rawGdk.PDragContext, selection: r
           discard rawGtk.set_uris(selection, cast[g.PPgchar](addr vector[0]))
           return
     except Exception as error: reportSignalError(error)
+proc acceptUriDrop(s: UriSiteState, value: UriDrop): bool =
+  let predicate = s.accept # Root the fixed attachment policy throughout evaluation.
+  if predicate == nil: return true
+  # Give the policy independent sequence storage, not the later observer's value.
+  var input = UriDrop(x: value.x, y: value.y, time: value.time)
+  for uri in value.uris: input.uris.add(uri)
+  try:
+    inc modelFunctionDepth
+    try: result = predicate(input)
+    finally: dec modelFunctionDepth
+  except Exception as error:
+    reportSignalError(error)
+    result = false
 proc uriDestData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
     selection: rawGtk.PSelectionData, info: g.guint, time: g.guint32, data: pointer) {.cdecl, gcsafe.}
 proc uriDestDrop(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
@@ -186,7 +202,9 @@ proc uriDestData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
           let received = readSelectionUris(selection)
           valid = received.kind == urisAvailable and
             rawGdk.drag_context_get_selected_action(context) == rawGdk.ACTION_COPY
-          if valid: value = UriDrop(uris: received.uris, x: wire.x, y: wire.y, time: wire.time)
+          if valid:
+            value = UriDrop(uris: received.uris, x: wire.x, y: wire.y, time: wire.time)
+            valid = acceptUriDrop(s, value)
       except ValueError: discard
       except Exception as error: reportSignalError(error)
       if not wire.finished:
@@ -217,10 +235,14 @@ proc enableUriDrag*(w: Widget, value: UriList): UriDragSource {.discardable.} =
 proc enableUriDrag*(w: Widget, uris: openArray[string]): UriDragSource {.discardable.} =
   requireOutsideModelFunction()
   w.enableUriDrag(newUriList(uris))
-proc onUriDrop*(w: Widget, fn: proc (value: UriDrop) {.closure.}): UriDropSite {.discardable.} =
+proc onUriDrop*(w: Widget, fn: proc (value: UriDrop) {.closure.},
+    accept: UriDropPredicate = nil): UriDropSite {.discardable.} =
+  ## Optional fixed synchronous policy sees copied values under pure-function guards.
+  ## Only accepted valid COPY drops finish successfully and reach the idle observer.
   requireOutsideModelFunction()
   if fn == nil: raise newException(ValueError, "URI drop callback cannot be nil")
   let s = installUriSite(w, false)
+  s.accept = accept
   s.queue = RecentBinding[UriDrop](active: true, fn: fn)
   GC_ref(s.queue)
   s.connectUriSite("drag-drop", cast[g.TGCallback](uriDestDrop))

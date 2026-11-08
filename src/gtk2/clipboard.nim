@@ -18,6 +18,7 @@ type
 
 proc raw*(c: Clipboard): rawGtk.PClipboard = cast[rawGtk.PClipboard](nativePointer(c))
 proc getClipboard*(kind = clipboardStandard): Clipboard =
+  requireOutsideModelFunction() # Reject before atom/native clipboard lookup, too.
   let name = if kind == clipboardStandard: "CLIPBOARD" else: "PRIMARY"
   let atom = rawGdk.atom_intern(name.cstring, g.gbool(false))
   result.state = adoptObject(rawGtk.clipboard_get(atom), borrowed = true, cache = true,

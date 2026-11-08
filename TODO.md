@@ -8,14 +8,38 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied URI drop acceptance predicates
+## Next proposed functionality batch: copied image clipboard offers
 
-- [ ] Add explicit synchronous application acceptance over copied URI drop values,
-      separate from post-finish observations, with pure-function guards/contained errors.
-- [ ] Define closure/owner/native lifetime and reentrancy semantics without event pumps,
-      file opening, MOVE deletion or pretending GTK2 source completion proves acceptance.
-- [ ] Expand existing examples/docs and hidden ARC/ORC/native ABI/isolated real transfers;
-      asynchronous acceptance, image/binary payloads and private audits stay separate.
+- [ ] Add explicit clipboard image publication from an owned copied Pixbuf snapshot,
+      isolating later source-pixel changes and auditing native target/clear lifetimes.
+- [ ] Keep native encoding/ownership semantics, GTK UI-thread/pure-function guards and
+      no automatic publication at startup; defer incoming decoding, binary formats,
+      image drag/drop and clipboard-manager persistence to separately scoped work.
+- [ ] Update existing examples/docs plus hidden ARC/ORC/native ABI and isolated
+      native image transfer/ownership regressions. Private audits remain deferred.
+
+## Completed functionality batch: copied URI drop acceptance predicates
+
+- [x] Added optional fixed UriDropPredicate to onUriDrop: copied synchronous input
+      before native finish, nil/default transport policy, false/error rejection and
+      no policy call for invalid/non-COPY/canceled data. Observers remain idle/post-
+      finish, not async acceptance, application work completion or file authorization.
+- [x] Used shared pure-function guards with exception-safe restoration and deferred
+      final releases. Clipboard lookup now rejects before native atom/get calls,
+      and init/quit reject before GTK runtime/main-loop access.
+      Independent policy input storage and rooted closure; disconnect/destruction
+      promptly clears policy captures while wire/receiver pins drain without calling it.
+- [x] Added public raw gdk_drag_drop_succeeded plus native prototype/full gboolean
+      probe and actual X11 acceptance-bit checks; GTK2 source-success reporting is
+      unchanged, not repaired. Single finish/delete=false and other ABI preserved.
+- [x] Extended hidden closure/configuration/purity and isolated true/false/empty/error/
+      guard/copy/fixed-identity/deferred-release/pre-finish/foreign/cancellation tests.
+      Existing desktop pads demonstrate an explicit nonempty namespace predicate;
+      updated guides/source guards, no implicit realization, file opening or raw state.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff checks, every isolated mapped task and
+      missing-opt-in guard. Native GTK unchanged; private audits remain deferred.
 
 ## Completed functionality batch: URI COPY-only drag-and-drop pads
 
@@ -518,11 +542,12 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 - [x] URI clipboard offers/requests with copied tokens (functionality batch above).
 - [x] URI COPY-only drag/drop pads with independent wire teardown (batch above).
-- [ ] Copied synchronous URI drop acceptance (next proposed functionality batch).
-- [ ] Image and binary transfers.
+- [x] Copied synchronous URI drop acceptance (functionality batch above).
+- [ ] Image and binary transfers (copied image clipboard offers proposed next).
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
-- [ ] Application-controlled drop acceptance and asynchronous acceptance protocols.
+- [x] Copied synchronous application URI drop acceptance (batch above).
+- [ ] Broader application-controlled drop acceptance and asynchronous protocols.
 
 ### Printing
 
@@ -568,6 +593,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied pre-finish URI acceptance with pure guards, capture lifetimes and actual
+      X11 outcome-bit/copy/error/deferred-release/foreign cancellation regressions (above).
 - [x] URI COPY-only pad snapshots/observations, draining reply/receiver lifetimes and
       isolated real local/foreign cancellation/destruction regressions (above).
 - [x] URI clipboard offers/async requests with copied values, explicit failure modes,

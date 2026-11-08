@@ -30,6 +30,29 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied URI drop acceptance
+
+`onUriDrop(observer, accept = predicate)` now optionally evaluates a fixed
+`UriDropPredicate` over independent copied values before native finish. Nil retains
+valid-COPY transport acceptance; false/errors reject without an idle observation.
+Invalid/canceled/non-COPY data never invokes the policy. Predicate identity is fixed
+for the attachment, not a snapshot of arbitrary captured application state.
+
+The shared synchronous-function guard denies checked GTK access, clipboard lookup,
+site mutation/disconnect and nested GUI work; ordinary final releases wait for idle.
+Guard restoration and exception containment precede native completion. Disconnect/
+destroy clears policy captures even while independent wire/receiver pins drain;
+tokens alone do not cancel. This is not a sandbox, asynchronous acceptance, file
+permission check, full URI parser or MOVE implementation. Observers remain post-
+finish and may reenter GTK only after acceptance.
+
+The raw public `gdk_drag_drop_succeeded` getter and native prototype/full gboolean
+probe support actual X11 wire-bit regression checks, unlike GTK2's success-like
+source `drag-end` reporting. Hidden lifetime/purity and real local/foreign predicate/
+error/cancellation/copy/deferred-release tests extend the existing URI tasks. Desktop
+pads demonstrate a nonempty copied namespace policy without file opening. See
+[URI guide](gtk2.md#uri-copy-only-dragdrop-pads). Private audits remain deferred.
+
 ### URI COPY-only drag/drop functionality
 
 Ordinary DrawingArea/EventBox pads now offer URI-only drag-begin snapshots and
@@ -50,8 +73,8 @@ extra finish or simulated history/cancel is added.
 Five public prototypes/three callback signatures and signed-coordinate/full unsigned
 payload probes supplement hidden ownership/purity/conflict tests and isolated real
 XTEST/local/foreign/delayed-reply regressions. Desktop example adds URI inspection
-pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Application-controlled
-acceptance, images/binary/MOVE remain separate; private layout audits remain deferred.
+pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Copied synchronous acceptance is described above; asynchronous acceptance and
+images/binary/MOVE remain separate, and private layout audits remain deferred.
 
 ### URI clipboard functionality
 

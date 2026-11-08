@@ -73,6 +73,11 @@ class HeaderLayout(unittest.TestCase):
         self.assertEqual(text.count('rawGtk.drag_finish('), 1)
         self.assertIn('rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false)', text)
         self.assertIn('readSelectionUris(selection)', text)
+        self.assertIn('finally: dec modelFunctionDepth', text)
+        self.assertIn('s.accept = nil', text)
+        self.assertLess(text.index('valid = acceptUriDrop(s, value)'), text.index('rawGtk.drag_finish('))
+        clipboard = (ROOT / 'src/gtk2/clipboard.nim').read_text().split('proc getClipboard*', 1)[1].split('proc setText*', 1)[0]
+        self.assertLess(clipboard.index('requireOutsideModelFunction()'), clipboard.index('rawGdk.atom_intern('))
         self.assertNotRegex(text, r'rawGtk\.(?:realize|show|show_all|map|drag_(?:source|dest)_add_text_targets)\s*\(')
         self.assertNotIn('DEST_DEFAULT_DROP', text)
         self.assertNotIn('gtk-drag-dest', text) # No private native qdata access.

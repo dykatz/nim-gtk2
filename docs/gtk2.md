@@ -2861,7 +2861,7 @@ continued or certified by this feature.
 ## URI COPY-only drag/drop pads
 
 `DrawingArea` and `EventBox` pads provide `enableUriDrag(UriList | openArray[string])`
-and `onUriDrop(proc(value: UriDrop))`. Only exact ordinary pad types are supported,
+and `onUriDrop(proc(value: UriDrop), accept: UriDropPredicate = nil)`. Only exact ordinary pad types are supported,
 not editor/model/native private DnD sites or arbitrary subclasses. Source and
 destination may share a pad; only one native site per direction is allowed. Text
 and URI SDK sites cannot overwrite each other in that direction. Existing public
@@ -2890,19 +2890,68 @@ through a disconnected source. Dropped source/drop tokens do not cancel sites.
 
 The destination requires the actual selected action to be COPY at both drop and
 receipt. It reuses public URI type/format/UTF-8/NUL/token checks and native comment/
-line parsing. Valid empty URI lists succeed; malformed/unavailable/wrong-type data
+line parsing. Valid empty URI lists succeed by default (a policy may reject them);
+malformed/unavailable/wrong-type data
 fails as a whole and emits no observation. Each tracked request is finished exactly
 once with delete=false; DEFAULT_DROP is not set. Selected COPY alone does not imply
 a valid URI reply. `UriDrop` contains copied uris, original pad-local x/y and uint32
 native event time; no context, selection pointer or C vector escapes.
 
-`onUriDrop` is a **per-drop idle observation, not an acceptance predicate**. Native
-completion precedes application delivery; transfer success means only valid URI
-transport, not scheme/authority/file authorization or successful application work.
-Validate every use independently. Nothing is decoded, opened, launched or inserted.
+The first `onUriDrop` callback remains a **per-drop idle observation**. Optional
+`accept` is a separate **synchronous pre-finish decision** over copied `UriDrop`
+values. `UriDropPredicate` is a Nim closure returning bool, not a raw GTK signal or
+GObject virtual method. Nil means accept any otherwise valid URI COPY transfer.
+A non-nil predicate is invoked exactly once only after complete valid URI data and
+COPY selection arrive; malformed/unavailable/canceled/text/MOVE drops never call
+it. False or an exception completes failure and queues no observation. Exceptions
+are contained/reported; the shared guard is restored before native completion.
+
+```nim
+let acceptNamespace: UriDropPredicate = proc (value: UriDrop): bool =
+  if value.uris.len == 0: return false
+  for uri in value.uris:
+    if not uri.startsWith("urn:example:"): return false # import std/strutils
+  true
+let site = destinationPad.onUriDrop(proc (value: UriDrop) =
+  echo(value.uris), accept = acceptNamespace)
+```
+
+This predicate uses the existing synchronous model-function guard: checked GTK
+handle access, widget/clipboard operations, site mutation/disconnect and nested GUI
+work are forbidden. Even getClipboard rejects **before** its atom/native lookup, and init/quit reject
+before touching GTK runtime/main-loop state. This guard is not whole-program purity
+or native-call interposition: unguarded constructors and raw calls are also forbidden
+by contract, not safe ways to bypass the checked handle restrictions.
+Ordinary last-handle releases are deferred to UI idle outside the pure computation.
+Use only copied data and quick deterministic computation: no event pumping, blocking
+I/O, async waits or raw GTK. This is an application contract, not a sandbox against
+arbitrary Nim/FFI, and does not make untrusted application callbacks safe.
+
+Input sequence storage is independent of the eventual observer's payload; copied
+inputs may be retained, but never represent a live context/selection or permission
+token. The callback identity is fixed per attachment; reassigning the caller's proc
+variable does not replace it. Captured variables remain application state, read at
+receipt time, not automatically frozen. Prefer immutable copied configuration.
+Disconnect/drain/reattach to install another function; no mutable policy cache or
+re-evaluation of already completed drops is introduced. Predicate captures are
+released on disconnect/destruction even while wire pins continue to drain. An
+executing callback retains its own local root through return. Dropped tokens alone
+do not release attachment callbacks or cancel transfers; explicitly destroy GUI
+owners whose closures capture their handles.
+
+Native completion follows the decision and precedes observation; transport/policy
+success is **not** full scheme/authority/file authorization or successful application
+work. The observer runs only after acceptance and may then update UI, disconnect,
+destroy or start other work. Canceling a queued observation does not undo the
+completed transfer or repeat its predicate. Validate every later use independently.
+Nothing is decoded, opened, launched or inserted.
 GTK2's X11 source handler treats received XDND Finished as source success without
 honoring its failure bit; `drag-end`/absence of `drag-failed` cannot prove destination
-acceptance. No synthetic correction, second finish or native patch is introduced.
+acceptance. The raw public gdk_drag_drop_succeeded getter can inspect a completed
+GDK outcome when the backend/protocol supplies it; actual X11 tests use that bit
+rather than GtkWidget's success-like source signal. It is not a portable application
+acknowledgment or authorization. No synthetic correction, second finish or native
+patch is introduced.
 
 Disconnect or widget destruction promptly releases callback captures and queued
 values. A completed transfer is not rolled back when its observation is canceled.
@@ -2924,7 +2973,9 @@ Do not replace target lists, unset native sites, disconnect handlers or destroy
 SDK-owned receiver windows through raw APIs while a site is active/draining.
 No private GTK bookkeeping, layout/cache repair or invented wire cancellation is used.
 
-[examples/desktop.nim](../examples/desktop.nim) has URI COPY source/inspection pads.
+[examples/desktop.nim](../examples/desktop.nim) has URI COPY source/inspection pads
+with an explicit nonempty urn:example:/https://example.invalid/ namespace policy.
+It rejects file URIs for this inspection pad and never opens accepted URIs.
 `tests/tgtk2uridrag.nim` covers unrealized configuration, copied/atomic values, type/
 site conflicts, teardown/capture ownership and pure guards without requesting data,
 claiming PRIMARY or synthesizing input. `nimble testMappedUriDrag` requires isolated
@@ -2932,8 +2983,11 @@ DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST for real input. It tests actu
 local/foreign XDND, begin snapshots/empty lists, malformed/text/MOVE/source-canceled
 rejection, no DELETE, reentrant/throwing observations, queued cancellation and delayed
 foreign replies surviving disconnect/destruction without reaching replacement sites.
-Other platforms receive semantic checks, not simulated native drags. Native header
-probes verify five public function prototypes, three widget callback signatures,
+Acceptance tests additionally cover true/false/empty/error/uncaught-guard outcomes,
+fixed callback identity, independent retained/modified copies, pre-finish ordering,
+GDK acceptance bits, deferred final releases, prompt policy-capture cleanup, and
+no policy invocation after cancellation or for invalid data. Other platforms receive semantic checks, not simulated native drags. Native header
+probes verify six public function prototypes, three widget callback signatures,
 signed coordinates/booleans and full unsigned info/time payloads.
 
 ## Clipboard and copy-only text drag/drop
@@ -5220,7 +5274,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -5228,7 +5282,8 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-rich/binary clipboard formats, URI/MOVE/model drag-and-drop,
+additional rich clipboard protocols, image/binary transfers, asynchronous URI
+acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.

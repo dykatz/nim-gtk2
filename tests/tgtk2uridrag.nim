@@ -11,6 +11,15 @@ type Capture = ref CaptureObj
 proc watch(w: Widget, freed: ptr int): UriDropSite =
   let capture = Capture(freed: freed)
   w.onUriDrop(proc (value: UriDrop) = discard capture.freed)
+proc watchPolicy(w: Widget, observerFreed, policyFreed: ptr int, calls: ptr int): UriDropSite =
+  let observerCapture = Capture(freed: observerFreed)
+  let policyCapture = Capture(freed: policyFreed)
+  let observe = proc (value: UriDrop) = discard observerCapture.freed
+  let accept: UriDropPredicate = proc (value: UriDrop): bool =
+    discard policyCapture.freed
+    inc calls[]
+    true
+  w.onUriDrop(observe, accept = accept)
 gtk2.init()
 suite "URI pad configuration, no native transfers":
   test "copied values, atomic invalid replacement and independent source/destination":
@@ -81,6 +90,23 @@ suite "URI pad configuration, no native transfers":
     check freed == 3 and not next.connected and not next.draining
     UriDragSource().disconnect()
     UriDropSite().disconnect()
+  test "fixed policy and observation captures share attachment lifetime, not token lifetime":
+    var observerFreed, policyFreed, calls, final = 0
+    block:
+      let pad = newDrawingArea()
+      g.weak_ref(cast[g.PGObject](pad.raw), gone, addr final)
+      discard watchPolicy(pad, addr observerFreed, addr policyFreed, addr calls)
+      check observerFreed == 0 and policyFreed == 0 and calls == 0
+    check observerFreed == 1 and policyFreed == 1 and calls == 0 and final == 1
+    let pad = newEventBox()
+    defer: pad.destroy()
+    let site = watchPolicy(pad, addr observerFreed, addr policyFreed, addr calls)
+    site.disconnect()
+    site.disconnect()
+    check observerFreed == 2 and policyFreed == 2 and calls == 0
+    let next = watchPolicy(pad, addr observerFreed, addr policyFreed, addr calls)
+    pad.destroy()
+    check observerFreed == 3 and policyFreed == 3 and calls == 0 and not next.connected
   test "synchronous model functions cannot configure/disconnect/access mutable URI sites":
     let pad = newEventBox()
     defer: pad.destroy()
@@ -109,7 +135,21 @@ suite "URI pad configuration, no native transfers":
       try: discard pad.onUriDrop(proc (value: UriDrop) = discard)
       except ValueError as error:
         if error.msg == guard: inc denied
+      try:
+        let accept: UriDropPredicate = proc (value: UriDrop): bool = true
+        discard pad.onUriDrop(proc (value: UriDrop) = discard, accept = accept)
+      except ValueError as error:
+        if error.msg == guard: inc denied
+      try: discard getClipboard()
+      except ValueError as error:
+        if error.msg == guard: inc denied
+      try: gtk2.init()
+      except ValueError as error:
+        if error.msg == guard: inc denied
+      try: gtk2.quit()
+      except ValueError as error:
+        if error.msg == guard: inc denied
       true)
     completion.refilter()
-    check calls > 0 and denied == calls * 5
+    check calls > 0 and denied == calls * 9
     check source.connected and source.uris == @["urn:original"]

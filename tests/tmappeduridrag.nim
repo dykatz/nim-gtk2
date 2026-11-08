@@ -28,8 +28,12 @@ proc point(w: gtk2.Widget): tuple[x, y: cint] =
   discard gd.get_origin(n.get_window(w.raw), addr x, addr y)
   (cint(x + 20), cint(y + 20))
 type Stats = object
-  ends, failed, deletes, dataSignals: int
-proc ended(instance: pointer, context: gd.PDragContext, data: pointer) {.cdecl.} = inc cast[ptr Stats](data).ends
+  ends, failed, deletes, dataSignals, wireAccepted, wireRejected: int
+proc ended(instance: pointer, context: gd.PDragContext, data: pointer) {.cdecl.} =
+  let s = cast[ptr Stats](data)
+  inc s.ends
+  if g.toBool(gd.drag_drop_succeeded(context)): inc s.wireAccepted
+  else: inc s.wireRejected
 proc failed(instance: pointer, context: gd.PDragContext, reason: cint, data: pointer): g.gboolean {.cdecl.} =
   inc cast[ptr Stats](data).failed
   g.gbool(true) # Test observer suppresses only GTK's failure animation, not warnings.
@@ -52,11 +56,18 @@ type CaptureObj = object
   freed: ptr int
 proc `=destroy`(c: var CaptureObj) = inc c.freed[]
 type Capture = ref CaptureObj
-proc watch(w: gtk2.Widget, freed, calls: ptr int): UriDropSite =
-  let capture = Capture(freed: freed)
-  w.onUriDrop(proc (value: UriDrop) =
-    discard capture.freed
-    inc calls[])
+proc watchPolicy(w: gtk2.Widget, freed, policyFreed, calls, policyCalls: ptr int): UriDropSite =
+  let observerCapture = Capture(freed: freed)
+  let policyCapture = Capture(freed: policyFreed)
+  let observer = proc (value: UriDrop) =
+    discard observerCapture.freed
+    inc calls[]
+  let accept: UriDropPredicate = proc (value: UriDrop): bool =
+    discard policyCapture.freed
+    inc policyCalls[]
+    true
+  w.onUriDrop(observer, accept = accept)
+proc finalized(data: pointer, obj: g.PGObject) {.cdecl.} = inc cast[ptr int](data)[]
 type CancelState = object
   site: UriDropSite
   widget: gtk2.Widget
@@ -181,6 +192,132 @@ when defined(posix) and not defined(macosx):
       require awaitUi(proc (): bool = stats.ends == 2 and seen.len == 2)
       check seen[1].uris.len == 0 and stats.deletes == 0 and stats.failed == 0
       check not site.connected and not site.draining and dest.isDestroyed
+    test "fixed acceptance sees independent copies before observation; false/errors reject":
+      for mode in 0..4:
+        let host = newWindow("URI acceptance", 420, 140)
+        defer: host.destroy()
+        let row = newHBox(spacing = 30)
+        host.add(row)
+        let source = newEventBox()
+        let dest = newEventBox()
+        source.setSizeRequest(150, 100)
+        dest.setSizeRequest(150, 100)
+        row.packStart(source)
+        row.packStart(dest)
+        let original = if mode == 3: newUriList([]) else: newUriList(["urn:example:original", "urn:example:original"])
+        let drag = source.enableUriDrag(original)
+        var stats: Stats
+        var policyCalls = 0
+        var events: seq[string]
+        var saved: UriDrop
+        var seen: seq[UriDrop]
+        var accept: UriDropPredicate = proc (value: UriDrop): bool =
+          inc policyCalls
+          events.add("policy")
+          check seen.len == 0 and value.uris == original.uris
+          check value.x >= 0 and value.y >= 0 and value.time != 0
+          saved = value # A persistent copy, not a borrowed GTK selection/context.
+          case mode
+          of 0:
+            var changed = value
+            changed.uris[0][0] = 'X'
+            changed.uris.add("urn:policy-local")
+            check value.uris == original.uris
+            true
+          of 1: false
+          of 2: raise newException(ValueError, "expected URI acceptance exception")
+          of 3: value.uris.len > 0 # Valid empty transport can be refused by application policy.
+          else:
+            drag.uris = ["urn:forbidden-in-policy"] # Uncaught guard error also rejects.
+            true
+        discard dest.onUriDrop(proc (value: UriDrop) =
+          events.add("observer")
+          seen.add(value), accept = accept)
+        if mode == 0:
+          accept = proc (value: UriDrop): bool = false # Caller reassignment cannot replace the attached function.
+        observe(source, addr stats)
+        host.showAll()
+        settle()
+        startDrag(display, point(source))
+        releaseAt(display, point(dest))
+        require awaitUi(proc (): bool = stats.ends == 1)
+        settle()
+        check policyCalls == 1 and stats.deletes == 0 and stats.dataSignals == 1
+        check drag.uris == original.uris # Guard restored even after exceptions; no GUI mutation.
+        if mode == 0:
+          check stats.wireAccepted == 1 and stats.wireRejected == 0
+          check events == @["policy", "observer"] and seen.len == 1
+          check seen[0].uris == original.uris and saved.uris == original.uris
+          check seen[0].x == saved.x and seen[0].y == saved.y and seen[0].time == saved.time
+        else:
+          check stats.wireAccepted == 0 and stats.wireRejected == 1
+          check events == @["policy"] and seen.len == 0
+    test "acceptance guards GTK access and defers final releases, then observer can reenter":
+      let host = newWindow("Pure URI acceptance", 420, 140)
+      defer: host.destroy()
+      let row = newHBox(spacing = 30)
+      host.add(row)
+      let source = newEventBox()
+      let dest = newEventBox()
+      source.setSizeRequest(150, 100)
+      dest.setSizeRequest(150, 100)
+      row.packStart(source)
+      row.packStart(dest)
+      let drag = source.enableUriDrag(["urn:example:guard"])
+      let entry = newEntry("not for synchronous inspection")
+      defer: entry.destroy()
+      var orphan = newDrawingArea()
+      var final, denied, policyCalls, calls = 0
+      g.weak_ref(cast[g.PGObject](orphan.raw), finalized, addr final)
+      var stats: Stats
+      var site: UriDropSite
+      const guard = "GTK handle access is forbidden inside a synchronous model function; use copied row values"
+      let accept: UriDropPredicate = proc (value: UriDrop): bool =
+        inc policyCalls
+        try: discard dest.raw
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: dest.destroy()
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: site.disconnect()
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: drag.uris = ["urn:forbidden"]
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: discard getClipboard()
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: discard entry.text
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: gtk2.init()
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: gtk2.quit()
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        try: discard dest.onUriDrop(proc (copy: UriDrop) = discard)
+        except ValueError as error:
+          if error.msg == guard: inc denied
+        check newUriList(value.uris).len == 1
+        orphan = default(gtk2.DrawingArea) # Ordinary final release must wait beyond pure computation.
+        check final == 0
+        denied == 9
+      site = dest.onUriDrop(proc (value: UriDrop) =
+        inc calls
+        check drag.uris == @["urn:example:guard"] and entry.text == "not for synchronous inspection"
+        site.disconnect()
+        dest.destroy(), accept = accept)
+      observe(source, addr stats)
+      host.showAll()
+      settle()
+      startDrag(display, point(source))
+      releaseAt(display, point(dest))
+      require awaitUi(proc (): bool = stats.ends == 1 and calls == 1 and final == 1)
+      check policyCalls == 1 and denied == 9 and not site.connected and dest.isDestroyed
+      check stats.deletes == 0
     test "malformed URI and text-only or MOVE-only sources are not accepted":
       for mode in 0..3:
         let host = newWindow("Rejected URI transfer", 420, 140)
@@ -195,8 +332,11 @@ when defined(posix) and not defined(macosx):
         row.packStart(dest)
         var stats: Stats
         var cancelSource: UriDragSource
-        var calls = 0
-        discard dest.onUriDrop(proc (value: UriDrop) = inc calls)
+        var calls, policyCalls = 0
+        let accept: UriDropPredicate = proc (value: UriDrop): bool =
+          inc policyCalls
+          true
+        discard dest.onUriDrop(proc (value: UriDrop) = inc(calls), accept = accept)
         if mode == 0:
           discard source.enableUriDrag(["urn:initial"])
           discard g.g_signal_connect_data(source.raw, "drag-data-get", cast[g.TGCallback](malformed), nil, nil, g.TGConnectFlags(0))
@@ -214,7 +354,7 @@ when defined(posix) and not defined(macosx):
         require awaitUi(proc (): bool = stats.ends == 1)
         settle()
         checkpoint "mode=" & $mode & " calls=" & $calls & " ends=" & $stats.ends & " failed=" & $stats.failed & " data=" & $stats.dataSignals
-        check calls == 0 and stats.deletes == 0
+        check calls == 0 and policyCalls == 0 and stats.deletes == 0
         # GTK2 reports received XDND Finished as source success, ignoring its bit.
         if mode in [0, 3]: check stats.failed == 0
         else: check stats.failed == 1
@@ -234,9 +374,9 @@ when defined(posix) and not defined(macosx):
       discard source.enableUriDrag(["urn:queued-success"])
       var state = CancelState(widget: dest)
       var stats: Stats
-      var freed, calls = 0
+      var freed, policyFreed, calls, policyCalls = 0
       discard g.g_signal_connect_data(dest.raw, "drag-drop", cast[g.TGCallback](beforeDrop), addr state, nil, g.TGConnectFlags(0))
-      state.site = watch(dest, addr freed, addr calls)
+      state.site = watchPolicy(dest, addr freed, addr policyFreed, addr calls, addr policyCalls)
       observe(source, addr stats)
       host.showAll()
       settle()
@@ -245,7 +385,8 @@ when defined(posix) and not defined(macosx):
       require awaitUi(proc (): bool = stats.ends == 1 and not state.site.connected)
       settle()
       check not state.wasDraining and not state.site.draining
-      check freed == 1 and calls == 0 and stats.dataSignals == 1 and stats.deletes == 0
+      check freed == 1 and policyFreed == 1 and policyCalls == 1
+      check calls == 0 and stats.dataSignals == 1 and stats.deletes == 0
     test "foreign data copies normally; pending replies cannot reach replacement sites after cancel/destroy":
       for mode in 0..2:
         let destroy = mode == 2
@@ -255,15 +396,18 @@ when defined(posix) and not defined(macosx):
         host.add(dest)
         n.move(host.raw, 550, 20)
         var state = CancelState(widget: dest, destroy: destroy)
-        var freed, calls = 0
+        var freed, policyFreed, calls, policyCalls = 0
         var seen: seq[UriDrop]
         if mode != 0:
           discard g.g_signal_connect_data(dest.raw, "drag-drop", cast[g.TGCallback](beforeDrop), addr state, nil, g.TGConnectFlags(0))
-          state.site = watch(dest, addr freed, addr calls)
+          state.site = watchPolicy(dest, addr freed, addr policyFreed, addr calls, addr policyCalls)
         else:
+          let accept: UriDropPredicate = proc (value: UriDrop): bool =
+            inc policyCalls
+            value.uris.len == 2 and value.uris[1] == "urn:example:foreign"
           state.site = dest.onUriDrop(proc (value: UriDrop) =
             seen.add(value)
-            inc calls)
+            inc(calls), accept = accept)
         host.showAll()
         settle()
         let peer = startProcess(getAppFilename(), args = ["--uri-drag-peer"], options = {poUsePath})
@@ -278,12 +422,13 @@ when defined(posix) and not defined(macosx):
         releaseAt(display, point(dest))
         if mode == 0:
           require awaitUi(proc (): bool = calls == 1)
-          check seen[0].uris == @["file:///tmp/foreign%20name", "urn:example:foreign"]
+          check seen[0].uris == @["file:///tmp/foreign%20name", "urn:example:foreign"] and policyCalls == 1
           state.site.disconnect()
           check not state.site.draining
         else:
           require awaitUi(proc (): bool = state.wasDraining)
-          check freed == 1 and calls == 0 and state.blocked and state.textBlocked and state.unrealizedReceiver
+          check freed == 1 and policyFreed == 1 and calls == 0 and policyCalls == 0
+          check state.blocked and state.textBlocked and state.unrealizedReceiver
           require awaitUi(proc (): bool = not state.site.draining)
           check not state.site.connected and calls == 0
           if destroy: check dest.isDestroyed

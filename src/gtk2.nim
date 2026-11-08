@@ -181,6 +181,7 @@ proc checkedBoxPadding(value: int): g.guint =
 
 proc init*() =
   ## Initialize GTK without exiting the process if no display is available.
+  requireOutsideModelFunction()
   if not rawGtk.init_check(nil, nil):
     raise newException(IOError, "GTK could not open a display")
 
@@ -429,6 +430,7 @@ proc disconnectObjectSignals(w: ObjectHandle) =
 
 proc click*(w: Button) = rawGtk.clicked(w.raw)
 proc quit*() =
+  requireOutsideModelFunction()
   if rawGtk.main_level() > 0: rawGtk.main_quit()
 
 proc run*(w: Window) =

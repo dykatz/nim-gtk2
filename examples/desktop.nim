@@ -52,11 +52,19 @@ proc main() =
   for pad in [uriSource, uriDest]:
     pad.setSizeRequest(240, 60)
     uriPads.packStart(pad)
-  let uriDrag = uriSource.enableUriDrag(["file:///tmp/example%20name", "urn:example:sample"])
+  layout.packStart(newLabel("Drop policy: nonempty urn:example: or https://example.invalid/ lists only."), packShrink)
+  let uriDrag = uriSource.enableUriDrag(["https://example.invalid/%CE%BB", "urn:example:sample"])
+  let acceptInspection: UriDropPredicate = proc (value: UriDrop): bool =
+    # Synchronous, copied-data-only decision: no widgets, clipboard calls or I/O.
+    if value.uris.len == 0: return false
+    for uri in value.uris:
+      if not (uri.startsWith("urn:example:") or uri.startsWith("https://example.invalid/")):
+        return false
+    true # A demo namespace policy, not a file permission or full URI parser.
   let uriDrop = uriDest.onUriDrop(proc (value: UriDrop) =
-    # Native transfer is already finished: this is observation, not an accept hook.
-    # Validate scheme/authority/application policy before ever using received data.
-    status.text = "URI COPY at " & $value.x & "," & $value.y & ":\n" & value.uris.join("\n"))
+    # Accepted native transfer is already finished. Only the observer may update UI.
+    status.text = "Accepted URI COPY at " & $value.x & "," & $value.y & ":\n" & value.uris.join("\n"),
+    accept = acceptInspection)
   defer:
     uriDrag.disconnect()
     uriDrop.disconnect() # A pending native request drains without delivering to this observer.
