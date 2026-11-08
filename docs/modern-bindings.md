@@ -30,6 +30,29 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Bounded copied binary clipboard requests
+
+`requestBinary(mime, fn, maxBytes = 16 MiB)` and the leading Widget-owner overload
+add idle copied ClipboardBytes observations with bytesAvailable/bytesUnavailable/
+bytesRejected and the requested MIME. Exact target/type/format-8 checks precede
+allocation; valid empty is distinct and zero bounds permit only empty. Conservative
+application MIME rules and maxBytes 0..gint-minus-one apply, without parsing/fallback.
+The bound controls application copying, not GTK receipt/INCR allocation or hostile-
+owner CPU/memory. No untrusted image decoder or custom native cancellation is added.
+
+BinaryRequest.pending covers wire and idle work; cancel drops captures/queued values
+immediately, while native reply and idle pins are independent. Owner destroy/closure
+notifications use non-owning pointers and independent native state pins, not the
+owning public Connection handle. Last ordinary owner release cancels without retaining
+or referencing a finalizing widget. Observations detach first, may reenter GTK and
+contain errors. Pure-function guards reject request/cancel before native work.
+
+Desktop adds an explicit window-bound count-only inspector with a small copy bound.
+Hidden no-wire and isolated type/format/empty/bound/copy/weak-owner/local-queued/
+foreign-delayed/large-INCR/capture/reentrancy/error tests extend the binary task.
+Six public prototypes and received/destroy/closure callback ABI/source guards cover
+the path. See [request guide](gtk2.md#bounded-copied-binary-requests).
+
 ### Copied binary clipboard publication
 
 `newBinaryData(mime, bytes)` and `Clipboard.offerBinary(value | mime, bytes)` add
@@ -50,7 +73,7 @@ JSON/PDF/etc. is not validated or made trustworthy by its MIME name.
 Desktop adds explicit copy-byte/clear buttons. Hidden no-claim tests, native setter/
 length/unsigned-byte/signed-count probes, source guards and isolated exact local/
 foreign/empty/replacement/PRIMARY/reentrant failure tests cover the path, including
-large foreign X11 INCR transfers. Incoming requests remain separate. See
+large foreign X11 INCR transfers. Bounded incoming bytes are described above. See
 [binary clipboard guide](gtk2.md#copied-binary-clipboard-offers).
 
 ### Copied image clipboard publication
@@ -135,8 +158,8 @@ get results are copied/freed with `g_strfreev`; setter inputs stay live until GT
 copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
-URI pads and image/binary offers are described above; incoming image/binary requests,
-image/binary DnD and MOVE remain separate, and private layout audits are deferred.
+URI pads, image/binary offers and binary requests are described above; incoming image
+requests, image/binary DnD and MOVE remain separate, and private layout audits are deferred.
 
 ### Rich clipboard negotiation
 

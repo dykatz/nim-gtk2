@@ -8,16 +8,38 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied binary clipboard requests
+## Next proposed functionality batch: COPY-only binary drag/drop pads
 
-- [ ] Add explicit application-MIME byte requests with exact type/format validation,
-      available-empty/unavailable/rejected distinctions and bounded application copies.
-- [ ] Defer copied observations to idle, support cancellation/owner destruction with
-      prompt capture release and independent native wire pins; no parser/fallback or
-      invented native cancellation. Native receipt allocation is not a security limit.
-- [ ] Update existing examples/docs and hidden ARC/ORC/ABI/isolated local/foreign/
-      large-transfer/cancellation regressions. Image decoding, persistence, binary
-      DnD, acknowledgments and private audits remain separate/deferred.
+- [ ] Add explicit application-MIME copied binary sources and bounded destinations on
+      ordinary pads, with begin snapshots, exact type/format-8 checks and COPY only.
+- [ ] Keep copied guarded synchronous acceptance separate from idle post-finish
+      observations; pending wires/receivers must drain safely after disconnect/destroy.
+      No fallback, parser, MOVE/delete, persistence or application-acknowledgment claims.
+- [ ] Extend existing examples/docs plus hidden ARC/ORC/ABI and isolated real XTEST
+      local/foreign/bounds/cancellation regressions. Image decoding/private audits deferred.
+
+## Completed functionality batch: copied binary clipboard requests
+
+- [x] Added requestBinary with explicit MIME and optional owner/maxBytes, BinaryRequest
+      pending/cancel, copied ClipboardBytes kinds/MIME/bytes/error and default 16 MiB
+      application copy bound. Empty/unavailable/rejected distinct; exact target/type/
+      format-8 validation, no parser/fallback or format-16/32 reinterpretation.
+- [x] Validate MIME/callback/owner/bounds before native request; bound before allocation/
+      copy. Native receipt/INCR buffers and timeout remain native, not a security limit
+      or fabricated wire cancellation. Pure guards reject checked request/cancel calls.
+- [x] Native wire/idle/owner pins are independent. Cancel promptly clears captures/data;
+      inactive wire replies skip copying. Non-owning native owner binding (not an owning
+      public Connection) cancels on destroy/last owner release without finalizing-widget
+      refs. Idle observers detach first, may reenter, retain values and contain errors.
+- [x] Added hidden no-wire validation/purity and native six-prototype/received/destroy/
+      closure-notify ABI/source guards; isolated exact/empty/bound/type/format/copy/
+      local-queued/foreign-delayed/capture/weak-owner/drop/reentrant/error/PRIMARY/large
+      INCR regressions. Desktop has explicit bounded window-owned byte inspection;
+      updated guides/readme, incoming image decoding and private audits stay deferred.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, all hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff checks, every isolated mapped task and
+      missing-opt-in guard. Installed GTK unchanged; no native transport/timeout repair.
 
 ## Completed functionality batch: copied binary clipboard offers
 
@@ -591,7 +613,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied outgoing image clipboard snapshots (functionality batch above).
 - [ ] Incoming image requests, image drag/drop and clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
-- [ ] Copied binary clipboard requests (proposed next) and binary drag/drop.
+- [x] Copied binary clipboard requests (functionality batch above).
+- [ ] COPY-only binary drag/drop pads (proposed next).
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
 - [x] Copied synchronous application URI drop acceptance (batch above).
@@ -641,6 +664,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Bounded opaque binary requests with idle copied result kinds, independent wire/
+      idle/weak-owner pins and actual delayed/large/cancellation regressions (above).
 - [x] Opaque binary clipboard offers, conservative MIME/size boundaries, exact native
       byte/type/format publication and isolated foreign large transfer/clear regressions.
 - [x] Copied image clipboard offers, native writable encoding/clear pins and actual

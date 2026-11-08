@@ -14,6 +14,20 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type BinaryDestroyAbi = proc (owner: gtk.PWidget, data: pointer) {.cdecl.}
+proc binaryRequestAbi(received: gtk.TClipboardReceivedFunc, release: g.TGClosureNotify,
+    destroy: BinaryDestroyAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_request_abi".}
+var binaryReceived: bool
+var binaryOwnerMask: int
+proc binaryReleaseProbe(data: pointer, closure: g.PGClosure) {.cdecl.} =
+  doAssert cast[uint](data) == 0xc3 and cast[uint](closure) == 0xc4
+  binaryOwnerMask = binaryOwnerMask or 1
+proc binaryDestroyProbe(owner: gtk.PWidget, data: pointer) {.cdecl.} =
+  doAssert cast[uint](owner) == 0xc5 and cast[uint](data) == 0xc6
+  binaryOwnerMask = binaryOwnerMask or 2
+proc binaryReceivedProbe(c: gtk.PClipboard, selection: gtk.PSelectionData, data: pointer) {.cdecl.} =
+  doAssert cast[uint](c) == 0xc1 and cast[uint](selection) == 0xc2 and cast[uint](data) == 0xc3
+  binaryReceived = true
 type BinarySetAbi = proc (selection: gtk.PSelectionData, atom: gd.TAtom, format: g.gint,
     data: g.Pguchar, length: g.gint) {.cdecl.}
 proc binaryOfferAbi(set: BinarySetAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_offer_abi".}
@@ -290,6 +304,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "binary request/getter prototypes and received callback pointer ABI":
+    check g.toBool(binaryRequestAbi(binaryReceivedProbe, binaryReleaseProbe, binaryDestroyProbe))
+    check binaryReceived and binaryOwnerMask == 3
   test "opaque byte selection setter/length signatures and signed format/count, unsigned bytes":
     proc set(selection: gtk.PSelectionData, atom: gd.TAtom, format: g.gint,
         data: g.Pguchar, length: g.gint) {.cdecl.} =

@@ -3,6 +3,26 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_binary_request_abi(GtkClipboardReceivedFunc received,
+  GClosureNotify release, void (*destroy)(GtkWidget *, gpointer)) {
+  typedef void (*Request)(GtkClipboard *, GdkAtom, GtkClipboardReceivedFunc, gpointer);
+  typedef GdkAtom (*Atom)(GtkSelectionData *);
+  typedef gint (*Int)(GtkSelectionData *);
+  typedef const guchar *(*Data)(GtkSelectionData *);
+#define BINARY_REQUEST_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  BINARY_REQUEST_ABI(Request, gtk_clipboard_request_contents);
+  BINARY_REQUEST_ABI(Atom, gtk_selection_data_get_target);
+  BINARY_REQUEST_ABI(Atom, gtk_selection_data_get_data_type);
+  BINARY_REQUEST_ABI(Int, gtk_selection_data_get_format);
+  BINARY_REQUEST_ABI(Int, gtk_selection_data_get_length);
+  BINARY_REQUEST_ABI(Data, gtk_selection_data_get_data);
+#undef BINARY_REQUEST_ABI
+  received((GtkClipboard *)(guintptr)0xc1, (GtkSelectionData *)(guintptr)0xc2, (gpointer)(guintptr)0xc3);
+  release((gpointer)(guintptr)0xc3, (GClosure *)(guintptr)0xc4);
+  destroy((GtkWidget *)(guintptr)0xc5, (gpointer)(guintptr)0xc6);
+  return TRUE;
+}
+
 gboolean nim_gtk2_binary_offer_abi(void (*set)(GtkSelectionData *, GdkAtom, gint, const guchar *, gint)) {
   typedef void (*Set)(GtkSelectionData *, GdkAtom, gint, const guchar *, gint);
   typedef char checked[__builtin_types_compatible_p(Set, __typeof__(&gtk_selection_data_set)) ? 1 : -1];

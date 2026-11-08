@@ -2855,7 +2855,7 @@ owners, malformed/empty/unavailable results, cancellation, replacement, dropped
 tokens, owner destruction and reentrant/throwing callbacks. Native header probes
 check both public signatures and `char**`/full signed `gboolean` callback ABI.
 URI COPY-only pads/copied acceptance and image/binary offers are described below.
-Incoming image/binary requests, MOVE and asynchronous acceptance remain separate
+Incoming image requests, MOVE and asynchronous acceptance remain separate
 functionality batches. Raw TextLayout audits are deferred, not continued or certified
 by these features.
 
@@ -2913,8 +2913,8 @@ repeated clear are no-ops. Reentrant old-owner clear may install a winner and ca
 GTK itself to clear the failed candidate before returning false. Cleanup is
 idempotent, raises for the failed claim and never retries over the winner. Already-
 started requests may complete old data; clear is not a secure eraser or transaction.
-No persistence/set_can_store, startup publication, incoming request/parser API,
-application acknowledgment or binary DnD is added. PRIMARY is explicit only.
+No persistence/set_can_store, startup publication, parser, application acknowledgment or binary DnD is added by offers. The separate
+bounded incoming byte API is described next. PRIMARY is explicit only.
 
 [examples/desktop.nim](../examples/desktop.nim) has user-triggered opaque byte copy/
 clear buttons. Hidden value/MIME/invalid-handle/purity tests never claim ownership,
@@ -2923,9 +2923,74 @@ DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1. It verifies exact type/format/length, a
 values, empty/unavailable, copied input/getters, dropped tokens, replacement/stale
 clear, actual reentrant claim failure, no fallback, independent explicit PRIMARY,
 foreign ownership loss and a 600013-byte foreign transfer exceeding GTK2 X11's INCR
-threshold. The test-only raw receiver copies bytes without parsing; an ergonomic
-incoming API remains separate. Native setter/length prototypes and signed format/
+threshold. The test-only raw receiver copies bytes without parsing; the additional SDK incoming
+byte API is described next. Native setter/length prototypes and signed format/
 count/unsigned-byte ABI probes plus source ownership/size/scope guards cover this path.
+
+### Bounded copied binary requests
+
+`clipboard.requestBinary(mime, fn, maxBytes = 16*1024*1024): BinaryRequest` requests
+exactly one explicit application target. The owner-bound overload is
+`clipboard.requestBinary(owner: Widget, mime, fn, maxBytes = ...)`. It uses the same
+conservative MIME subset as offers. Nil callbacks, invalid/destroyed owners and
+maxBytes outside 0..2147483646 are rejected before starting a native request.
+
+```nim
+var request = getClipboard().requestBinary(window, "application/vnd.example.sample",
+  proc (value: ClipboardBytes) =
+    case value.kind
+    of bytesAvailable: echo value.bytes.len # Opaque bytes; do not auto-parse.
+    of bytesUnavailable: echo "No reply for this target"
+    of bytesRejected: echo(value.error),
+  maxBytes = 4096)
+# request.pending includes both native waiting and queued idle observation.
+# request.cancel() suppresses observation, not the native request.
+```
+
+`ClipboardBytes` contains copied `.mime` (the requested name), `.bytes`, `.error` and
+`.kind`: bytesUnavailable for absent/negative-length native replies, bytesAvailable
+for exact target/type/format-8 data (including valid empty), and bytesRejected for
+wrong target/type/format, excessive length or missing nonempty data. Rejected results
+have no partial bytes. No fallback, codec, JSON/XML parser, image decoder, UTF-8 check,
+NUL stripping or format-16/32 conversion is performed. MIME is not authentication,
+format validity or authorization; consumers must explicitly validate any later use.
+
+The byte bound is checked **before application payload allocation/copy**. A zero
+bound permits only empty data. It does **not** cap GTK/GDK/X11 receipt buffers, INCR
+accumulation, native timeouts or the desktop owner's work: native GTK has already
+received/allocated the selection by this callback. It is not a security or total
+memory/CPU limit against a hostile owner. No native transport is rewritten, canceled,
+repaired or pumped recursively to enforce an application deadline.
+
+Every user observation runs on UI idle, even for synchronous local replies. Native
+borrowed bytes are copied before returning from the native callback. Captures/data
+are detached before application delivery; pending is false inside the observer,
+which may reenter GTK, request again, replace ownership or destroy widgets. Exceptions
+are contained/reported. Returned values are ordinary owned Nim data and survive
+clipboard replacement/native buffer release. Dropped request tokens do not cancel.
+
+Cancel/owner destruction promptly clears user captures, queued bytes and idle sources.
+A separate native wire pin and clipboard reference survive until the actual reply/
+GTK timeout; replies arriving after cancellation skip application copying and schedule
+no observation.
+The idle pin is independent of the wire pin. Owners are **not retained by the
+binding**: a non-owning native pointer plus independently pinned destroy/closure
+notification handles disposal without acquiring a finalizing-widget reference. The
+public Connection type is deliberately not stored here because it owns its target.
+A callback that itself captures GUI handles can still retain them; explicitly cancel
+or destroy controller owners rather than assuming arbitrary closure cycles disappear.
+Requests/owner teardown/callbacks/final releases stay on the UI thread. Checked
+synchronous model/URI predicates reject requests and cancel, including empty tokens.
+
+Desktop's explicit Inspect sample byte target button uses the window-bound overload
+with a 4096-byte application bound; it reports counts, never decodes payloads.
+`tests/tgtk2binaryrequests.nim` performs no wire/ownership/realization work. The existing
+isolated `testMappedBinaryClipboard` task now also tests SDK result kinds/idle/copies,
+exact/zero/over-limit bounds, wrong type/format/empty-type rejection, local queued and
+delayed foreign cancellation/capture release, weak owner disposal, dropped tokens,
+reentrant/throwing observers, PRIMARY and large real foreign INCR data. Six native
+public prototypes and received/destroy/closure-notify callback ABI probes plus source
+allocation/lifetime guards cover this path. Incoming image decoding remains separate.
 
 ## Copied image clipboard offers
 
@@ -5415,7 +5480,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, incoming image/binary requests, image/binary DnD, asynchronous URI
+additional rich clipboard protocols, incoming image requests, image/binary DnD, asynchronous URI
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

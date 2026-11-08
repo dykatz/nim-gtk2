@@ -36,19 +36,35 @@ proc main() =
   clearImage.onClicked(proc () =
     imageOffer.clear()
     status.text = "Cleared our image offer if still current; no incoming image decoding.")
+  let binaryRow = newHBox(spacing = 8)
+  layout.packStart(binaryRow, packShrink)
   let copyBinary = newButton("Copy sample bytes")
   let clearBinary = newButton("Clear byte offer")
-  imageRow.packStart(copyBinary, packShrink)
-  imageRow.packStart(clearBinary, packShrink)
+  let inspectBinary = newButton("Inspect sample byte target")
+  binaryRow.packStart(copyBinary, packShrink)
+  binaryRow.packStart(clearBinary, packShrink)
+  binaryRow.packStart(inspectBinary, packShrink)
   let sampleBytes = newBinaryData("application/vnd.example.gtk2-demo", [0'u8, 255, 128, 0, 13, 10])
   var binaryOffer: BinaryClipboardOffer
-  defer: binaryOffer.clear()
+  var binaryRequest: BinaryRequest
+  defer:
+    binaryRequest.cancel()
+    binaryOffer.clear()
   copyBinary.onClicked(proc () =
     binaryOffer = getClipboard().offerBinary(sampleBytes)
     status.text = "Offered " & $sampleBytes.len & " opaque bytes as " & sampleBytes.mime & "; no text/image fallback.")
   clearBinary.onClicked(proc () =
     binaryOffer.clear()
     status.text = "Cleared our byte offer if still locally active.")
+  inspectBinary.onClicked(proc () =
+    binaryRequest.cancel()
+    binaryRequest = getClipboard().requestBinary(window, sampleBytes.mime, proc (value: ClipboardBytes) =
+      case value.kind
+      of bytesAvailable:
+        status.text = "Received " & $value.bytes.len & " opaque bytes for " & value.mime & "; not decoded."
+      of bytesUnavailable: status.text = "No sample application byte target available."
+      of bytesRejected: status.text = "Rejected byte reply: " & value.error,
+      maxBytes = 4096)) # Limits our copy, not GTK's native wire allocation.
   let uriRow = newHBox(spacing = 8)
   layout.packStart(uriRow, packShrink)
   let copyUris = newButton("Copy sample URIs")

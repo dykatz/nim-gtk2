@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Binary clipboard requests now provide bounded, idle-delivered copied bytes with
+explicit result kinds, cancellation and non-retaining owner bindings. Limits cap
+application copying, not native transport allocation; no parsing or fallback is added.
+See the [request guide](docs/gtk2.md#bounded-copied-binary-requests).
+
 Copied binary clipboard offers now publish opaque byte snapshots to explicit
 application MIME targets, including NUL/non-UTF-8 and valid empty data, without
 parsing or fallback. See the [binary guide](docs/gtk2.md#copied-binary-clipboard-offers)

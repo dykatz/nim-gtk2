@@ -68,6 +68,23 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_binary_requests_bound_copies_and_keep_wire_idle_cancellation_separate(self):
+        text = (ROOT / 'src/gtk2/binaryrequests.nim').read_text()
+        self.assertLess(text.index('if size > s.maxBytes: return'), text.index('result.bytes = newSeq[byte](size)'))
+        self.assertIn('rawGtk.selection_data_get_data_type(selection) != s.atom', text)
+        self.assertIn('rawGtk.selection_data_get_format(selection) != 8', text)
+        self.assertIn('defer: GC_unref(s)', text)
+        self.assertIn('if not s.nativePending: s.clipboard = Clipboard()', text)
+        self.assertIn('s.fn = nil', text)
+        self.assertIn('s.value = ClipboardBytes()', text)
+        self.assertIn('g.g_idle_add_full', text)
+        self.assertIn('ownerWidget: g.PGObject', text)
+        self.assertIn('g.g_signal_connect_data', text)
+        self.assertNotIn('owner: Connection', text)
+        for forbidden in ('get_pixbuf(', 'get_text(', 'get_uris(', 'newBinaryData(',
+                          'main_iteration', 'realize(', 'show(', 'selection_convert'):
+            self.assertNotIn(forbidden, text)
+
     def test_binary_clipboard_keeps_byte_length_copy_and_protocol_scope_explicit(self):
         text = (ROOT / 'src/gtk2/binaryclipboard.nim').read_text()
         self.assertIn('bytes.len > high(g.gint).int - 1', text)
