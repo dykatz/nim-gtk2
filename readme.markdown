@@ -126,6 +126,13 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Explicitly trusted image clipboard requests now provide idle owned Pixbuf copies,
+post-decode copy limits and weak-owner cancellation. Trust is required before native
+codecs run; cancellation/limits do not sandbox decoding or native memory. See the
+[trusted image guide](docs/gtk2.md#explicitly-trusted-copied-image-clipboard-requests)
+and the desktop's initially-off trust/preview controls. Isolated regressions decode
+only trusted tiny fixtures.
+
 Copied drag-source Pixbuf icons now support text/URI/binary pads: setIcon copies
 pixels, clearIcon restores actual native defaults on later drags, and active contexts
 retain their own icons. See the [icon guide](docs/gtk2.md#copied-drag-source-pixbuf-icons).

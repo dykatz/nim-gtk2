@@ -68,6 +68,18 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_image_requests_gate_decode_bound_copy_and_keep_owner_weak(self):
+        text = (ROOT / 'src/gtk2/imagerequests.nim').read_text()
+        self.assertLess(text.index('if not trusted:'), text.index('rawGtk.request_image('))
+        self.assertLess(text.index('if width * height > maxPixels.int64:'), text.index('rawPixbuf.copy(image)'))
+        self.assertIn('ownerWidget: g.PGObject', text)
+        self.assertIn('if not s.active:', text)
+        self.assertIn('defer: GC_unref(s)', text)
+        self.assertIn('cancelImageRequest(s) # Clear captures/owner', text)
+        for forbidden in ('Connection(', 'wait_for_', 'set_can_store', 'request_text(',
+                          'request_uris(', 'get_pixbuf(', 'loadPixbuf(', 'realize('):
+            self.assertNotIn(forbidden, text)
+
     def test_drag_icons_are_copied_configuration_applied_only_at_real_begin(self):
         api = (ROOT / 'src/gtk2/dragicons.nim').read_text()
         self.assertIn('TextDragSource | UriDragSource | BinaryDragSource', api)

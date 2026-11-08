@@ -29,6 +29,8 @@ proc request_text*(clipboard: PClipboard,
                              callback: TClipboardTextReceivedFunc,
                              user_data: gpointer){.cdecl, dynlib: lib,
     importc: "gtk_clipboard_request_text".}
+proc request_image*(clipboard: PClipboard, callback: TClipboardImageReceivedFunc,
+                    user_data: gpointer) {.cdecl, dynlib: lib, importc: "gtk_clipboard_request_image".}
 proc wait_for_contents*(clipboard: PClipboard, target: gdk2.TAtom): PSelectionData{.
     cdecl, dynlib: lib, importc: "gtk_clipboard_wait_for_contents".}
 proc wait_for_text*(clipboard: PClipboard): cstring{.cdecl,

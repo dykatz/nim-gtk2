@@ -57,6 +57,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2transfers.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uriclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2imageclipboard.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2imagerequests.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binaryclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binaryrequests.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2binarydrag.nim"
@@ -114,7 +115,7 @@ task testMappedBinaryDrag, "Test real COPY-only binary pads (isolated DISPLAY, G
 task testMappedBinaryClipboard, "Test opaque binary offers/requests (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedbinaryclipboard.nim"
 
-task testMappedImageClipboard, "Test copied image clipboard offers (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
+task testMappedImageClipboard, "Test image offers/trusted requests on tiny fixtures (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedimageclipboard.nim"
 
 task testMappedUriClipboard, "Test URI clipboard ownership/async reads (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":

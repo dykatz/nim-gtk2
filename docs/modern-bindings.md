@@ -30,6 +30,36 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Explicitly trusted copied image clipboard requests
+
+requestImage requires an explicit true trust argument before any native decoding,
+with owner/non-owner overloads, ImageRequest pending/cancel and idle ClipboardImage
+results. imageAvailable carries an owned private pixel copy; imageUnavailable preserves
+native NULL (no invented missing-target versus decoder-error diagnosis); imageRejected
+covers SDK dimension/copy-limit/allocation failure, with no partial image.
+
+maxPixels bounds only post-decode application copying, before our allocation, in
+0..536870911 with int64 dimension multiplication; default 4M pixels. It does not limit
+native decoded/encoded/INCR memory, codec work, owner changes or retained aggregate
+images. Native PNG/JPEG/GIF/BMP target retries and autodetecting installed loaders
+remain native semantics, not a codec security allowlist. No automatic trust, text/URI
+fallback, format parser, source authentication or persistence is added.
+
+Borrowed decoded Pixbufs are copied within native receipt; user delivery detaches
+captures/weak owner before reentrant/exception-contained idle work. Completed tokens
+do not retain values/captures. Weak native owner closure pins (not public Connection)
+allow last unparented-owner disposal to cancel. Independent wire/idle pins survive
+cancel until real receipt/timeout, skip late SDK copies and preserve GTK's retries;
+**cancel cannot stop native decoding or allocation**. Delivered Pixbuf aliases are
+ordinary mutable handles, not immutable application snapshots.
+
+Desktop adds initially-off trust, explicit decode/preview and a small copy limit.
+Hidden no-wire/purity tests, four native prototype/nullable image/destroy/closure ABI
+and source guards plus real local/foreign trusted tiny PNG pixel/alpha/bound/idle/
+retention/error/reentrant/PRIMARY/queued/delayed cancel/weak-owner regressions cover
+the path. See [trusted image guide](gtk2.md#explicitly-trusted-copied-image-clipboard-requests).
+Untrusted decoding, image DnD, persistence and private audits remain separate.
+
 ### Copied drag-source Pixbuf icons
 
 Text/URI/binary source tokens now expose setIcon(Pixbuf)/clearIcon. Configuration
@@ -50,7 +80,7 @@ source guards accompany actual XTEST cursor/popup pixel tests for all source typ
 The optional pixel task requires XFixes and GTK2 headers as well as X11/XTEST and
 isolated-display opt-in; observation tolerates one-unit native compositor rounding,
 without native data/cache repair. See the [icon guide](gtk2.md#copied-drag-source-pixbuf-icons).
-Custom widget/context/hotspot APIs, incoming image decoding, persistence and private
+Custom widget/context/hotspot APIs, untrusted image decoding, persistence and private
 audits remain separate.
 
 ### COPY-only binary drag/drop pads
@@ -144,7 +174,7 @@ of alpha/metadata retention in every encoder, and active does not imply delivery
 Desktop adds explicit copy/clear buttons. Hidden no-publication and isolated real
 local/foreign/PRIMARY PNG fixture tests cover mutation/source release, dropped tokens,
 replacement/stale clear and absence of text/URI fallback. Binary offers are described
-above; incoming image decoding and image DnD remain separate. No untrusted parser
+above; trusted incoming image requests are also described above, while image DnD remains separate. No untrusted parser
 is automatically invoked. See [image clipboard guide](gtk2.md#copied-image-clipboard-offers).
 
 ### Copied URI drop acceptance
@@ -208,8 +238,8 @@ get results are copied/freed with `g_strfreev`; setter inputs stay live until GT
 copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
-URI pads, image/binary offers and binary requests are described above; incoming image
-requests, image DnD and MOVE remain separate, and private layout audits are deferred.
+URI pads, image/binary offers and binary/trusted image requests are described above;
+image DnD and MOVE remain separate, and private layout audits are deferred.
 
 ### Rich clipboard negotiation
 

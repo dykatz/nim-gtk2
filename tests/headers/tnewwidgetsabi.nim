@@ -31,6 +31,22 @@ type
     selection: gtk.PSelectionData, info, time: g.guint, data: pointer) {.cdecl.}
 proc binaryDragAbi(begin: BinaryBeginAbi, source: BinarySourceAbi, drop: BinaryDropAbi,
     received: BinaryReceiveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_drag_abi".}
+proc imageRequestAbi(received: gtk.TClipboardImageReceivedFunc, destroy: proc (w: gtk.PWidget,
+  data: pointer) {.cdecl.}, notify: proc (data: pointer, closure: g.PGClosure) {.cdecl.}): g.gboolean
+  {.cdecl, importc: "nim_gtk2_image_request_abi".}
+var imageRequestMask: int
+proc imageRequestProbe(c: gtk.PClipboard, image: pb.PPixbuf, data: pointer) {.cdecl.} =
+  doAssert cast[uint](c) == 0xe1 and cast[uint](data) == 0xe3
+  if image == nil: imageRequestMask = imageRequestMask or 2
+  else:
+    doAssert cast[uint](image) == 0xe2
+    imageRequestMask = imageRequestMask or 1
+proc imageDestroyProbe(w: gtk.PWidget, data: pointer) {.cdecl.} =
+  doAssert cast[uint](w) == 0xe4 and cast[uint](data) == 0xe3
+  imageRequestMask = imageRequestMask or 4
+proc imageNotifyProbe(data: pointer, closure: g.PGClosure) {.cdecl.} =
+  doAssert cast[uint](data) == 0xe3 and cast[uint](closure) == 0xe5
+  imageRequestMask = imageRequestMask or 8
 var binaryDragMask: int
 proc binaryBeginProbe(w: gtk.PWidget, context: gd.PDragContext, data: pointer) {.cdecl.} =
   doAssert cast[uint](w) == 0xc1 and cast[uint](context) == 0xc2 and cast[uint](data) == 0xc4
@@ -341,6 +357,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "trusted image request/copy/dimension prototypes and nullable/owner/closure ABI":
+    check g.toBool(imageRequestAbi(imageRequestProbe, imageDestroyProbe, imageNotifyProbe))
+    check imageRequestMask == 15
   test "copied drag icon/copy native prototypes and pointer/signed hotspot callback ABI":
     check g.toBool(dragIconAbi(dragIconProbe))
     check dragIconCalls == 1

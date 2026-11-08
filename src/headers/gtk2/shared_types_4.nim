@@ -7,5 +7,7 @@ type
                                   data: gpointer): gboolean{.cdecl.}
   TClipboardTextReceivedFunc* = proc (clipboard: PClipboard, text: cstring,
                                       data: gpointer){.cdecl.}
+  TClipboardImageReceivedFunc* = proc (clipboard: PClipboard, image: gdk2pixbuf.PPixbuf,
+                                       data: gpointer) {.cdecl.}
   TClipboardClearFunc* = proc (clipboard: PClipboard,
                                user_data_or_owner: gpointer){.cdecl.}

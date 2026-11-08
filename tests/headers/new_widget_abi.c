@@ -3,6 +3,25 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_image_request_abi(GtkClipboardImageReceivedFunc received,
+  void (*destroy)(GtkWidget *, gpointer), void (*notify)(gpointer, GClosure *)) {
+  typedef void (*Request)(GtkClipboard *, GtkClipboardImageReceivedFunc, gpointer);
+  typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);
+  typedef gint (*Dimension)(const GdkPixbuf *);
+#define IMAGE_REQUEST_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  IMAGE_REQUEST_ABI(Request, gtk_clipboard_request_image);
+  IMAGE_REQUEST_ABI(Copy, gdk_pixbuf_copy);
+  IMAGE_REQUEST_ABI(Dimension, gdk_pixbuf_get_width);
+  IMAGE_REQUEST_ABI(Dimension, gdk_pixbuf_get_height);
+#undef IMAGE_REQUEST_ABI
+  gpointer data = (gpointer)(guintptr)0xe3;
+  received((GtkClipboard *)(guintptr)0xe1, (GdkPixbuf *)(guintptr)0xe2, data);
+  received((GtkClipboard *)(guintptr)0xe1, NULL, data);
+  destroy((GtkWidget *)(guintptr)0xe4, data);
+  notify(data, (GClosure *)(guintptr)0xe5);
+  return TRUE;
+}
+
 gboolean nim_gtk2_drag_icon_abi(void (*apply)(GdkDragContext *, GdkPixbuf *, gint, gint)) {
   typedef void (*Icon)(GdkDragContext *, GdkPixbuf *, gint, gint);
   typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);

@@ -8,17 +8,45 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: explicitly trusted copied image clipboard requests
+## Next proposed functionality batch: explicitly trusted COPY-only image drag/drop pads
 
-- [ ] Add explicit trusted-only native image requests with copied owned Pixbuf results,
-      available/unavailable/rejected outcomes without invented decode diagnostics,
-      idle delivery, owner cancellation and independent wire/native/source lifetime pins.
-- [ ] Require trust before any native decoding; define application copy size bounds
-      without claiming codec sandboxing, pre-decode/native allocation limits or owner
-      authentication. No automatic untrusted image decoding, fallback or file opening.
-- [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/isolated trusted tiny-fixture
-      pixel/alpha/lifetime/cancellation regressions. Image DnD/persistence stay separate;
-      private layout audits remain deferred.
+- [ ] Add copied image sources and explicitly trusted image destinations on ordinary
+      pads, actual begin snapshots and bounded post-decode Pixbuf copying. Native image
+      target negotiation/loader behavior is not a codec sandbox or owner authentication.
+- [ ] Keep pre-finish copied-metadata synchronous acceptance separate from post-finish
+      idle owned image observations; COPY only/delete=false, no raw mutable Pixbuf
+      access inside pure decisions. Pending receivers drain after disconnect/destruction
+      without claiming decoding cancellation, rollback or application acknowledgment.
+- [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/isolated genuine XTEST
+      trusted-fixture pixel/lifetime/bound/source-update/cancel regressions. No automatic
+      untrusted decoding, MOVE, persistence or private layout/cursor repair.
+
+## Completed functionality batch: explicitly trusted copied image clipboard requests
+
+- [x] Added required trust-gated requestImage with owner/non-owner overloads, ImageRequest
+      pending/cancel and idle ClipboardImage owned Pixbuf/kind/error results. False trust
+      refuses before request; native NULL remains unavailable without invented decoder
+      diagnostics, no zero-size images/partial results or text/URI/rich fallback.
+- [x] Borrowed decoded images copied before native callback returns. int64 dimension
+      product checked against 0..gint-div-4 maxPixels before application pixel allocation;
+      zero rejects any image. Limits/cancel do not constrain native decoding/receipt/
+      INCR/codec work or authenticate owners. Native format retries and autodetecting
+      installed loaders are preserved, not represented as a four-codec security allowlist.
+- [x] Weak native owner/destroy/closure pins avoid public Connection retention and
+      finalizing-widget refs. Independent wire/idle pins survive real receipt/timeout;
+      cancel releases captures/queued images promptly and skips late SDK copying, not
+      native decoding. Observers detach first, may retain handles/reenter/destroy/throw.
+- [x] Added hidden no-wire trust/bounds/callback/owner/purity validation, four public
+      native request/copy/dimension prototypes plus nullable-image/destroy/closure ABI
+      and source guards. Extended real local/foreign tiny trusted PNG pixel/alpha/
+      dimensions/exact/zero/exceeded bound/idle/copy/retained token/drop/reentrant/error/
+      PRIMARY/queued/delayed cancel/destruction/last-owner regressions, with second real
+      replies draining canceled wires. Desktop initially-off trust/decode/preview/
+      small-copy-limit controls and guides updated. Native decoding requires explicit trust.
+- [x] Validated hidden/mapped ARC/ORC/fatal-warning, full hidden/calculator/bindings/raw/
+      layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks, every example,
+      generator/package/diff checks, every isolated mapped task and missing-opt-in
+      guard. Installed GTK unchanged; image DnD/persistence/private audits deferred.
 
 ## Completed functionality batch: copied drag-source Pixbuf icons
 
@@ -663,7 +691,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] URI COPY-only drag/drop pads with independent wire teardown (batch above).
 - [x] Copied synchronous URI drop acceptance (functionality batch above).
 - [x] Copied outgoing image clipboard snapshots (functionality batch above).
-- [ ] Incoming image requests, image drag/drop and clipboard-manager persistence.
+- [x] Explicitly trusted copied incoming image requests (functionality batch above).
+- [ ] Explicitly trusted COPY-only image drag/drop pads (proposed next).
+- [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).
@@ -717,6 +747,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Explicitly trusted image requests with post-decode copy bounds, owned idle results,
+      non-retaining owner cancellation and actual trusted-fixture regressions (above).
 - [x] Copied drag-source Pixbuf icons with actual native defaults, active-context
       lifetime and XTEST cursor/popup pixel/source-update regressions (above).
 - [x] COPY-only binary pads with begin snapshots, guarded acceptance, independent

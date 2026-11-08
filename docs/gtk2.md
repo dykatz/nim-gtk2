@@ -2855,7 +2855,7 @@ owners, malformed/empty/unavailable results, cancellation, replacement, dropped
 tokens, owner destruction and reentrant/throwing callbacks. Native header probes
 check both public signatures and `char**`/full signed `gboolean` callback ABI.
 URI COPY-only pads/copied acceptance and image/binary offers are described below.
-Incoming image requests, MOVE and asynchronous acceptance remain separate
+Trusted image requests are described below; MOVE and asynchronous acceptance remain separate
 functionality batches. Raw TextLayout audits are deferred, not continued or certified
 by these features.
 
@@ -2990,7 +2990,7 @@ exact/zero/over-limit bounds, wrong type/format/empty-type rejection, local queu
 delayed foreign cancellation/capture release, weak owner disposal, dropped tokens,
 reentrant/throwing observers, PRIMARY and large real foreign INCR data. Six native
 public prototypes and received/destroy/closure-notify callback ABI probes plus source
-allocation/lifetime guards cover this path. Incoming image decoding remains separate.
+allocation/lifetime guards cover this path. Explicitly trusted incoming requests are described above.
 
 ## Copied image clipboard offers
 
@@ -3048,13 +3048,95 @@ and an independent preview. `tests/tgtk2imageclipboard.nim` covers invalid handl
 idempotent empty tokens and early pure-function guards without claiming ownership,
 requesting data or realizing widgets. `nimble testMappedImageClipboard` requires
 isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1; its tiny **trusted fixture PNG**
-decoding is test-only and requires a writable PNG codec. It verifies local/foreign
+fixtures require a writable PNG codec. Offer probes verify local/foreign
 encoding, exact pixel/alpha/dimension snapshots, mutation/source release, dropped
 tokens, repeated requests, replacement/stale clear/ownership loss, reentrant native
 clear/failed-candidate cleanup, explicit independent
 PRIMARY and absence of text/URI fallback. Six native prototype checks plus pointer/
 signed-gboolean probes cover the public adapter ABI. No untrusted desktop image is
-automatically decoded by the SDK; incoming decoding/security policy remains separate.
+automatically decoded by the SDK; explicit trusted request/security policy follows below.
+
+## Explicitly trusted copied image clipboard requests
+
+`Clipboard.requestImage(trusted: bool, fn, maxPixels = 4*1024*1024)` and its leading
+`Widget` owner overload return `ImageRequest` with pending/cancel. The **required**
+trust argument must be true: false raises ValueError before any native image request.
+This is an explicit caller decision to trust all data/owners involved in native
+negotiation, not authenticated owner identity, codec sandboxing or a safe default
+for arbitrary desktop data. A MIME name, URI, checkbox or size bound grants no trust.
+
+```nim
+# Only after an explicit application trust decision, never automatic desktop paste:
+let request = getClipboard().requestImage(window, true, proc (value: ClipboardImage) =
+  case value.kind
+  of imageAvailable: preview.pixbuf = value.image
+  of imageUnavailable: echo "No native image result"
+  of imageRejected: echo value.error,
+  maxPixels = 4096)
+# request.cancel() cancels application delivery, NOT native decoding or receipt.
+```
+
+`ClipboardImage` owns `.kind` (imageUnavailable/imageAvailable/imageRejected),
+`.image: Pixbuf` and `.error`. Available means a new private native pixel copy with
+positive dimensions; no valid zero-size/available-empty image is invented. Rejected
+results contain no partial image. Native NULL means unavailable: GTK does not
+separate missing targets, unsupported formats and decoder failure, so neither does
+this API. Rejected is an SDK dimension/copy-limit/allocation failure, not invented
+codec diagnostics. Native errors are not reconstructed from unrelated global state.
+
+GTK2.24 request_image tries PNG, then JPEG/GIF/BMP when previous conversion fails.
+That native image negotiation remains intact, including codec lossy/alpha/metadata
+semantics; the SDK does not parse formats, choose an extra codec, authenticate owners,
+return encoded bytes or silently fall back to text/URI/rich data. Native get_pixbuf
+uses an autodetecting loader: the four target names are **not a codec allowlist**,
+and installed loaders may recognize other content regardless of MIME labels. A request may span
+multiple selection transactions and owner changes: it is not an atomic ownership
+snapshot. Use opaque requestBinary for supported application targets when no decoder
+should run, not this API for untrusted encoded images.
+
+maxPixels accepts **0..536870911** (gint div 4). Zero rejects any non-NULL image;
+otherwise positive width*height is checked with int64 before the SDK pixel copy.
+Default is 4,194,304 pixels. This constrains the application's post-decode copy only,
+not encoded wire size, GTK/GDK receipt/INCR buffering, native decoded image allocation,
+codec CPU/work/timeouts, aggregate requests or application-retained images. Native
+codecs have already run before the bound can be checked. Do not treat it as decompression
+bomb protection or a hostile-owner sandbox. The SDK adds no file loading/launch;
+trust must cover the behavior of installed native codecs/loaders too.
+
+The decoded callback Pixbuf is borrowed only through the native callback; the SDK
+copies it before returning, independently of native decoder storage and clipboard
+publication. User delivery always runs at idle, including local synchronous native
+receipt. pending is false and state/owner/captures are detached before calling a
+locally rooted observer. Results may be retained, widgets changed, new requests
+started and exceptions thrown (contained/reported). Delivered Pixbufs are ordinary
+mutable owning handles: aliases of one result share pixels; use `.copy()` for a
+separate application image. No image or user callback is left on a completed token.
+
+Owner binding uses a weak native widget pointer plus separately pinned destroy/closure
+callbacks, not an owning Connection. Destroy or last unparented-owner disposal cancels
+queued/pending delivery without referencing a finalizing widget. Dropped request tokens
+do not cancel. Explicit cancel is idempotent and promptly releases observer/queued
+image/owner roots. Independent native/idle pins keep callback state valid until the
+real final native callback or timeout, including GTK's codec retries. Late replies
+skip the SDK copy and user code. **Cancellation cannot stop native decoding, retry,
+receipt, allocation or remote owner work**, even after trust is later withdrawn.
+Application closures capturing owners can still introduce their own retention cycles.
+
+All GTK operations/callbacks/final releases stay on the UI thread. Shared pure-function
+guards reject request/cancel before native work. No widget is implicitly realized or
+mapped, no selection is claimed by requests, no native timeout/history/cache is reset,
+and no wait/nested event pump or clipboard-manager persistence is added.
+
+Desktop adds an initially-off trust control, explicit decode button, small private
+preview and 4096-pixel copy limit. Turning trust off cancels delivery, not decoding
+already started. Hidden tests validate no-wire trust/bounds/callback/owner/purity rules.
+`testMappedImageClipboard` uses **only explicitly trusted tiny PNG fixtures** for real
+local/foreign idle/pixel/alpha/dimension/bound/retention/reentrant/error/PRIMARY/queued/
+delayed cancel/destruction/last-owner disposal regressions; a second real reply drains
+canceled native wires without exposing private bookkeeping. Four native request/copy/
+dimension prototypes plus nullable-image/destroy/closure ABI and source guards cover
+this path with ARC/ORC and cross-target checks. Image DnD, persistence and private
+layout audits remain separate.
 
 ## Copied drag-source Pixbuf icons
 
@@ -3112,8 +3194,8 @@ The native cursor compositor rounds opaque channels down by one on this GTK back
 the observation probe allows that one-unit visual tolerance, without changing pixels,
 caches or outcomes. Two native copy/context-icon prototypes and pointer/signed-hotspot
 ABI probes plus source guards accompany ARC/ORC and cross-target checks. Other platforms
-receive semantic checks, not simulated native rendering claims. Incoming decoding and
-private layout audits remain separate.
+receive semantic checks, not simulated native rendering claims. Trusted image requests
+are described above; image DnD and private layout audits remain separate.
 
 ## Binary COPY-only drag/drop pads
 
@@ -3203,7 +3285,8 @@ reentrant observers, no DELETE, queued cancellation, delayed disconnect/destruct
 independent receivers and blocked replacement. Seven public native prototypes/four
 callback signatures probe signed coordinates/gboolean and full unsigned info/time;
 source guards pin finish, copy validation and scope. Other platforms receive semantic
-checks, not simulated native drags. Image decoding and async acceptance stay separate.
+checks, not simulated native drags. Trusted image requests are described above;
+image DnD and async acceptance stay separate.
 
 ## URI COPY-only drag/drop pads
 
@@ -5629,7 +5712,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, incoming image requests, image DnD, asynchronous acceptance
+additional rich clipboard protocols, untrusted image decoding, image DnD, asynchronous acceptance
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

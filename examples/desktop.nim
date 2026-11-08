@@ -35,7 +35,40 @@ proc main() =
     status.text = "Image offered using native writable formats; paste in another application.")
   clearImage.onClicked(proc () =
     imageOffer.clear()
-    status.text = "Cleared our image offer if still current; no incoming image decoding.")
+    status.text = "Cleared our image offer if still current; other owners are untouched.")
+  let imageRequestRow = newHBox(spacing = 8)
+  layout.packStart(imageRequestRow, packShrink)
+  let trustImages = newCheckButton("Trust incoming image data (native codecs)") # Initially OFF.
+  let inspectImage = newButton("Decode trusted clipboard image")
+  let incomingImage = newImage()
+  imageRequestRow.packStart(trustImages, packShrink)
+  imageRequestRow.packStart(inspectImage, packShrink)
+  imageRequestRow.packStart(incomingImage, packShrink)
+  inspectImage.sensitive = false
+  var imageRequest: ImageRequest
+  defer: imageRequest.cancel()
+  trustImages.onToggled(proc () =
+    inspectImage.sensitive = trustImages.active
+    if not trustImages.active:
+      imageRequest.cancel() # Stops delivery only, not already-started native decoding.
+      incomingImage.pixbuf = Pixbuf())
+  inspectImage.onClicked(proc () =
+    if not trustImages.active: return
+    imageRequest.cancel()
+    imageRequest = getClipboard().requestImage(window, true, proc (value: ClipboardImage) =
+      case value.kind
+      of imageAvailable:
+        let w = value.image.width
+        let h = value.image.height
+        let extent = max(w, h)
+        incomingImage.pixbuf = if extent <= 64: value.image else:
+          value.image.scaled(max(1, w * 64 div extent), max(1, h * 64 div extent))
+        status.text = "Trusted decoded copy: " & $w & "x" & $h
+      of imageUnavailable:
+        status.text = "No native image result (absent/unsupported/decoder failure are not distinguished)."
+      of imageRejected:
+        status.text = "Rejected image copy: " & value.error,
+      maxPixels = 4096)) # Post-decode copy limit, NOT codec/native allocation protection.
   let binaryRow = newHBox(spacing = 8)
   layout.packStart(binaryRow, packShrink)
   let copyBinary = newButton("Copy sample bytes")
