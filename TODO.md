@@ -8,17 +8,39 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied Pixbuf RGBA pixel values
+## Next proposed functionality batch: explicit Pixbuf PNG file encoding
 
-- [ ] Add pure owning tightly-packed RGBA8 image values and checked copied Pixbuf pixel
-      snapshots/construction, including RGB-to-RGBA alpha normalization and native
-      rowstride/channel/size semantics. No borrowed writable native pixel pointers.
-- [ ] Validate dimensions/byte count/overflow before construction or copying; keep
-      native ownership/final release/pure GUI guards intact. No codec, file parser,
-      automatic untrusted decode, private layout or mutable-storage alias shim.
+- [ ] Add explicit checked PNG file saving from owning Pixbufs via the public native
+      non-varargs vector API, preserving GError/domain/code and native writer behavior.
+      No format guessing, automatic decoding, silent codec fallback or file authority
+      inferred from MIME/URI values; filenames reject NUL.
+- [ ] Define synchronous UI-thread image/filename/native lifetime pins, pure guards,
+      encoder absence/error and partial-file semantics. Do not claim atomic save,
+      overwrite authorization, rollback or clipboard-manager persistence.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      actual pixel/rendering/lifetime regressions. Image codecs/persistence/private
-      audits remain separate.
+      trusted tiny-fixture actual save/load/error/lifetime tests. Private audits and
+      broader codec options/formats/async file protocols remain separate.
+
+## Completed functionality batch: copied Pixbuf RGBA pixel values
+
+- [x] Added pure owning newRgbaPixels/RgbaPixels copied width/height/len/isEmpty/bytes,
+      tightly packed straight RGBA8 with positive/exact/conservative gint byte bounds
+      and short-circuit overflow validation. Default is empty, not a native zero image.
+- [x] Added bounded Pixbuf.rgbaPixels snapshots and newPixbuf value/byte-array overloads
+      with private native-owned allocation, UI-thread ref pins and early pure guards.
+      Actual RGB8/RGBA8 rowstride/format/span checks, RGB alpha=255, transparent RGB/
+      alpha preserved, padding omitted and unpadded last rows/subpixbufs supported.
+      No borrowed native pixels/Nim backing, private layout, codec or live mutation.
+- [x] Added pre-init pure values, exact/all-byte/row padding/final row/subpixbuf/alpha/
+      bound/overflow/weak backing/lifetime/independent image/purity hidden tests, nine
+      native public constructor/accessor prototype/colorspace/unsigned-row/signed ABI
+      and source guards. Actual isolated offscreen rendering/replacement/native owner/
+      retained-snapshot regressions and task; desktop RGBA gradient/copy count and
+      all guides updated. Bounds do not sandbox native/source/decoder/aggregate memory.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      all examples, generator/package/diff, every isolated mapped task and missing-
+      opt-in guard. Installed GTK unchanged; encoding/persistence/private audits deferred.
 
 ## Completed functionality batch: explicitly trusted COPY-only image drag/drop pads
 
@@ -722,7 +744,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied outgoing image clipboard snapshots (functionality batch above).
 - [x] Explicitly trusted copied incoming image requests (functionality batch above).
 - [x] Explicitly trusted COPY-only image drag/drop pads (functionality batch above).
-- [ ] Copied Pixbuf RGBA pixel values (proposed next).
+- [x] Copied Pixbuf RGBA pixel values (functionality batch above).
+- [ ] Explicit Pixbuf PNG file encoding (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -777,6 +800,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Pure copied RGBA8 values, native stride-aware snapshots/native-owned construction
+      and actual offscreen pixels/lifetime/overflow/purity regressions (above).
 - [x] Trusted image COPY pads with actual begin snapshots, metadata-only acceptance,
       idle owned pixels and independent real reply drains/XTEST regressions (above).
 - [x] Explicitly trusted image requests with post-decode copy bounds, owned idle results,

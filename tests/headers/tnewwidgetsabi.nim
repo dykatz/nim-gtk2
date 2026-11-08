@@ -14,6 +14,15 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type RgbaInspectAbi = proc (image: pb.PPixbuf, data: g.Pguchar, width, height, stride, channels: g.gint): g.gint {.cdecl.}
+proc rgbaPixelsAbi(inspect: RgbaInspectAbi): g.gboolean {.cdecl, importc: "nim_gtk2_rgba_pixels_abi".}
+var rgbaCalls: int
+proc rgbaInspectProbe(image: pb.PPixbuf, data: g.Pguchar, width, height, stride, channels: g.gint): g.gint {.cdecl.} =
+  doAssert cast[uint](image) == 0xf1 and width == 3 and height == 2 and stride == 12 and channels == 3
+  let pixels = cast[ptr UncheckedArray[byte]](data)
+  doAssert pixels[0] == 255 and pixels[1] == 128 and pixels[9] == 0xde and pixels[12] == 7 and pixels[20] == 15
+  inc rgbaCalls
+  -41
 type DragIconCallbackAbi = proc (context: gd.PDragContext, image: pb.PPixbuf, x, y: g.gint) {.cdecl.}
 proc dragIconAbi(apply: DragIconCallbackAbi): g.gboolean {.cdecl, importc: "nim_gtk2_drag_icon_abi".}
 var dragIconCalls: int
@@ -359,6 +368,10 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "RGBA public pixel constructor/accessor prototypes, colorspace width and unsigned rows/signed ABI":
+    check sizeof(pb.TColorspace) == sizeof(cint)
+    check g.toBool(rgbaPixelsAbi(rgbaInspectProbe))
+    check rgbaCalls == 1
   test "trusted image request/copy/dimension prototypes and nullable/owner/closure ABI":
     check g.toBool(imageRequestAbi(imageRequestProbe, imageDestroyProbe, imageNotifyProbe))
     check imageRequestMask == 15

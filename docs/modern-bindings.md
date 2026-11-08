@@ -30,6 +30,33 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied Pixbuf RGBA8 values
+
+RgbaPixels/newRgbaPixels provide pure owning tightly packed straight RGBA8 values,
+with positive dimensions/exact byte count, conservative signed-gint capacity and
+short-circuit overflow checks. Width/height/len/isEmpty/bytes access needs no GTK;
+bytes and constructor inputs are independently copied. Default is an invalid-for-
+construction empty value, not a zero-sized native image.
+
+Pixbuf.rgbaPixels(maxBytes) snapshots RGB8/RGBA8 with native rowstride, omits padding,
+requires only final-row actual samples, normalizes RGB alpha=255 and preserves all
+RGBA bits. Native format/address span and output bound are checked before pixel
+retrieval/allocation. The 16 MiB default bounds only normalized output, not native
+parent/lazy materialization/decoder memory or retained aggregate copies.
+
+newPixbuf(value) and width/height/byte-array overloads allocate native-owned RGBA8
+storage and copy rows, never new_from_data into Nim storage. Snapshot/construction
+use early pure guards/UI-thread ownership; pure copied values can be processed in
+model/drop functions. No mutable native pointer, private layout, parser/codec/color
+management or automatic repaint/publication/drag mutation is introduced.
+
+Desktop generates its gradient with RGBA values and counts copied trusted-result
+bytes. Hidden ARC/ORC overflow/stride/RGB/RGBA/alpha/subpixbuf/copy/weak-backing/purity
+checks, nine public constructor/accessor prototype/colorspace/unsigned-row/signed ABI
+and source guards plus actual isolated offscreen rendering/replacement/lifetime tests
+cover the path. See [RGBA8 guide](gtk2.md#copied-rgba8-pixel-values). Native appearance
+remains backend behavior, not a simulated renderer or decoded-file representation.
+
 ### Explicitly trusted COPY-only image drag/drop pads
 
 Ordinary DrawingArea/EventBox pads now support enableImageDrag(Pixbuf), copied

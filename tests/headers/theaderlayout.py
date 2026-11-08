@@ -68,6 +68,23 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_rgba_values_are_copied_pure_and_native_rows_are_bounded(self):
+        text = (ROOT / 'src/gtk2/rgbapixels.nim').read_text()
+        pure = text.split('proc checkPixelSpan', 1)[0]
+        self.assertNotIn('rawPixbuf.', pure)
+        self.assertNotIn('requireOutsideModelFunction()', pure)
+        self.assertIn('width > high(g.gint).int div 4 or height > high(g.gint).int div (width * 4)', pure)
+        self.assertIn('result.payload[0]', pure)
+        self.assertIn('int64(height - 1) * stride.int64 + int64(width * channels)', text)
+        self.assertLess(text.index('if size > maxBytes:'), text.index('rawPixbuf.get_pixels(p)'))
+        self.assertIn('copyMem(addr result.payload[dest], addr source[src], rowBytes)', text)
+        self.assertIn('result.payload[d+3] = 255', text)
+        self.assertIn('rawPixbuf.get_bits_per_sample(p) != 8', text)
+        self.assertIn('rawPixbuf.get_colorspace(p) != rawPixbuf.COLORSPACE_RGB', text)
+        self.assertEqual(text.count('requireOutsideModelFunction()'), 3)
+        for forbidden in ('pixbuf_new_from_data(', 'loadPixbuf(', 'request_', 'realize(', 'show(', 'sink = true'):
+            self.assertNotIn(forbidden, text)
+
     def test_image_drag_has_trust_envelope_metadata_only_policy_and_single_finish(self):
         text = (ROOT / 'src/gtk2/imagedrag.nim').read_text()
         self.assertIn('if not trusted: raise', text)

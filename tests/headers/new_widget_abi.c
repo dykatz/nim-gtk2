@@ -3,6 +3,28 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_rgba_pixels_abi(gint (*inspect)(GdkPixbuf *, const guchar *, gint, gint, gint, gint)) {
+  typedef GdkPixbuf *(*New)(GdkColorspace, gboolean, gint, gint, gint);
+  typedef GdkColorspace (*Color)(const GdkPixbuf *);
+  typedef gint (*Int)(const GdkPixbuf *);
+  typedef gboolean (*Bool)(const GdkPixbuf *);
+  typedef guchar *(*Pixels)(const GdkPixbuf *);
+#define RGBA_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  RGBA_ABI(New, gdk_pixbuf_new);
+  RGBA_ABI(Color, gdk_pixbuf_get_colorspace);
+  RGBA_ABI(Int, gdk_pixbuf_get_bits_per_sample);
+  RGBA_ABI(Int, gdk_pixbuf_get_n_channels);
+  RGBA_ABI(Int, gdk_pixbuf_get_width);
+  RGBA_ABI(Int, gdk_pixbuf_get_height);
+  RGBA_ABI(Int, gdk_pixbuf_get_rowstride);
+  RGBA_ABI(Bool, gdk_pixbuf_get_has_alpha);
+  RGBA_ABI(Pixels, gdk_pixbuf_get_pixels);
+#undef RGBA_ABI
+  static const guchar data[21] = {0xff,0x80,0,1,2,3,4,5,6,0xde,0xad,0xbe,7,8,9,10,11,12,13,14,15};
+  return sizeof(GdkColorspace) == sizeof(gint) &&
+    inspect((GdkPixbuf *)(guintptr)0xf1, data, 3, 2, 12, 3) == -41;
+}
+
 gboolean nim_gtk2_image_request_abi(GtkClipboardImageReceivedFunc received,
   void (*destroy)(GtkWidget *, gpointer), void (*notify)(gpointer, GClosure *)) {
   typedef void (*Request)(GtkClipboard *, GtkClipboardImageReceivedFunc, gpointer);

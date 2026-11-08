@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied RGBA8 values now support pure pixel processing, bounded RGB/RGBA Pixbuf
+snapshots and native-owned construction, with no borrowed mutable pixel storage or
+codec. See the [RGBA8 guide](docs/gtk2.md#copied-rgba8-pixel-values) and desktop gradient.
+`testMappedRgbaPixels` checks real isolated offscreen rendering/lifetimes.
+
 Explicitly trusted COPY-only image pads now provide private begin snapshots, bounded
 post-decode copies, pure metadata acceptance and post-finish owned observations.
 Pending receivers drain after teardown. See the [image pad guide](docs/gtk2.md#explicitly-trusted-copy-only-image-dragdrop-pads)

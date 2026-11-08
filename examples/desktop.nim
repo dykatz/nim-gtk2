@@ -22,7 +22,16 @@ proc main() =
   layout.packEnd(status, packShrink)
   let imageRow = newHBox(spacing = 8)
   layout.packStart(imageRow, packShrink)
-  let imageSample = newPixbuf(32, 24, 0x3377cc90'u32)
+  let imageSample = block:
+    var rgba = newSeq[byte](32 * 24 * 4)
+    for y in 0..<24:
+      for x in 0..<32:
+        let i = (y * 32 + x) * 4
+        rgba[i] = byte(17 + x * 6)
+        rgba[i+1] = byte(35 + y * 8)
+        rgba[i+2] = 200
+        rgba[i+3] = 0x90
+    newPixbuf(newRgbaPixels(32, 24, rgba)) # Copied native-owned gradient, no codec.
   let imageSourcePad = newEventBox()
   imageSourcePad.setSizeRequest(48, 40)
   imageSourcePad.add(newImage(imageSample))
@@ -72,7 +81,8 @@ proc main() =
         let extent = max(w, h)
         incomingImage.pixbuf = if extent <= 64: value.image else:
           value.image.scaled(max(1, w * 64 div extent), max(1, h * 64 div extent))
-        status.text = "Trusted decoded copy: " & $w & "x" & $h
+        let pixels = value.image.rgbaPixels(maxBytes = 4096 * 4)
+        status.text = "Trusted decoded copy: " & $w & "x" & $h & "; " & $pixels.len & " copied RGBA8 bytes"
       of imageUnavailable:
         status.text = "No native image result (absent/unsupported/decoder failure are not distinguished)."
       of imageRejected:
