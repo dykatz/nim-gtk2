@@ -470,6 +470,7 @@ include gtk2/drawing
 include gtk2/richtext
 include gtk2/editableviews
 include gtk2/clipboard
+include gtk2/uriclipboard
 include gtk2/textdrag
 include gtk2/actions
 include gtk2/radioactions

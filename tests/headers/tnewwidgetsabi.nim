@@ -47,6 +47,10 @@ proc bufferPaste(buffer: gtk.PTextBuffer, clipboard: gtk.PClipboard) {.cdecl.} =
 type TextCoords = proc (view: gtk.PTextView, window: gtk.TTextWindowType, x, y: g.gint, outX, outY: g.Pgint) {.cdecl.}
 proc textWindowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_text_window_type_size_abi".}
 proc publicTextPaths(coords: TextCoords): g.gboolean {.cdecl, importc: "nim_gtk2_public_text_paths_abi".}
+type
+  UriSet = proc (data: gtk.PSelectionData, uris: g.PPgchar): g.gboolean {.cdecl.}
+  UriGet = proc (data: gtk.PSelectionData): g.PPgchar {.cdecl.}
+proc uriSelectionAbi(set: UriSet, get: UriGet): g.gboolean {.cdecl, importc: "nim_gtk2_uri_selection_abi".}
 type IterCharacter = proc (iter: gtk.PTextIter): g.gunichar {.cdecl.}
 proc publicIterAnchorStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_public_iter_anchor_storage_abi".}
 proc publicLinePaths(character: IterCharacter): g.gboolean {.cdecl, importc: "nim_gtk2_public_line_paths_abi".}
@@ -333,6 +337,21 @@ suite "new raw binding native header ABI":
     check sizeof(gtk.PIconSet) == sizeof(pointer)
     check textWindowTypeSize().int == sizeof(gtk.TTextWindowType)
     check g.toBool(publicTextPaths(coords))
+
+  test "URI selection native prototypes, char** and signed gboolean callbacks":
+    proc set(data: gtk.PSelectionData, uris: g.PPgchar): g.gboolean {.cdecl.} =
+      doAssert cast[uint](data) == 0xb1
+      let items = cast[ptr UncheckedArray[cstring]](uris)
+      doAssert $items[0] == "file:///a%20b" and $items[1] == "urn:example:x" and items[2] == nil
+      g.gboolean(-77)
+    # ABI-only callback returns fixed storage; the C probe never frees it.
+    proc get(data: gtk.PSelectionData): g.PPgchar {.cdecl.} =
+      doAssert cast[uint](data) == 0xb1
+      let vector {.global.} = [cstring("urn:example:return"), cstring(nil)]
+      cast[g.PPgchar](unsafeAddr vector[0])
+    let nativeSet: UriSet = gtk.set_uris
+    let nativeGet: UriGet = gtk.get_uris
+    check nativeSet != nil and nativeGet != nil and g.toBool(uriSelectionAbi(set, get))
 
   test "public iterator/anchor ABI and full gunichar callback, without private line layouts":
     let layout = [sizeof(gtk.TTextIter), alignof(gtk.TTextIter), sizeof(gtk.TTextChildAnchor),

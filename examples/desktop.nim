@@ -1,7 +1,7 @@
 ## Build: nim c -r --path:src examples/desktop.nim
 ## Optional real tray integration: /path/to/desktop --tray
 ## X11 embedding is available on Unix, not Windows or Quartz.
-import std/os
+import std/[os, strutils]
 import gtk2
 
 proc main() =
@@ -20,6 +20,29 @@ proc main() =
   let status = newLabel("Desktop events appear here.")
   status.setAlignment(0, 0.5)
   layout.packEnd(status, packShrink)
+  let uriRow = newHBox(spacing = 8)
+  layout.packStart(uriRow, packShrink)
+  let copyUris = newButton("Copy sample URIs")
+  let inspectUris = newButton("Inspect URI clipboard")
+  uriRow.packStart(copyUris, packShrink)
+  uriRow.packStart(inspectUris, packShrink)
+  layout.packStart(newLabel("URI data only: no files opened, no text fallback or automatic paste."), packShrink)
+  var uriOffer: UriClipboardOffer
+  var uriRequest: UriRequest
+  defer:
+    uriRequest.cancel()
+    uriOffer.clear() # No-op after native ownership-loss notification.
+  copyUris.onClicked(proc () =
+    uriOffer = getClipboard().offerUris(["file:///tmp/example%20name", "https://example.invalid/%CE%BB"])
+    status.text = "Copied two URI tokens (not local file authorization).")
+  inspectUris.onClicked(proc () =
+    uriRequest.cancel()
+    uriRequest = getClipboard().requestUris(window, proc (value: ClipboardUris) =
+      case value.kind
+      of urisAvailable:
+        status.text = if value.uris.len == 0: "Available empty URI list" else: value.uris.join("\n")
+      of urisUnavailable: status.text = "No text/uri-list target available"
+      of urisRejected: status.text = "Rejected URI data: " & value.error))
   when defined(posix) and not defined(macosx):
     let socket = newSocket()
     socket.setSizeRequest(320, 100)

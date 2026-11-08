@@ -8,7 +8,37 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextLayout/display/cursor private API audit
+## Next proposed functionality batch: URI COPY-only drag-and-drop pads
+
+- [ ] Extend copied URI tokens to explicit non-editable source/drop pads, preserving
+      native COPY-only completion, cancellation and independent wire pin lifetimes.
+- [ ] Define application observation/acceptance scope without auto-opening files,
+      inventing MOVE deletion, modifying private native sites or implicit text fallback.
+- [ ] Update existing examples/docs plus hidden ARC/ORC/native ABI and isolated
+      real transfer regressions. Image/binary transfers remain separately scoped.
+
+## Completed functionality batch: URI clipboard transfers
+
+- [x] Added copied UriList construction/access with absolute ASCII scheme/character/
+      percent-token checks (not scheme/host/path authorization or full URI parsing).
+      Order/duplicates/escapes preserved; no decoding, file I/O, launch or text fallback.
+- [x] Added URI-only native offers and idle/cancelable/owner-bound requestUris, distinct
+      available-empty/unavailable/rejected results, atomic malformed rejection and
+      independent offer/wire/idle pins. Dropped tokens do not cancel native ownership/
+      delivery; cancel promptly frees captures while native callback data stays valid.
+- [x] Bound public selection set/get_uris and audited GTK2.24.33 native ASCII/CRLF,
+      comment/line parsing and transfer-full gchar**/g_strfreev semantics. Two native
+      prototype checks plus char**/signed-gboolean callback probes; no native changes.
+- [x] Added hidden copied/invalid-input/pure-guard tests and isolated local/foreign/
+      empty/malformed/replacement/token/cancellation/owner/reentrant callback tests;
+      desktop example explicit URI copy/inspect buttons and migration/API docs.
+- [x] Validated ARC/ORC hidden and isolated fatal-warning regressions, all hidden/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386 and macOS amd64
+      semantic checks, every example, generator/package/diff checks, every isolated
+      mapped task and missing-opt-in guard. Native ownership/event races remain
+      documented native semantics, not a cross-process ownership lock.
+
+## Deferred audit: Raw GtkTextLayout/display/cursor private API audit
 
 - [ ] Inventory remaining private layout imports, flag helpers and concrete layout/
       display/cursor/appearance types against public TextView/iterator/Pango APIs.
@@ -459,11 +489,13 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; TextLayout/display/cursor audit is next (Entry/TextView/Mark/Attributes/Tag/Table/Buffer/BTree/Line complete).
+      corresponding policies; TextLayout/display/cursor audit is deferred (Entry/TextView/Mark/Attributes/Tag/Table/Buffer/BTree/Line complete).
 
 ### Clipboard and drag-and-drop
 
-- [ ] URI, image and binary transfers.
+- [x] URI clipboard offers/requests with copied tokens (functionality batch above).
+- [ ] URI COPY-only drag/drop pads (next proposed functionality batch).
+- [ ] Image and binary transfers.
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
 - [ ] Custom drag icons.
 - [ ] Application-controlled drop acceptance and asynchronous acceptance protocols.
@@ -512,6 +544,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] URI clipboard offers/async requests with copied values, explicit failure modes,
+      independent native pins and isolated local/foreign transfer regressions (above).
 - [x] Private line/segment APIs/guessed types removed, opaque pointer boundaries and
       public iterator/list/anchor/wrapped-display regressions (above).
 - [x] Private tree entry-point removal, typed opaque IconSet/native window enum fixes

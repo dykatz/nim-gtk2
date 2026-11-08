@@ -2791,6 +2791,73 @@ GtkEntry cell-editing lifecycle that emits a deferred edit and explicitly commit
 Unicode text. Never run mapped tests on an ordinary desktop. No installed native
 library is changed and no GTK warnings are suppressed.
 
+## URI clipboard transfers
+
+`newUriList(openArray[string])` makes a copied, immutable-by-API value; `.uris`
+returns a copied sequence and `.len` its count. Order, duplicates, scheme spelling
+and escapes are preserved. Tokens require an absolute scheme and ASCII URI
+characters with complete `%HH` escapes. Encode UTF-8/non-ASCII bytes yourself;
+tokens without a scheme, whitespace, NUL, malformed escapes and IRIs are rejected. This is a
+**token check, not a full authority/scheme-specific URI parser or authorization**.
+Arbitrary schemes (even drive-looking `C:/path`), remote file authorities and encoded
+bytes (including `%00`) remain data. No normalization, percent decoding, stat, file reads or application
+launch occurs. Applications must independently validate schemes/hosts/paths and
+user intent before using received URIs; do not infer a safe local filename.
+
+```nim
+let clipboard = getClipboard()
+let offer = clipboard.offerUris(["file:///tmp/a%20b", "https://example.invalid/%CE%BB"])
+let request = clipboard.requestUris(window, proc (value: ClipboardUris) =
+  case value.kind
+  of urisAvailable: echo value.uris # Copied tokens; empty is a valid result.
+  of urisUnavailable: echo "No URI target available"
+  of urisRejected: echo value.error)
+# request.cancel() suppresses delivery; offer.clear() revokes only this active offer.
+```
+
+`offerUris` also accepts `UriList`. It validates the whole list before claiming
+ownership, advertises **only text/uri-list**, and uses native `set_uris` to copy
+CRLF framing. `UriClipboardOffer.active` follows native clear/replacement; dropping
+the token does not clear ownership. GTK pins copied data independently until clear.
+After native clear notification, a stale token's `clear()` is a no-op. `active`
+reflects those notifications, **not an atomic cross-process ownership lock**;
+server ownership changes/events can race with GTK's native clear operation. Empty
+lists are publishable.
+No source widget, file descriptor or lazy application callback is retained.
+No clipboard-manager persistence or data survival after process exit is promised.
+
+`requestUris(fn)` / `requestUris(owner: Widget, fn)` return a `UriRequest` with
+`pending` and idempotent `cancel`. Application delivery always occurs at UI idle,
+including synchronous local replies; errors are contained and reentrant new
+requests supported. Cancel/owner destruction promptly release captures and queued
+payloads and disconnect owner hooks. Dropping a token does **not** cancel. GTK has
+no wire cancellation: a separate small native callback pin/clipboard ref survives
+until the real reply/timeout. Callbacks never expose selection data or C arrays.
+
+A missing/refused target is `urisUnavailable`; a correctly typed format-8 empty
+payload is `urisAvailable` with no entries. Successful wrong-type/format or invalid
+data is `urisRejected`, with no partial entries and an error. UTF-8/NUL checks run
+before native conversion; GTK's public `get_uris` handles comments, whitespace and
+line endings, then each copied token is checked. Its transfer-full `gchar**` is
+freed with `g_strfreev`. There is **no text fallback**, rich parsing, implicit paste,
+file permission promise or automatic drop acceptance. Native transfer memory is
+already allocated by GTK; this does not impose an incoming size cap or sandbox
+hostile desktop owners. The UI-thread and synchronous-model-function guards apply
+to all clipboard operations; pure `UriList` construction/access needs no GTK calls.
+
+[examples/desktop.nim](../examples/desktop.nim) adds explicit Copy sample URIs and
+Inspect URI clipboard buttons; startup only configures controls. Hidden
+`tests/tgtk2uriclipboard.nim` covers copied values, validation, pure guards and invalid
+handles without realizing widgets, claiming PRIMARY or requesting selections.
+`nimble testMappedUriClipboard` requires isolated DISPLAY and
+`GTK2_TEST_VIRTUAL_DISPLAY=1`: it owns CLIPBOARD/PRIMARY and covers local/foreign
+owners, malformed/empty/unavailable results, cancellation, replacement, dropped
+tokens, owner destruction and reentrant/throwing callbacks. Native header probes
+check both public signatures and `char**`/full signed `gboolean` callback ABI.
+URI drag/drop, images/binary payloads, MOVE and asynchronous application acceptance
+remain separate functionality batches. Raw TextLayout audits are deferred, not
+continued or certified by this feature.
+
 ## Clipboard and copy-only text drag/drop
 
 The [text editor](../examples/text.nim) now has Copy/Cut/Paste buttons, and the

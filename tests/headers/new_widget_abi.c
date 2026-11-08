@@ -3,6 +3,19 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_uri_selection_abi(gboolean (*set)(GtkSelectionData *, gchar **),
+                                  gchar **(*get)(GtkSelectionData *)) {
+  typedef gboolean (*Set)(GtkSelectionData *, gchar **);
+  typedef gchar **(*Get)(GtkSelectionData *);
+  typedef char SetSignature[__builtin_types_compatible_p(Set, __typeof__(&gtk_selection_data_set_uris)) ? 1 : -1];
+  typedef char GetSignature[__builtin_types_compatible_p(Get, __typeof__(&gtk_selection_data_get_uris)) ? 1 : -1];
+  gchar *items[] = { "file:///a%20b", "urn:example:x", NULL };
+  gchar **result;
+  (void)sizeof(SetSignature); (void)sizeof(GetSignature);
+  if (set((GtkSelectionData *)(guintptr)0xb1, items) != -77) return FALSE;
+  result = get((GtkSelectionData *)(guintptr)0xb1);
+  return result && result[0] && result[0][0] == 'u' && result[1] == NULL;
+}
 size_t nim_gtk2_text_window_type_size_abi(void) { return sizeof(GtkTextWindowType); }
 gboolean nim_gtk2_public_text_paths_abi(void (*coords)(GtkTextView *, GtkTextWindowType, gint, gint, gint *, gint *)) {
   typedef void (*Offset)(GtkTextBuffer *, GtkTextIter *, gint);

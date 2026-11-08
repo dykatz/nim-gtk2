@@ -30,6 +30,23 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### URI clipboard functionality
+
+Copied `UriList` values, URI-only ownership offers and cancelable/owner-bound
+asynchronous `requestUris` now expose public GTK2 text/uri-list transfer without
+launching or opening data. Empty/absent/rejected results are distinct; malformed
+replies never downgrade to text or expose partial lists. Native comment/line parsing
+runs only after UTF-8/NUL/type/format checks, then ASCII scheme/escape token checks;
+this is not full URI authority validation or application authorization.
+
+Independent native offer/wire/idle pins preserve lifetime when tokens are dropped,
+requests canceled, owners destroyed or callbacks reenter/throw. Full `gchar**` native
+get results are copied/freed with `g_strfreev`; setter inputs stay live until GTK
+copies them. Two new raw public prototypes and native signature/char**/gboolean
+callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
+example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
+URI DnD, images/binary and MOVE remain separate; private layout audits are deferred.
+
 ### Rich clipboard negotiation
 
 RichClipboardOffer pins immutable native bytes/explicit plain fallback until native

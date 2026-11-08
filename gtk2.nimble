@@ -55,6 +55,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2desktop.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2extensions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2transfers.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uriclipboard.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2actions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2builder.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2uimanager.nim"
@@ -94,6 +95,9 @@ task testMappedDesktop, "Test tray lifetime and foreign XEmbed (isolated virtual
 
 task testMappedExtensions, "Test Cairo pixels and native editing (isolated virtual DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1 required)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedextensions.nim"
+
+task testMappedUriClipboard, "Test URI clipboard ownership/async reads (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduriclipboard.nim"
 
 task testMappedTransfers, "Test clipboard and native text DnD (isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1; X11 DnD needs XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedtransfers.nim"

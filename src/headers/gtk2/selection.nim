@@ -49,6 +49,10 @@ proc set_text*(selection_data: PSelectionData, str: cstring,
     importc: "gtk_selection_data_set_text".}
 proc get_text*(selection_data: PSelectionData): Pguchar{.cdecl,
     dynlib: lib, importc: "gtk_selection_data_get_text".}
+proc set_uris*(selection_data: PSelectionData, uris: PPgchar): gboolean{.cdecl,
+    dynlib: lib, importc: "gtk_selection_data_set_uris".}
+proc get_uris*(selection_data: PSelectionData): PPgchar{.cdecl,
+    dynlib: lib, importc: "gtk_selection_data_get_uris".}
 proc targets_include_text*(selection_data: PSelectionData): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_selection_data_targets_include_text".}
 proc selection_remove_all*(widget: PWidget){.cdecl, dynlib: lib,
