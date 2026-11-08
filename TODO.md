@@ -8,15 +8,39 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: COPY-only binary drag/drop pads
+## Next proposed functionality batch: copied drag-source Pixbuf icons
 
-- [ ] Add explicit application-MIME copied binary sources and bounded destinations on
-      ordinary pads, with begin snapshots, exact type/format-8 checks and COPY only.
-- [ ] Keep copied guarded synchronous acceptance separate from idle post-finish
-      observations; pending wires/receivers must drain safely after disconnect/destroy.
-      No fallback, parser, MOVE/delete, persistence or application-acknowledgment claims.
-- [ ] Extend existing examples/docs plus hidden ARC/ORC/ABI and isolated real XTEST
-      local/foreign/bounds/cancellation regressions. Image decoding/private audits deferred.
+- [ ] Add explicit copied Pixbuf drag-icon configuration on SDK text/URI/binary source
+      pads, preserving native source/context lifetimes and actual per-drag icon behavior.
+- [ ] Define supported public default/reset/update semantics without private cursor/
+      source bookkeeping, implicit realization, simulated pointer motion or invented
+      icon getters. Custom widgets/hotspot/context APIs remain separately scoped.
+- [ ] Update existing examples/docs and hidden ARC/ORC/ABI/isolated XTEST pixel/lifetime/
+      source-update regressions. Image decoding and private layout audits stay deferred.
+
+## Completed functionality batch: COPY-only binary drag/drop pads
+
+- [x] Added enableBinaryDrag value/byte overloads, fixed-MIME copied source data access/
+      updates and actual begin snapshots; onBinaryDrop MIME/maxBytes/accept plus source/
+      site connected/disconnect/draining. Exact ordinary pads and per-direction native
+      target conflicts; no text/URI/image fallback, parser, MOVE/delete or auto-use.
+- [x] Shared exact format-8/type/target/bounded application-copy validation with binary
+      requests, including valid empty/zero bound. Optional fixed copied pure acceptance
+      is fail-closed; exceptions contained/guard restored. Idle copied observation
+      follows the sole native finish/delete=false; source success is not application ack.
+- [x] Independent native context/pad/unrealized same-screen receiver pins preserve real
+      replies after pad destruction. Disconnect promptly releases policy/observer/data;
+      inactive native sites reserve against binary/text/URI replacement until draining
+      and separate idle cleanup finish. No private state or implicit realization repair.
+- [x] Added hidden copies/MIME/atomic updates/pad conflicts/weak-lifetime/purity tests,
+      seven native function/four signal callback signed/full info/time/gboolean ABI
+      probes and source guards; real XTEST local/foreign/all-byte INCR/snapshot/empty/
+      bound/type/format/policy/error/guard/source-cancel/no-DELETE/queued-cancel/pending
+      disconnect/destroy/replacement regressions. Updated desktop pads and all guides.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, all hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example, generator/package/diff checks, every isolated mapped task and
+      missing-opt-in guard. Installed GTK unchanged; private layout audits deferred.
 
 ## Completed functionality batch: copied binary clipboard requests
 
@@ -614,9 +638,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Incoming image requests, image drag/drop and clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
-- [ ] COPY-only binary drag/drop pads (proposed next).
+- [x] COPY-only binary drag/drop pads (functionality batch above).
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
-- [ ] Custom drag icons.
+- [ ] Copied drag-source Pixbuf icons (proposed next); broader custom drag icons.
 - [x] Copied synchronous application URI drop acceptance (batch above).
 - [ ] Broader application-controlled drop acceptance and asynchronous protocols.
 
@@ -664,6 +688,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] COPY-only binary pads with begin snapshots, guarded acceptance, independent
+      draining receivers and actual XTEST/INCR/lifecycle/type/bound regressions (above).
 - [x] Bounded opaque binary requests with idle copied result kinds, independent wire/
       idle/weak-owner pins and actual delayed/large/cancellation regressions (above).
 - [x] Opaque binary clipboard offers, conservative MIME/size boundaries, exact native

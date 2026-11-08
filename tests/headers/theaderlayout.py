@@ -68,10 +68,26 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_binary_drag_keeps_copy_finish_receiver_and_pure_scope_explicit(self):
+        text = (ROOT / 'src/gtk2/binarydrag.nim').read_text()
+        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
+        self.assertIn('g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('readSelectionBytes(selection, s.atom, s.mime, s.maxBytes)', text)
+        self.assertIn('finally: dec modelFunctionDepth', text)
+        self.assertIn('s.accept = nil', text)
+        self.assertIn('receiver: Window', text)
+        self.assertIn('rawGtk.set_screen(receiver.raw, rawGtk.get_screen(s.widget))', text)
+        self.assertIn('s.wires.len != 0', text)
+        self.assertIn('queueBinaryCleanup(s)', text)
+        self.assertLess(text.index('valid = acceptBinaryDrop(s, value)'), text.index('rawGtk.drag_finish('))
+        for forbidden in ('DEST_DEFAULT_DROP', 'set_text(', 'set_uris(', 'get_pixbuf(',
+                          'realize(', 'show(', 'map(', '"gtk-drag-dest"'):
+            self.assertNotIn(forbidden, text)
+
     def test_binary_requests_bound_copies_and_keep_wire_idle_cancellation_separate(self):
         text = (ROOT / 'src/gtk2/binaryrequests.nim').read_text()
-        self.assertLess(text.index('if size > s.maxBytes: return'), text.index('result.bytes = newSeq[byte](size)'))
-        self.assertIn('rawGtk.selection_data_get_data_type(selection) != s.atom', text)
+        self.assertLess(text.index('if size > maxBytes: return'), text.index('result.bytes = newSeq[byte](size)'))
+        self.assertIn('rawGtk.selection_data_get_data_type(selection) != atom', text)
         self.assertIn('rawGtk.selection_data_get_format(selection) != 8', text)
         self.assertIn('defer: GC_unref(s)', text)
         self.assertIn('if not s.nativePending: s.clipboard = Clipboard()', text)

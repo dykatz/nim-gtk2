@@ -3056,6 +3056,96 @@ PRIMARY and absence of text/URI fallback. Six native prototype checks plus point
 signed-gboolean probes cover the public adapter ABI. No untrusted desktop image is
 automatically decoded by the SDK; incoming decoding/security policy remains separate.
 
+## Binary COPY-only drag/drop pads
+
+Ordinary exact `DrawingArea`/`EventBox` pads support:
+
+- `enableBinaryDrag(BinaryData)` or `enableBinaryDrag(mime, bytes)` returning
+  `BinaryDragSource` with connected/disconnect and copied-value `.data` access/update.
+- `onBinaryDrop(mime, fn, maxBytes = 16*1024*1024, accept: BinaryDropPredicate = nil)`
+  returning `BinaryDropSite` with connected/disconnect/draining.
+- `BinaryDrop` copied `.mime`, `.bytes`, original pad-local `.x/.y`, uint32 `.time`.
+
+```nim
+let payload = newBinaryData("application/vnd.example.sample", [0'u8, 255, 128, 0])
+let source = sourcePad.enableBinaryDrag(payload)
+let policy: BinaryDropPredicate = proc (value: BinaryDrop): bool =
+  value.bytes.len > 0 # Copied-data-only application decision, no GTK or I/O.
+let site = destinationPad.onBinaryDrop(payload.mime, proc (value: BinaryDrop) =
+  echo(value.bytes.len), maxBytes = 4096, accept = policy)
+source.data = newBinaryData(payload.mime, [1'u8]) # Later drags only.
+```
+
+MIME validation and source size bounds are the same conservative application subset
+as binary clipboard data; default BinaryData is invalid. The source MIME is **fixed
+per attachment**: data updates with another MIME reject atomically, without changing
+native target lists or old data. Disconnect/reconfigure to use another target. Source
+bytes are copied on construction and snapshotted per actual native drag-begin;
+subsequent updates affect only future drags. Dropped tokens do not cancel sources or
+destinations. No plain text/URI/image fallback, parser, encoding or automatic file use
+is installed. Only COPY is advertised; selected action must be COPY at drop and at
+receipt. No MOVE, source deletion or editor/model/private-site override is provided.
+
+Only one native site per direction may own a pad. The other direction is independent;
+text/URI/binary sites in the same direction conflict rather than overwrite each other.
+Existing native target lists reject configuration. Public GTK cannot enumerate every
+empty-target/proxy raw registration: do not preconfigure raw sites on SDK pads or
+mutate their target lists/handlers while active or draining. No private registry,
+realization, mapping, showing or reparenting is used by configuration.
+
+A destination uses the same exact target/type/format-8 validator as binary requests.
+maxBytes accepts 0..2147483646 and bounds application copying **before allocation**;
+zero accepts only valid empty data. Valid empty succeeds by default; a predicate may
+reject it. Wrong MIME/type/format, excess/missing data, unavailable replies, non-COPY
+and canceled transfers never call acceptance or observation. Rejected data is not
+partially delivered. The bound is not a total-memory budget covering native receipt/
+INCR allocation, queued aggregate bytes, the additional predicate copy or retained
+application values, nor a security sandbox against hostile owners. Opaque MIME/bytes are not format validation, file
+permissions or authenticated application identity.
+
+Optional acceptance is a fixed synchronous closure evaluated once before successful
+native finish, over independently copied byte storage. Nil accepts otherwise valid
+transport; false or an exception fails with no observation. The shared model-function
+guard rejects checked handle access, clipboard work and mutable site operations;
+exceptions restore the guard and are contained/reported. Ordinary final handle
+releases defer outside pure computation. Do not block, pump events, open files, await
+async work or call raw/unguarded GTK constructors inside the policy: this is a contract,
+not whole-program interposition. Captured state is read at receipt time, not frozen.
+Policy input can be retained/modified without altering the eventual observer's copy.
+
+Each tracked selection finishes exactly once, **delete=false**, through the native
+finish API. DEFAULT_DROP is not enabled. Accepted drops queue separate per-drop idle
+observations only **after** finish; observers may reenter GTK, disconnect, destroy or
+throw. Canceling queued observation releases captures/data but never rolls back a
+completed transfer or repeats its policy. GTK2 X11 still treats XDND Finished as
+success-like source drag-end regardless of its failure bit; that signal is not proof
+of destination acceptance or application work. No synthetic source correction or
+second finish is introduced; isolated tests inspect the actual public GDK outcome bit.
+
+Disconnect/destruction clears observer/predicate captures immediately. Pending native
+selection requests cannot be canceled: original context/pad and an independent
+**unrealized same-screen receiver Window** remain pinned until actual reply/timeout,
+then finish false without user code. This survives destroyed-pad signal removal;
+GTK creates its own native IPC resource, not an implicitly realized user pad/receiver.
+Inactive sites reserve the native target list until draining completes; binary/text/
+URI replacement is blocked. Post-receipt cleanup uses its own idle widget/state pin.
+Retry from a later event when draining is false, never a nested event pump. Active
+sites hold no strong pad reference outside actual wire/cleanup work; controller
+closures that capture handles still require explicit cancellation/destruction.
+
+[examples/desktop.nim](../examples/desktop.nim) adds count-only binary source/drop
+pads with a nonempty pure policy. Hidden `tests/tgtk2binarydrag.nim` tests unrealized
+copies/fixed MIME/atomic invalid configuration/conflicts/lifetime/purity, with no
+selections or input. `nimble testMappedBinaryDrag` requires isolated DISPLAY,
+GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST. Real local/foreign tests cover snapshots,
+NUL/non-UTF-8/all-byte INCR payloads, exact/zero/exceeded bounds, wrong type/format,
+text/MOVE/other-MIME/source-disconnected replies, fixed policy/copies/guards/errors,
+reentrant observers, no DELETE, queued cancellation, delayed disconnect/destruction,
+independent receivers and blocked replacement. Seven public native prototypes/four
+callback signatures probe signed coordinates/gboolean and full unsigned info/time;
+source guards pin finish, copy validation and scope. Other platforms receive semantic
+checks, not simulated native drags. Image decoding and async acceptance stay separate.
+
 ## URI COPY-only drag/drop pads
 
 `DrawingArea` and `EventBox` pads provide `enableUriDrag(UriList | openArray[string])`
@@ -5472,7 +5562,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard/testMappedBinaryDrag tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have
@@ -5480,7 +5570,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, incoming image requests, image/binary DnD, asynchronous URI
+additional rich clipboard protocols, incoming image requests, image DnD, asynchronous acceptance
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

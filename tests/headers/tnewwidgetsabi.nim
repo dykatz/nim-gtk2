@@ -14,6 +14,36 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  BinaryBeginAbi = proc (w: gtk.PWidget, context: gd.PDragContext, data: pointer) {.cdecl.}
+  BinarySourceAbi = proc (w: gtk.PWidget, context: gd.PDragContext, selection: gtk.PSelectionData,
+    info, time: g.guint, data: pointer) {.cdecl.}
+  BinaryDropAbi = proc (w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint,
+    time: g.guint, data: pointer): g.gboolean {.cdecl.}
+  BinaryReceiveAbi = proc (w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint,
+    selection: gtk.PSelectionData, info, time: g.guint, data: pointer) {.cdecl.}
+proc binaryDragAbi(begin: BinaryBeginAbi, source: BinarySourceAbi, drop: BinaryDropAbi,
+    received: BinaryReceiveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_drag_abi".}
+var binaryDragMask: int
+proc binaryBeginProbe(w: gtk.PWidget, context: gd.PDragContext, data: pointer) {.cdecl.} =
+  doAssert cast[uint](w) == 0xc1 and cast[uint](context) == 0xc2 and cast[uint](data) == 0xc4
+  binaryDragMask = binaryDragMask or 1
+proc binarySourceProbe(w: gtk.PWidget, context: gd.PDragContext, selection: gtk.PSelectionData,
+    info, time: g.guint, data: pointer) {.cdecl.} =
+  binaryBeginProbe(w, context, data)
+  doAssert cast[uint](selection) == 0xc3 and info == 0xe0000001'u32 and time == 0xfedcba98'u32
+  binaryDragMask = binaryDragMask or 2
+proc binaryDropProbe(w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint,
+    time: g.guint, data: pointer): g.gboolean {.cdecl.} =
+  binaryBeginProbe(w, context, data)
+  doAssert x == -17 and y == 23 and time == 0xfedcba98'u32
+  binaryDragMask = binaryDragMask or 4
+  g.gboolean(-31)
+proc binaryReceiveProbe(w: gtk.PWidget, context: gd.PDragContext, x, y: g.gint,
+    selection: gtk.PSelectionData, info, time: g.guint, data: pointer) {.cdecl.} =
+  binarySourceProbe(w, context, selection, info, time, data)
+  doAssert x == -17 and y == 23
+  binaryDragMask = binaryDragMask or 8
 type BinaryDestroyAbi = proc (owner: gtk.PWidget, data: pointer) {.cdecl.}
 proc binaryRequestAbi(received: gtk.TClipboardReceivedFunc, release: g.TGClosureNotify,
     destroy: BinaryDestroyAbi): g.gboolean {.cdecl, importc: "nim_gtk2_binary_request_abi".}
@@ -304,6 +334,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "binary COPY pad prototypes and source/drop/receive signed and full unsigned callback ABI":
+    check g.toBool(binaryDragAbi(binaryBeginProbe, binarySourceProbe, binaryDropProbe, binaryReceiveProbe))
+    check binaryDragMask == 15
   test "binary request/getter prototypes and received callback pointer ABI":
     check g.toBool(binaryRequestAbi(binaryReceivedProbe, binaryReleaseProbe, binaryDestroyProbe))
     check binaryReceived and binaryOwnerMask == 3

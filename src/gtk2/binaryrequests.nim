@@ -68,17 +68,18 @@ proc dispatchBinaryRequest(data: pointer): g.gboolean {.cdecl, gcsafe.} =
       try: fn(value)
       except Exception as error: reportSignalError(error)
     g.gbool(false)
-proc readSelectionBytes(s: BinaryRequestState, selection: rawGtk.PSelectionData): ClipboardBytes =
-  result.mime = s.mime
+proc readSelectionBytes(selection: rawGtk.PSelectionData, atom: rawGdk.TAtom,
+    mime: string, maxBytes: int): ClipboardBytes =
+  result.mime = mime
   if selection == nil or rawGtk.selection_data_get_length(selection) < 0: return
   result.kind = bytesRejected
   result.error = "unexpected binary clipboard target, type or format"
-  if rawGtk.selection_data_get_target(selection) != s.atom or
-      rawGtk.selection_data_get_data_type(selection) != s.atom or
+  if rawGtk.selection_data_get_target(selection) != atom or
+      rawGtk.selection_data_get_data_type(selection) != atom or
       rawGtk.selection_data_get_format(selection) != 8: return
   let size = rawGtk.selection_data_get_length(selection).int
   result.error = "binary clipboard reply exceeds maxBytes"
-  if size > s.maxBytes: return # Before any application payload allocation/copy.
+  if size > maxBytes: return # Before any application payload allocation/copy.
   let data = rawGtk.selection_data_get_data(selection)
   result.error = "missing binary clipboard data"
   if size > 0 and data == nil: return
@@ -95,7 +96,7 @@ proc binaryContents(clipboard: rawGtk.PClipboard, selection: rawGtk.PSelectionDa
     if not s.active:
       s.clipboard = Clipboard()
       return
-    try: s.value = readSelectionBytes(s, selection)
+    try: s.value = readSelectionBytes(selection, s.atom, s.mime, s.maxBytes)
     except Exception as error:
       s.value = ClipboardBytes(kind: bytesRejected, mime: s.mime, error: error.msg)
       reportSignalError(error)

@@ -3,6 +3,37 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_binary_drag_abi(
+  void (*begin)(GtkWidget *, GdkDragContext *, gpointer),
+  void (*source)(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint, guint, gpointer),
+  gboolean (*drop)(GtkWidget *, GdkDragContext *, gint, gint, guint, gpointer),
+  void (*received)(GtkWidget *, GdkDragContext *, gint, gint, GtkSelectionData *, guint, guint, gpointer)) {
+  typedef void (*Source)(GtkWidget *, GdkModifierType, const GtkTargetEntry *, gint, GdkDragAction);
+  typedef void (*Dest)(GtkWidget *, GtkDestDefaults, const GtkTargetEntry *, gint, GdkDragAction);
+  typedef void (*Get)(GtkWidget *, GdkDragContext *, GdkAtom, guint32);
+  typedef void (*Finish)(GdkDragContext *, gboolean, gboolean, guint32);
+  typedef GdkAtom (*Find)(GtkWidget *, GdkDragContext *, GtkTargetList *);
+  typedef GdkDragAction (*Action)(GdkDragContext *);
+  typedef void (*Set)(GtkSelectionData *, GdkAtom, gint, const guchar *, gint);
+#define BINARY_DRAG_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  BINARY_DRAG_ABI(Source, gtk_drag_source_set);
+  BINARY_DRAG_ABI(Dest, gtk_drag_dest_set);
+  BINARY_DRAG_ABI(Get, gtk_drag_get_data);
+  BINARY_DRAG_ABI(Finish, gtk_drag_finish);
+  BINARY_DRAG_ABI(Find, gtk_drag_dest_find_target);
+  BINARY_DRAG_ABI(Action, gdk_drag_context_get_selected_action);
+  BINARY_DRAG_ABI(Set, gtk_selection_data_set);
+#undef BINARY_DRAG_ABI
+  GtkWidget *w = (GtkWidget *)(guintptr)0xc1;
+  GdkDragContext *c = (GdkDragContext *)(guintptr)0xc2;
+  GtkSelectionData *s = (GtkSelectionData *)(guintptr)0xc3;
+  gpointer data = (gpointer)(guintptr)0xc4;
+  begin(w, c, data);
+  source(w, c, s, 0xe0000001u, 0xfedcba98u, data);
+  received(w, c, -17, 23, s, 0xe0000001u, 0xfedcba98u, data);
+  return drop(w, c, -17, 23, 0xfedcba98u, data) == -31;
+}
+
 gboolean nim_gtk2_binary_request_abi(GtkClipboardReceivedFunc received,
   GClosureNotify release, void (*destroy)(GtkWidget *, gpointer)) {
   typedef void (*Request)(GtkClipboard *, GdkAtom, GtkClipboardReceivedFunc, gpointer);

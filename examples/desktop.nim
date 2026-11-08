@@ -65,6 +65,24 @@ proc main() =
       of bytesUnavailable: status.text = "No sample application byte target available."
       of bytesRejected: status.text = "Rejected byte reply: " & value.error,
       maxBytes = 4096)) # Limits our copy, not GTK's native wire allocation.
+  let binaryPads = newHBox(spacing = 16)
+  layout.packStart(binaryPads, packShrink)
+  let binarySourcePad = newEventBox()
+  let binaryDestPad = newEventBox()
+  binarySourcePad.add(newLabel("Drag opaque sample bytes (COPY)"))
+  binaryDestPad.add(newLabel("Drop sample MIME: count only"))
+  for pad in [binarySourcePad, binaryDestPad]:
+    pad.setSizeRequest(240, 48)
+    binaryPads.packStart(pad)
+  let binaryDrag = binarySourcePad.enableBinaryDrag(sampleBytes)
+  let acceptSample: BinaryDropPredicate = proc (value: BinaryDrop): bool =
+    value.mime == sampleBytes.mime and value.bytes.len > 0 # Copied data only, no GTK/I/O.
+  let binaryDrop = binaryDestPad.onBinaryDrop(sampleBytes.mime, proc (value: BinaryDrop) =
+    status.text = "Accepted binary COPY at " & $value.x & "," & $value.y & ": " & $value.bytes.len & " opaque bytes.",
+    maxBytes = 4096, accept = acceptSample) # App copy bound, not a native receipt limit.
+  defer:
+    binaryDrag.disconnect()
+    binaryDrop.disconnect() # Pending replies drain without observation; no DELETE.
   let uriRow = newHBox(spacing = 8)
   layout.packStart(uriRow, packShrink)
   let copyUris = newButton("Copy sample URIs")

@@ -30,6 +30,33 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### COPY-only binary drag/drop pads
+
+`enableBinaryDrag(BinaryData | mime, bytes)` and `onBinaryDrop(mime, observer,
+maxBytes, accept)` now support exact ordinary DrawingArea/EventBox pads. Source
+`.data` updates preserve a fixed MIME and actual begin snapshots. Destination uses
+shared binary request validation for exact type/format-8 and bounded app copies;
+native receipt/INCR memory is not sandboxed. No parser/fallback/MOVE/delete is added.
+
+Optional fixed BinaryDropPredicate receives an independent copied byte array before
+finish under shared pure guards, with contained fail-closed errors. Idle copied
+BinaryDrop observations follow native completion and may reenter GTK. One tracked
+finish/delete=false; no DEFAULT_DROP or source-success correction. Native GDK outcome
+bits, not GTK2's success-like drag-end, validate acceptance in real X11 tests.
+
+Independent context/pad/unrealized same-screen receiver and cleanup pins preserve
+pending wires after disconnect/destruction; policy/observer captures release promptly.
+Inactive sites reserve their native target list while draining, blocking binary/text/
+URI replacement. No implicit realization or private GTK registry is used. Native
+source state/qdata is weak outside wire/cleanup work; dropped tokens do not cancel.
+
+Desktop adds explicit count-only sample pads. Hidden configuration/lifetime/purity
+and actual XTEST local/foreign/snapshot/all-byte INCR/bounds/type/format/policy/error/
+source cancellation/queued cancel/destroy/drain tests accompany seven native public
+prototype/four callback signed/full-unsigned ABI probes and source scope guards.
+See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Image DnD/custom icons,
+asynchronous acceptance, persistence and private layout audits remain separate.
+
 ### Bounded copied binary clipboard requests
 
 `requestBinary(mime, fn, maxBytes = 16 MiB)` and the leading Widget-owner overload
@@ -141,7 +168,7 @@ Five public prototypes/three callback signatures and signed-coordinate/full unsi
 payload probes supplement hidden ownership/purity/conflict tests and isolated real
 XTEST/local/foreign/delayed-reply regressions. Desktop example adds URI inspection
 pads. See [URI pad guide](gtk2.md#uri-copy-only-dragdrop-pads). Copied synchronous acceptance is described above; asynchronous acceptance and
-image/binary DnD and MOVE remain separate, and private layout audits remain deferred.
+image DnD and MOVE remain separate, and private layout audits remain deferred.
 
 ### URI clipboard functionality
 
@@ -159,7 +186,7 @@ copies them. Two new raw public prototypes and native signature/char**/gboolean
 callback probes accompany hidden and isolated ARC/ORC regressions. The desktop
 example offers/inspects only on explicit clicks. See [URI guide](gtk2.md#uri-clipboard-transfers).
 URI pads, image/binary offers and binary requests are described above; incoming image
-requests, image/binary DnD and MOVE remain separate, and private layout audits are deferred.
+requests, image DnD and MOVE remain separate, and private layout audits are deferred.
 
 ### Rich clipboard negotiation
 
