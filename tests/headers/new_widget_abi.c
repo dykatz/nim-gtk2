@@ -3,6 +3,16 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_drag_icon_abi(void (*apply)(GdkDragContext *, GdkPixbuf *, gint, gint)) {
+  typedef void (*Icon)(GdkDragContext *, GdkPixbuf *, gint, gint);
+  typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);
+  typedef char icon_proto[__builtin_types_compatible_p(Icon, __typeof__(&gtk_drag_set_icon_pixbuf)) ? 1 : -1];
+  typedef char copy_proto[__builtin_types_compatible_p(Copy, __typeof__(&gdk_pixbuf_copy)) ? 1 : -1];
+  (void)sizeof(icon_proto); (void)sizeof(copy_proto);
+  apply((GdkDragContext *)(guintptr)0xd1, (GdkPixbuf *)(guintptr)0xd2, -2, 129);
+  return TRUE;
+}
+
 gboolean nim_gtk2_binary_drag_abi(
   void (*begin)(GtkWidget *, GdkDragContext *, gpointer),
   void (*source)(GtkWidget *, GdkDragContext *, GtkSelectionData *, guint, guint, gpointer),

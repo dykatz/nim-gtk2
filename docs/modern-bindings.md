@@ -30,6 +30,29 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied drag-source Pixbuf icons
+
+Text/URI/binary source tokens now expose setIcon(Pixbuf)/clearIcon. Configuration
+copies pixels atomically and is guarded; caller mutation/release cannot alter later
+drags. No getter or alias to caller storage is offered. Actual native begin applies
+through public context icon API with GTK's source hotspot. Active contexts retain
+native pixel refs; source updates/clear affect later SDK begins, not live cursors.
+
+Clear restores actual GTK/global defaults by leaving native selection alone, not
+substituting a stock icon, rebuilding target lists or resetting private caches.
+Source disconnect/destruction promptly drops config without retaining pads; no
+implicit realization, decoder, parser, transfer action or finish behavior is added.
+Native cursor/popup rendering and alpha/color rounding remain backend semantics.
+
+Controls and desktop examples use explicit copies/default controls. Hidden ARC/ORC
+copy/lifetime/weak-pad/purity tests plus two public native prototype/hotspot ABI and
+source guards accompany actual XTEST cursor/popup pixel tests for all source types.
+The optional pixel task requires XFixes and GTK2 headers as well as X11/XTEST and
+isolated-display opt-in; observation tolerates one-unit native compositor rounding,
+without native data/cache repair. See the [icon guide](gtk2.md#copied-drag-source-pixbuf-icons).
+Custom widget/context/hotspot APIs, incoming image decoding, persistence and private
+audits remain separate.
+
 ### COPY-only binary drag/drop pads
 
 `enableBinaryDrag(BinaryData | mime, bytes)` and `onBinaryDrop(mime, observer,
@@ -54,7 +77,7 @@ Desktop adds explicit count-only sample pads. Hidden configuration/lifetime/puri
 and actual XTEST local/foreign/snapshot/all-byte INCR/bounds/type/format/policy/error/
 source cancellation/queued cancel/destroy/drain tests accompany seven native public
 prototype/four callback signed/full-unsigned ABI probes and source scope guards.
-See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Image DnD/custom icons,
+See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Image DnD/broader custom icons,
 asynchronous acceptance, persistence and private layout audits remain separate.
 
 ### Bounded copied binary clipboard requests

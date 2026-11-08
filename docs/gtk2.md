@@ -3056,6 +3056,65 @@ PRIMARY and absence of text/URI fallback. Six native prototype checks plus point
 signed-gboolean probes cover the public adapter ABI. No untrusted desktop image is
 automatically decoded by the SDK; incoming decoding/security policy remains separate.
 
+## Copied drag-source Pixbuf icons
+
+`TextDragSource`, `UriDragSource` and `BinaryDragSource` support the same explicit
+`setIcon(image: Pixbuf)` and `clearIcon()` operations:
+
+```nim
+let source = pad.enableTextDrag("Copied text")
+let image = newPixbuf(32, 24, 0x339966dd'u32)
+source.setIcon(image) # Private native pixel copy now; caller may mutate/release image.
+source.clearIcon()    # Future drags use GTK's actual default, including global defaults.
+```
+
+Configuration is UI-thread-only and never realizes/maps the pad or creates a drag
+context/icon window. Empty images or disconnected/default tokens reject before
+changing configuration; failed copy leaves the prior icon intact. Dropped tokens do
+not revoke the site/icon. Sources still weakly own pads; the private Pixbuf copy does
+not introduce widget retention. Destroy/disconnect releases source configuration;
+old disconnected tokens cannot change icons on replacement sites. There is no icon
+getter, alias to the caller's pixels, automatic decoding or clipboard publication.
+
+During the SDK's **actual native drag-begin** handler, a nonempty copied icon is
+applied through public `gtk_drag_set_icon_pixbuf` with GTK's source-site hotspot
+`(-2,-2)`. A temporary native pixel pin spans reentrancy until GTK retains its own
+reference. GTK owns actual context rendering/lifetime, choosing a composited RGBA
+cursor or a native DND popup according to backend capabilities and size. No arbitrary
+SDK icon size limit, private cursor/layout fields, cache reset or rendering simulation
+is introduced. Native compositing, alpha, color rounding, masks, cursor decoration and
+popup behavior remain GTK/backend semantics, not exact encoded-file preservation.
+
+Updates/clear **after the SDK begin handler** affect future drags only. Native active
+contexts keep their old pixel reference, even after clearing/disconnecting the source.
+Clear simply leaves icon selection to GTK on later begins: it neither replaces the
+current context icon nor calls a stock/default setter or rebuilds the source site.
+In particular, a stock "gtk-dnd" substitute would ignore GTK's application-wide native
+default override. Raw drag-begin/context/site handlers may override GTK behavior and
+are outside SDK-owned icon configuration; do not mutate it via raw handlers.
+
+Payload snapshots, MIME/targets, COPY validation, destination policies, exactly-once
+native finish/delete=false, draining receivers and idle observations are unchanged.
+Checked set/clear reject inside synchronous pure functions before pixel copying or
+state changes. GTK calls, callbacks and final releases stay on the UI thread.
+Custom widget icons, named/stock icons, custom hotspots, live context mutation and
+model/editor drag sources remain separate; this is only copied source-pad icons.
+
+`examples/controls.nim` uses a copied text source icon. `examples/desktop.nim` provides
+copied sample/default controls for URI/binary pads. Hidden `tests/tgtk2dragicons.nim`
+performs configuration/lifetime/purity only, with no realization or selections.
+`nimble testMappedDragIcons` requires isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1,
+**X11/XTEST/XFixes and GTK2 development headers**. Genuine drags for all source types
+observe current cursor pixels via public XFixes and oversized native popup pixels via
+public GTK toplevel/GDK drawable capture. Tests cover mutation/release, failed updates,
+active/future update/reset and disconnect without simulated signals or private state.
+The native cursor compositor rounds opaque channels down by one on this GTK backend;
+the observation probe allows that one-unit visual tolerance, without changing pixels,
+caches or outcomes. Two native copy/context-icon prototypes and pointer/signed-hotspot
+ABI probes plus source guards accompany ARC/ORC and cross-target checks. Other platforms
+receive semantic checks, not simulated native rendering claims. Incoming decoding and
+private layout audits remain separate.
+
 ## Binary COPY-only drag/drop pads
 
 Ordinary exact `DrawingArea`/`EventBox` pads support:
@@ -5562,7 +5621,7 @@ proxy coordinate mapping, reorder snapshots, stable references, pixbuf ownership
 NULL cells, icon selection/activation, native destruction,
 heap-closure cycles, and invalid inputs. `testUi` never opens a visible window or
 enters the GTK main loop. Separate opt-in testMappedMenus, testMappedPrinting and
-testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard/testMappedBinaryDrag tasks map windows only on an isolated virtual display, as
+testMappedDesktop/testMappedExtensions/testMappedTransfers/testMappedActions/testMappedBuilder/testMappedUIManager/testMappedCompletion/testMappedModelFunctions/testMappedIconSelection/testMappedTextAnchors/testMappedTextSerialization/testMappedRichClipboard/testMappedInlineCompletion/testMappedCompletionMatch/testMappedCompletionActions/testMappedEntrySelection/testMappedEntryObservations/testMappedEntryPolicy/testMappedEntryIcons/testMappedEntryEditing/testMappedEntryProgress/testMappedTextViewPolicy/testMappedTextMarks/testMappedTextAttributes/testMappedTextTags/testMappedTextBufferState/testMappedTextGeometry/testMappedUriClipboard/testMappedUriDrag/testMappedImageClipboard/testMappedBinaryClipboard/testMappedBinaryDrag/testMappedDragIcons tasks map windows only on an isolated virtual display, as
 described above.
 
 All non-deprecated concrete core GTK2 widgets in the audited inventory now have

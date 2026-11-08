@@ -68,6 +68,24 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_drag_icons_are_copied_configuration_applied_only_at_real_begin(self):
+        api = (ROOT / 'src/gtk2/dragicons.nim').read_text()
+        self.assertIn('TextDragSource | UriDragSource | BinaryDragSource', api)
+        self.assertIn('let snapshot = image.copy()', api)
+        self.assertEqual(api.count('requireOutsideModelFunction()'), 2)
+        self.assertIn('source.state.icon = Pixbuf()', api)
+        self.assertNotIn('rawGtk.', api)
+        for name in ('textdrag', 'uridrag', 'binarydrag'):
+            text = (ROOT / ('src/gtk2/' + name + '.nim')).read_text()
+            self.assertIn('applySourceIcon(context, s.icon)', text)
+            self.assertIn('s.icon = Pixbuf()', text)
+            self.assertNotIn('drag_source_set_icon', text)
+        text = (ROOT / 'src/gtk2/textdrag.nim').read_text()
+        self.assertIn('rawGtk.drag_set_icon_pixbuf(context, p, -2, -2)', text)
+        for forbidden in ('drag_set_icon_stock', 'gtk-site-data', 'GtkDragSourceInfo',
+                          'get_cursor(', 'drag_set_icon_default', 'realize('):
+            self.assertNotIn(forbidden, text + api)
+
     def test_binary_drag_keeps_copy_finish_receiver_and_pure_scope_explicit(self):
         text = (ROOT / 'src/gtk2/binarydrag.nim').read_text()
         self.assertEqual(text.count('rawGtk.drag_finish('), 1)

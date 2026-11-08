@@ -122,6 +122,7 @@ proc main() =
   pads.packStart(dropPad)
   layout.packStart(pads, packShrink)
   let drag = sourcePad.enableTextDrag(dragText.text)
+  drag.setIcon(newPixbuf(24, 20, 0x339966dd'u32)) # Private pixels, applied at actual begin.
   dragText.onChanged(proc () = drag.text = dragText.text)
   dropPad.onTextDrop(proc (value: TextDrop) =
     # Copied observation after native completion, not a synchronous veto.

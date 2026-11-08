@@ -26,6 +26,7 @@ type
     atom: rawGdk.TAtom
     maxBytes: int
     value: BinaryData
+    icon: Pixbuf # Immutable copied source configuration, not a native-state mirror.
     flights: seq[BinarySourceFlight]
     wires: seq[BinaryWire]
     queue: RecentBinding[BinaryDrop]
@@ -78,6 +79,7 @@ proc disconnectBinarySite(s: BinarySiteState) =
   requireOutsideModelFunction()
   if s == nil or not s.active: return
   s.active = false
+  s.icon = Pixbuf()
   s.accept = nil
   if s.queue != nil:
     releaseRecentBinding[BinaryDrop](cast[pointer](s.queue), nil)
@@ -113,11 +115,14 @@ proc connectBinarySite(s: BinarySiteState, signal: cstring, thunk: g.TGCallback)
 proc binarySourceBegin(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
     let s = cast[BinarySiteState](data)
+    GC_ref(s) # Independent of the source's qdata pin during native icon setup.
+    defer: GC_unref(s)
     try:
       if s.active:
         for flight in s.flights:
           if flight.context == context: return
         s.flights.add(BinarySourceFlight(context: cast[rawGdk.PDragContext](g.g_object_ref(context)), value: s.value))
+        applySourceIcon(context, s.icon)
     except Exception as error: reportSignalError(error)
 proc binarySourceEnd(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:

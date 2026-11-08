@@ -14,6 +14,13 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type DragIconCallbackAbi = proc (context: gd.PDragContext, image: pb.PPixbuf, x, y: g.gint) {.cdecl.}
+proc dragIconAbi(apply: DragIconCallbackAbi): g.gboolean {.cdecl, importc: "nim_gtk2_drag_icon_abi".}
+var dragIconCalls: int
+proc dragIconProbe(context: gd.PDragContext, image: pb.PPixbuf, x, y: g.gint) {.cdecl.} =
+  doAssert cast[uint](context) == 0xd1 and cast[uint](image) == 0xd2
+  doAssert x == -2 and y == 129
+  inc dragIconCalls
 type
   BinaryBeginAbi = proc (w: gtk.PWidget, context: gd.PDragContext, data: pointer) {.cdecl.}
   BinarySourceAbi = proc (w: gtk.PWidget, context: gd.PDragContext, selection: gtk.PSelectionData,
@@ -334,6 +341,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "copied drag icon/copy native prototypes and pointer/signed hotspot callback ABI":
+    check g.toBool(dragIconAbi(dragIconProbe))
+    check dragIconCalls == 1
   test "binary COPY pad prototypes and source/drop/receive signed and full unsigned callback ABI":
     check g.toBool(binaryDragAbi(binaryBeginProbe, binarySourceProbe, binaryDropProbe, binaryReceiveProbe))
     check binaryDragMask == 15

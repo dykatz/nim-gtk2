@@ -8,15 +8,43 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied drag-source Pixbuf icons
+## Next proposed functionality batch: explicitly trusted copied image clipboard requests
 
-- [ ] Add explicit copied Pixbuf drag-icon configuration on SDK text/URI/binary source
-      pads, preserving native source/context lifetimes and actual per-drag icon behavior.
-- [ ] Define supported public default/reset/update semantics without private cursor/
-      source bookkeeping, implicit realization, simulated pointer motion or invented
-      icon getters. Custom widgets/hotspot/context APIs remain separately scoped.
-- [ ] Update existing examples/docs and hidden ARC/ORC/ABI/isolated XTEST pixel/lifetime/
-      source-update regressions. Image decoding and private layout audits stay deferred.
+- [ ] Add explicit trusted-only native image requests with copied owned Pixbuf results,
+      available/unavailable/rejected outcomes without invented decode diagnostics,
+      idle delivery, owner cancellation and independent wire/native/source lifetime pins.
+- [ ] Require trust before any native decoding; define application copy size bounds
+      without claiming codec sandboxing, pre-decode/native allocation limits or owner
+      authentication. No automatic untrusted image decoding, fallback or file opening.
+- [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/isolated trusted tiny-fixture
+      pixel/alpha/lifetime/cancellation regressions. Image DnD/persistence stay separate;
+      private layout audits remain deferred.
+
+## Completed functionality batch: copied drag-source Pixbuf icons
+
+- [x] Added setIcon(Pixbuf)/clearIcon to text/URI/binary source tokens with guarded,
+      atomic copied configuration, disconnected-token rejection and no icon getter.
+      Caller images may mutate/release; active drags retain their native pixel refs.
+- [x] Apply copied images only during actual native drag-begin via public context API
+      and GTK's native source hotspot (-2,-2). Clear leaves native default/global-icon
+      selection alone for future drags, not a stock substitute, site rebuild, private
+      cursor/cache reset or simulated gesture. No implicit user-widget realization.
+- [x] Disconnect/destruction promptly releases source icon config; actual contexts keep
+      their native references without an added widget/flight ownership cycle. Existing
+      payload/COPY/finish/delete and destination-wire semantics remain unchanged.
+- [x] Added unrealized copy/caller release/atomic failure/token replacement/weak pad/
+      pure guard tests, two public native prototype/signed-hotspot callback ABI checks
+      and source guards. Genuine XTEST tests observe public XFixes cursor pixels and
+      native DND popup drawable pixels for all three source types, active/future/reset/
+      caller mutation/release/failed updates/disconnect, including oversized fallback.
+      Native cursor compositor rounding is observed with a one-channel-unit tolerance,
+      never repaired. Updated controls/desktop examples, guides and isolated test task.
+- [x] Added independent begin-callback/native-pixel pins for native reentrancy and an
+      early public text-source disconnect guard so teardown cannot bypass pure icon
+      configuration guards. All hidden/mapped ARC/ORC/fatal-warning, calculator,
+      bindings/raw/layout/ABI, Windows amd64/i386/macOS amd64 semantic checks, every
+      example, generator/package/diff and every isolated mapped task/opt-in guard
+      passed. Installed GTK unchanged; custom contexts/decoding/private audits deferred.
 
 ## Completed functionality batch: COPY-only binary drag/drop pads
 
@@ -640,7 +668,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).
 - [ ] MOVE semantics with explicit source-deletion/ownership rules.
-- [ ] Copied drag-source Pixbuf icons (proposed next); broader custom drag icons.
+- [x] Copied drag-source Pixbuf icons (functionality batch above).
+- [ ] Broader custom drag icons/widgets/hotspots and public context affordances.
 - [x] Copied synchronous application URI drop acceptance (batch above).
 - [ ] Broader application-controlled drop acceptance and asynchronous protocols.
 
@@ -688,6 +717,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied drag-source Pixbuf icons with actual native defaults, active-context
+      lifetime and XTEST cursor/popup pixel/source-update regressions (above).
 - [x] COPY-only binary pads with begin snapshots, guarded acceptance, independent
       draining receivers and actual XTEST/INCR/lifecycle/type/bound regressions (above).
 - [x] Bounded opaque binary requests with idle copied result kinds, independent wire/

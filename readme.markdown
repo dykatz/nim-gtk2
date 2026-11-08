@@ -126,6 +126,12 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied drag-source Pixbuf icons now support text/URI/binary pads: setIcon copies
+pixels, clearIcon restores actual native defaults on later drags, and active contexts
+retain their own icons. See the [icon guide](docs/gtk2.md#copied-drag-source-pixbuf-icons).
+`testMappedDragIcons` adds genuine XTEST cursor/popup pixel checks (isolated opt-in
+X11/XTEST/XFixes, GTK2 development headers).
+
 COPY-only binary pads now provide fixed-MIME begin snapshots, bounded opaque byte
 receipts, guarded copied acceptance and post-finish idle observations. Pending replies
 drain safely after disconnect/destruction. See the [binary pad guide](docs/gtk2.md#binary-copy-only-dragdrop-pads)

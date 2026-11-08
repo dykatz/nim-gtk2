@@ -131,6 +131,23 @@ proc main() =
   defer:
     uriDrag.disconnect()
     uriDrop.disconnect() # A pending native request drains without delivering to this observer.
+  # Both source families own private copies; future drags use this sample icon.
+  binaryDrag.setIcon(imageSample)
+  uriDrag.setIcon(imageSample)
+  let iconRow = newHBox(spacing = 8)
+  layout.packStart(iconRow, packShrink)
+  let sampleIcons = newButton("Copied sample drag icons")
+  let nativeIcons = newButton("Native default drag icons")
+  iconRow.packStart(sampleIcons, packShrink)
+  iconRow.packStart(nativeIcons, packShrink)
+  sampleIcons.onClicked(proc () =
+    binaryDrag.setIcon(imageSample)
+    uriDrag.setIcon(imageSample)
+    status.text = "Copied icons apply to future drags; active contexts are unchanged.")
+  nativeIcons.onClicked(proc () =
+    binaryDrag.clearIcon()
+    uriDrag.clearIcon()
+    status.text = "Future drags use GTK's actual default, including application-wide defaults.")
   when defined(posix) and not defined(macosx):
     let socket = newSocket()
     socket.setSizeRequest(320, 100)
