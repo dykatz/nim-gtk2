@@ -520,6 +520,30 @@ useAlign = false, xalign = 0, yalign = 0)` scrolls to the native insertion mark,
 allowing GTK to defer scrolling until layout is ready. The finite margin must be
 in `[0, 0.5)` and alignments in `[0, 1]`.
 
+### Private line/segment removal and public traversal
+
+Private line/segment operations, line-data bitfield helpers/masks and guessed
+concrete bodies/callback types are removed without shims. Even the unprefixed
+line_segment_split belonged to GTK's private headers. Only opaque private line/
+line-data pointers needed by pending TextLayout signatures remain, not allocatable
+objects or public ABI layouts. Public instance/class storage and table foreach
+callback signature remain unchanged. See [line migration](raw-widgets.md#gtktextline-and-segment-removal-opaque-internals-public-iteration).
+
+Logical iterator line counts/CRLF boundaries and UTF-8 bytes differ from native
+wrapped display-line navigation. Use public GtkTextView operations on genuine
+realized views and actual wrap policy, never width/valid cache writes. Iterator
+copies own only storage, not a buffer/document snapshot; edits/release invalidate
+all copies. Public mark/tag/widget list containers are owned, their elements
+borrowed. Free containers and reacquire iterators from stable marks/checked offsets.
+Public anchor/view embedding APIs—not widget-segment refcount/layout hooks—manage
+children. No private subclass, repair, preedit, rebind or history API is added.
+
+Fourteen native signature checks, public iterator/anchor storage/alignment and
+above-BMP gunichar callback probes accompany unrealized removal/Unicode/ownership/
+list/anchor tests. Existing isolated testMappedTextGeometry now verifies display
+navigation and real wrap-mode changes; normal tests never realize widgets or claim
+PRIMARY. The text example adds Wrap display for both views without editing text.
+
 ### Private tree removal and public positions
 
 All 57 private BTree imports and five adjacent buffer/debug/mark-segment hooks are
@@ -534,8 +558,8 @@ Typed opaque PIconSet prevents old tree ref/unref calls accidentally resolving t
 unrelated pointer overloads. Native GtkTextWindowType geometry uses sizeof(cint),
 not a byte enum. Seventeen public signature checks, native enum width and signed
 coordinate/out-pointer probes extend existing ABI tests; no private tree layout
-is guessed or accessed. Private line/segment/layout types/APIs remain a separately
-scoped audit, not a certified replacement path. See [tree removal](raw-widgets.md#gtktextbtree-private-entry-point-removal).
+is guessed or accessed. The line/segment audit above removes those APIs;
+remaining TextLayout/line-display/cursor internals are not a public replacement. See [tree removal](raw-widgets.md#gtktextbtree-private-entry-point-removal).
 
 Unrealized removal/Unicode/tag/mark/object tests accompany opt-in
 testMappedTextGeometry for actual wrapped geometry, coordinate round-trips and
@@ -5012,7 +5036,7 @@ hosts, use `xvfb-run -a nimble testUi`. The tests also run under `--mm:arc`.
 `tests/tgtk2filechoosers.nim`, `tests/tgtk2recents.nim`, and
 `tests/tgtk2displays.nim`, `tests/tgtk2printing.nim`, `tests/tgtk2desktop.nim`, and
 `tests/tgtk2extensions.nim`, `tests/tgtk2transfers.nim`, `tests/tgtk2actions.nim`,
-`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2textbufferaudit.nim`, `tests/tgtk2textbtreeaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
+`tests/tgtk2builder.nim`, `tests/tgtk2uimanager.nim`, `tests/tgtk2completion.nim`, `tests/tgtk2inlinecompletion.nim`, `tests/tgtk2completionmatch.nim`, `tests/tgtk2completionactions.nim`, `tests/tgtk2entryselection.nim`, `tests/tgtk2entryobservations.nim`, `tests/tgtk2entrypolicy.nim`, `tests/tgtk2entryicons.nim`, `tests/tgtk2entryediting.nim`, `tests/tgtk2entryprogress.nim`, `tests/tgtk2entryrawaudit.nim`, `tests/tgtk2textviewrawaudit.nim`, `tests/tgtk2textmarkrawaudit.nim`, `tests/tgtk2textattributesaudit.nim`, `tests/tgtk2texttagaudit.nim`, `tests/tgtk2tagtables.nim`, `tests/tgtk2textbufferaudit.nim`, `tests/tgtk2textbtreeaudit.nim`, `tests/tgtk2textlineaudit.nim`, `tests/tgtk2modelfunctions.nim`, `tests/tgtk2iconselection.nim`, `tests/tgtk2textanchors.nim`, `tests/tgtk2textserialization.nim`, and `tests/tgtk2richclipboard.nim`.
 Desktop tests cover unmapped infrastructure and checked layout; mapped tray/foreign
 embedding tests are a separate explicit opt-in task described above. Print tests cover isolated
 configuration, boxed/GObject copies, native ownership, range/geometry validation,

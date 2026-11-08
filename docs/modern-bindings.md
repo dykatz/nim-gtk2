@@ -139,14 +139,30 @@ including foreground and font override flags. A fixed owned pixbuf column broade
 rendering without exposing private renderer layouts or arbitrary property bags.
 See docs/gtk2.md and TODO.md for contracts and the remaining renderer work.
 
+### Raw GtkTextLine/private segment audit
+
+Removed 39 private imports (including unprefixed private segment split), four
+line-data helpers/four constants, guessed segment bodies/vtables and unused private
+node/tag-info types. Line/line-data pointers needed by remaining TextLayout calls
+are opaque, not public concrete layouts. Six fragments/includes are removed and
+the public table foreach callback declaration moved intact to its table types.
+No private allocation/refcount/cache/registration repair or ABI guess is added.
+
+Fourteen public signature checks, iterator size/alignment/anchor storage offsets
+and an above-BMP gunichar callback probe extend ABI coverage. Unrealized tests cover
+removals, CRLF/Unicode counts, iterator-copy storage versus buffer lifetime, borrowed
+list elements and anchor cleanup. Isolated geometry tests add real display-line
+navigation/wrap policy changes; the text example toggles native wrap in both views.
+Remaining private TextLayout/display/cursor APIs/types await their own audit.
+See [line migration](raw-widgets.md#gtktextline-and-segment-removal-opaque-internals-public-iteration).
+
 ### Raw GtkTextBTree private entry-point audit
 
 Removed 57 private BTree imports plus five adjacent buffer/debug/mark-segment hooks,
 without aliases. Twelve empty fragments/includes are gone; public instance/class
 storage and opaque tree pointers remain. No SDK tree access, stamps/validation/cache
-repair, private ownership wrapper or synthetic rebind/reset. Legacy line/segment/
-layout APIs/types stay separately scoped; existing line-data masks moved alongside
-their old helpers, not reintroduced as public policy.
+repair, private ownership wrapper or synthetic rebind/reset. The subsequent line/segment audit above removes those
+APIs/types/masks; remaining TextLayout/display/cursor internals stay separately scoped.
 
 PIconSet is now a typed opaque pointer to prevent accidental tree ref/unref fallback;
 TextWindowType uses native sizeof(cint), not a byte enum. Seventeen public signature

@@ -1,5 +1,6 @@
 # Included by headers/gtk2.nim; do not import directly.
 type
+  TTextTagTableForeach* = proc (tag: PTextTag, data: gpointer){.cdecl.}
   TTextTagTableClass* = object of TGObjectClass
     tag_changed*: proc (table: PTextTagTable, tag: PTextTag,
                         size_changed: gboolean){.cdecl.}

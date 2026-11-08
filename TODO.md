@@ -8,16 +8,34 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed batch: Raw GtkTextLine/private segment entry-point audit
+## Next proposed batch: Raw GtkTextLayout/display/cursor private API audit
 
-- [ ] Inventory remaining private line/segment imports and line-data flag helpers
-      against public iterator/buffer/view operations, removing unsupported APIs
-      without aliases or cache/segment recovery routines.
-- [ ] Audit associated private types/ownership and ABI-only pointer storage; do not
-      invent concrete layouts or claim remaining private TextLayout APIs are public.
-      Keep further layout/type removal separately scoped where needed.
-- [ ] Extend compile/source/ABI guards, docs and existing text example where relevant,
-      with hidden ARC/ORC/cross-target and isolated public-path regressions.
+- [ ] Inventory remaining private layout imports, flag helpers and concrete layout/
+      display/cursor/appearance types against public TextView/iterator/Pango APIs.
+- [ ] Remove unsupported private APIs/types without aliases, preedit/layout/cache
+      repair or subclass substitutes; retain only opaque pointer storage required
+      by public native instance/class ABI. Do not guess private layouts.
+- [ ] Extend compile/source/ABI guards, migration docs and existing text example where
+      relevant, with hidden ARC/ORC/cross-target and isolated public-path regressions.
+
+## Completed batch: Raw GtkTextLine/private segment entry-point audit
+
+- [x] Removed 39 private imports, four line-data flag helpers/four constants, including
+      unprefixed private line_segment_split and widget-segment/layout metadata hooks.
+      No aliases, segment/cache repair, refcount substitute or native changes.
+- [x] Removed guessed segment union/vtable/callback bodies and unused node/tag-info/
+      toggle types. Remaining needed line/line-data pointers are opaque only; public
+      instance/class ABI unchanged. Six fragments/includes removed; public table
+      foreach callback declaration relocated intact, not wrapped or deleted.
+- [x] Added import/helper/mask/type/field/source guards, fourteen native public signature
+      checks, public iterator/anchor size/alignment/storage and full gunichar probes.
+- [x] Added unrealized CRLF/Unicode/boxed iterator/weak buffer ownership/borrowed lists/
+      anchor regressions; extended isolated public display-line motion and genuine
+      wrap-mode tests, and text example native Wrap display control for both views.
+      Remaining private TextLayout/display/cursor APIs/types are the next audit.
+- [x] Validated new hidden/mapped ARC/ORC/fatal-warning tests, full hidden/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386 and macOS amd64 semantic
+      checks, every example, generator/package/diff and all isolated tasks/guard.
 
 ## Completed batch: Raw GtkTextBTree private entry-point audit
 
@@ -441,7 +459,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [ ] Richer completion presentation/providers.
 - [ ] Deeper IME integration.
 - [ ] Audit/remove remaining legacy raw widget bitfield helpers before exposing
-      corresponding policies; TextLine/private-segment audit is next (Entry/TextView/Mark/Attributes/Tag/Table/Buffer/BTree complete).
+      corresponding policies; TextLayout/display/cursor audit is next (Entry/TextView/Mark/Attributes/Tag/Table/Buffer/BTree/Line complete).
 
 ### Clipboard and drag-and-drop
 
@@ -494,6 +512,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Private line/segment APIs/guessed types removed, opaque pointer boundaries and
+      public iterator/list/anchor/wrapped-display regressions (above).
 - [x] Private tree entry-point removal, typed opaque IconSet/native window enum fixes
       and public Unicode/object/mark/geometry regression paths (above).
 - [x] Raw buffer flag removal/native class/storage fixes, public state/return semantics

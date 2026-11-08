@@ -108,13 +108,20 @@ proc main() =
   caret.active = editor.cursorVisible
   let overwrite = newCheckButton("Overwrite typed text")
   let tabs = newCheckButton("Tab inserts a character")
-  for control in [readOnly, caret, overwrite, tabs]: policies.packStart(control, packShrink)
+  let wrap = newCheckButton("Wrap display")
+  wrap.active = true
+  for control in [readOnly, caret, overwrite, tabs, wrap]: policies.packStart(control, packShrink)
   layout.packStart(policies, packShrink)
   # Real public view policy; never edit private flags or replace the shared buffer.
   readOnly.onToggled(proc () = editor.editable = not readOnly.active)
   caret.onToggled(proc () = editor.cursorVisible = caret.active)
   overwrite.onToggled(proc () = editor.overwriteMode = overwrite.active)
   tabs.onToggled(proc () = editor.acceptsTab = tabs.active)
+  wrap.onToggled(proc () =
+    # Real view policy: display wrapping changes, logical document lines do not.
+    let mode = if wrap.active: wrapWordChar else: wrapNone
+    editor.wrapMode = mode
+    mirror.wrapMode = mode)
   # Insert can toggle overwrite independently; this is a manual setting, not a binding.
   editor.leftMargin = 8
   mirror.leftMargin = 8

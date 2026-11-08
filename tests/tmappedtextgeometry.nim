@@ -56,3 +56,33 @@ suite "public text geometry without BTree access":
     view.scrollToMark(mark)
     drain()
     check g.toBool(n.get_realized(cast[n.PWidget](view.raw)))
+  test "public display-line navigation follows real wrap policy, not private line data":
+    let host = newOffscreenWindow()
+    defer: host.destroy()
+    let b = newTextBuffer(repeat("λ🙂 public display lines ", 18) & "\nend")
+    let view = newTextView(b)
+    view.wrapMode = wrapWordChar
+    view.cursorVisible = false
+    view.setSizeRequest(320, 200)
+    host.add(view)
+    host.showAll()
+    drain()
+    var display, logical, ending: n.TTextIter
+    n.get_start_iter(b.raw, addr display)
+    n.get_start_iter(b.raw, addr logical)
+    n.get_start_iter(b.raw, addr ending)
+    check g.toBool(n.forward_line(addr logical))
+    let logicalNext = n.get_offset(addr logical)
+    check g.toBool(n.forward_display_line(view.raw, addr display))
+    check n.get_offset(addr display) > 0 and n.get_offset(addr display) < logicalNext
+    check n.get_line(addr display) == 0 and g.toBool(n.starts_display_line(view.raw, addr display))
+    check g.toBool(n.forward_display_line_end(view.raw, addr ending))
+    check n.get_offset(addr ending) > 0 and n.get_offset(addr ending) < logicalNext
+    check g.toBool(n.backward_display_line(view.raw, addr display))
+    check n.get_offset(addr display) == 0
+    view.wrapMode = wrapNone # A genuine public policy edit, not a cache flush/repair.
+    drain()
+    n.get_start_iter(b.raw, addr display)
+    check g.toBool(n.forward_display_line(view.raw, addr display))
+    check n.get_offset(addr display) == logicalNext and b.lineCount == 2
+    check not b.modified and view.buffer.raw == b.raw

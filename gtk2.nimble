@@ -76,6 +76,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2tagtables.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textbufferaudit.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textbtreeaudit.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textlineaudit.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modelfunctions.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2iconselection.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2textanchors.nim"

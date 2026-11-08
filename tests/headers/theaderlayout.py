@@ -44,7 +44,10 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(text, r'\b(?:bm|bp)_TGtk(?:Entry|TextView|TextMarkBody|TextAttributes|TextAppearance|TextTag|TextBuffer)_')
                 self.assertNotRegex(text, r'\b[PT]TextMarkBody\b')
-                self.assertNotRegex(text, r'_gtk_text_(?:btree|buffer)_|_gtk_mark_segment_new')
+                self.assertNotRegex(text, r'_gtk_text_(?:btree|buffer|line)_|gtk_text_line_segment_split')
+                self.assertNotRegex(text, r'_gtk_(?:char|toggle|pixbuf|widget|mark)_segment_|_gtk_change_node_toggle_count|_gtk_anchored_child_get_layout')
+                self.assertNotRegex(text, r'\b(?:bm|bp)_TGtkTextLineData_')
+                self.assertNotRegex(text, r'\b[PT]Text(?:TagInfo|ToggleBody|ChildBody|LineSegment(?:Class)?|Seg\w+|BTreeNode)\b')
                 self.assertNotRegex(text, r'(?i)\b(?:_gtk_text_tag_table_|table_)(?:add|remove)_buffer\b')
                 if fragment.name.startswith('texttagtable') and '_types' not in fragment.name:
                     self.assertNotRegex(text, r'\.(?:hash|anonymous|anon_count|buffers)\b')
@@ -63,7 +66,7 @@ class HeaderLayout(unittest.TestCase):
     def test_sdk_does_not_access_private_text_tree_storage(self):
         for fragment in [ROOT / 'src/gtk2.nim', *(ROOT / 'src/gtk2').glob('*.nim')]:
             with self.subTest(fragment=fragment.name):
-                self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0)\b')
+                self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
     def test_no_raw_compatibility_modules_at_old_paths(self):
         for module in HEADERS.glob('*.nim'):

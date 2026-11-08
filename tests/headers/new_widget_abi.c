@@ -43,6 +43,40 @@ gboolean nim_gtk2_public_text_paths_abi(void (*coords)(GtkTextView *, GtkTextWin
   coords((GtkTextView *)(guintptr)0xb1, GTK_TEXT_WINDOW_TEXT, -71, -72, &x, &y);
   return x == -81 && y == -82 && sizeof(GtkIconSet *) == sizeof(gpointer);
 }
+size_t nim_gtk2_public_iter_anchor_storage_abi(guint index) {
+  static const size_t layout[] = { sizeof(GtkTextIter), __alignof__(GtkTextIter),
+    sizeof(GtkTextChildAnchor), offsetof(GtkTextChildAnchor, segment), sizeof(GtkTextChildAnchorClass) };
+  return index < G_N_ELEMENTS(layout) ? layout[index] : 0;
+}
+gboolean nim_gtk2_public_line_paths_abi(gunichar (*character)(const GtkTextIter *)) {
+  typedef GtkTextIter *(*Copy)(const GtkTextIter *);
+  typedef void (*Free)(GtkTextIter *);
+  typedef GSList *(*Marks)(const GtkTextIter *);
+  typedef GSList *(*Toggled)(const GtkTextIter *, gboolean);
+  typedef gint (*Count)(const GtkTextIter *);
+  typedef gboolean (*Move)(GtkTextIter *);
+  typedef gunichar (*Character)(const GtkTextIter *);
+  typedef GList *(*Widgets)(GtkTextChildAnchor *);
+  typedef gboolean (*DisplayMove)(GtkTextView *, GtkTextIter *);
+  typedef gboolean (*DisplayStart)(GtkTextView *, const GtkTextIter *);
+#define LINE_PUBLIC_AUDIT(TYPE, EXPR) typedef char signature[__builtin_types_compatible_p(TYPE, __typeof__(EXPR)) ? 1 : -1]; (void)sizeof(signature)
+  { LINE_PUBLIC_AUDIT(Copy, &gtk_text_iter_copy); }
+  { LINE_PUBLIC_AUDIT(Free, &gtk_text_iter_free); }
+  { LINE_PUBLIC_AUDIT(Marks, &gtk_text_iter_get_marks); }
+  { LINE_PUBLIC_AUDIT(Toggled, &gtk_text_iter_get_toggled_tags); }
+  { LINE_PUBLIC_AUDIT(Count, &gtk_text_iter_get_chars_in_line); }
+  { LINE_PUBLIC_AUDIT(Count, &gtk_text_iter_get_bytes_in_line); }
+  { LINE_PUBLIC_AUDIT(Move, &gtk_text_iter_forward_to_line_end); }
+  { LINE_PUBLIC_AUDIT(Character, &gtk_text_iter_get_char); }
+  { LINE_PUBLIC_AUDIT(Widgets, &gtk_text_child_anchor_get_widgets); }
+  { LINE_PUBLIC_AUDIT(DisplayMove, &gtk_text_view_forward_display_line); }
+  { LINE_PUBLIC_AUDIT(DisplayMove, &gtk_text_view_backward_display_line); }
+  { LINE_PUBLIC_AUDIT(DisplayMove, &gtk_text_view_forward_display_line_end); }
+  { LINE_PUBLIC_AUDIT(DisplayMove, &gtk_text_view_backward_display_line_start); }
+  { LINE_PUBLIC_AUDIT(DisplayStart, &gtk_text_view_starts_display_line); }
+#undef LINE_PUBLIC_AUDIT
+  return character((const GtkTextIter *)(guintptr)0xa1) == 0x1f642;
+}
 size_t nim_gtk2_buffer_storage_abi(guint index) {
   static const size_t layout[] = { sizeof(GtkTextBuffer), offsetof(GtkTextBuffer, tag_table),
     offsetof(GtkTextBuffer, btree), offsetof(GtkTextBuffer, clipboard_contents_buffers),

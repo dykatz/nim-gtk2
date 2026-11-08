@@ -12,7 +12,3 @@ proc anchor_get_widgets*(anchor: PTextChildAnchor): PGList{.cdecl,
     dynlib: lib, importc: "gtk_text_child_anchor_get_widgets".}
 proc anchor_get_deleted*(anchor: PTextChildAnchor): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_text_child_anchor_get_deleted".}
-proc pixbuf_segment_new*(pixbuf: gdk2pixbuf.PPixbuf): PTextLineSegment{.cdecl,
-    dynlib: lib, importc: "_gtk_pixbuf_segment_new".}
-proc widget_segment_new*(anchor: PTextChildAnchor): PTextLineSegment{.cdecl,
-    dynlib: lib, importc: "_gtk_widget_segment_new".}

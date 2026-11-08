@@ -47,6 +47,9 @@ proc bufferPaste(buffer: gtk.PTextBuffer, clipboard: gtk.PClipboard) {.cdecl.} =
 type TextCoords = proc (view: gtk.PTextView, window: gtk.TTextWindowType, x, y: g.gint, outX, outY: g.Pgint) {.cdecl.}
 proc textWindowTypeSize(): csize_t {.cdecl, importc: "nim_gtk2_text_window_type_size_abi".}
 proc publicTextPaths(coords: TextCoords): g.gboolean {.cdecl, importc: "nim_gtk2_public_text_paths_abi".}
+type IterCharacter = proc (iter: gtk.PTextIter): g.gunichar {.cdecl.}
+proc publicIterAnchorStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_public_iter_anchor_storage_abi".}
+proc publicLinePaths(character: IterCharacter): g.gboolean {.cdecl, importc: "nim_gtk2_public_line_paths_abi".}
 type AttributesRef = proc (values: gtk.PTextAttributes): gtk.PTextAttributes {.cdecl.}
 proc attributesStorage(index: g.guint): csize_t {.cdecl, importc: "nim_gtk2_attributes_storage_abi".}
 proc attributesApi(reference: AttributesRef): g.gboolean {.cdecl, importc: "nim_gtk2_attributes_api_abi".}
@@ -330,6 +333,16 @@ suite "new raw binding native header ABI":
     check sizeof(gtk.PIconSet) == sizeof(pointer)
     check textWindowTypeSize().int == sizeof(gtk.TTextWindowType)
     check g.toBool(publicTextPaths(coords))
+
+  test "public iterator/anchor ABI and full gunichar callback, without private line layouts":
+    let layout = [sizeof(gtk.TTextIter), alignof(gtk.TTextIter), sizeof(gtk.TTextChildAnchor),
+      offsetOf(gtk.TTextChildAnchor, segment), sizeof(gtk.TTextChildAnchorClass)]
+    for i, expected in layout: check publicIterAnchorStorage(g.guint(i)).int == expected
+    proc character(iter: gtk.PTextIter): g.gunichar {.cdecl.} =
+      doAssert cast[uint](iter) == 0xa1
+      g.gunichar(0x1f642)
+    let nativeCharacter: IterCharacter = gtk.get_char
+    check nativeCharacter != nil and g.toBool(publicLinePaths(character))
 
   test "TextAttributes/Appearance layout, native ownership prototypes and ref return":
     let layout = [sizeof(gtk.TTextAppearance), offsetOf(gtk.TTextAppearance, rise),

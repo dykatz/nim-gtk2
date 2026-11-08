@@ -2,8 +2,6 @@
 type
   TType* = GType
   PType* = ptr TType
-  TTextBTreeNode = object
-  PTextBTreeNode* = ptr TTextBTreeNode
   TFundamentalType* = GType
   PFundamentalType* = ptr TFundamentalType
   TFunction* = proc (data: gpointer): gboolean{.cdecl.}

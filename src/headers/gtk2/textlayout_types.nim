@@ -1,11 +1,7 @@
 # Included by headers/gtk2.nim; do not import directly.
 type
+  TTextLineData = object # Opaque private pointer; remaining layout API audit pending.
   PTextLineData* = ptr TTextLineData
-  TTextLineData*{.final, pure.} = object
-    view_id*: gpointer
-    next*: PTextLineData
-    height*: gint
-    flag0*: uint32
 
   TTextAttrAppearance*{.final, pure.} = object
     attr*: pango.TAttribute

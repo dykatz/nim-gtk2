@@ -9,6 +9,65 @@ and per-header declarations from `src/headers/gtk2/newwidgets/`. It is itself
 included by `src/headers/gtk2.nim`; see [source layout](source-layout.md). There are 588 generated added functions, covering the following widgets
 and their supporting interfaces, data, enums/flags, and callbacks.
 
+## GtkTextLine and segment removal: opaque internals, public iteration
+
+Removed 39 private line/segment imports (26 line calls, six character/toggle/image/
+anchor segment calls, two toggle/node hooks, four widget-segment ownership hooks and
+anchored_child_get_layout), plus four line-data bitfield helpers and four constants.
+No aliases, split/merge/recovery/refcount substitutes or fake cache validity remain.
+The unprefixed gtk_text_line_segment_split was declared in the **private** segment
+header: absence of an underscore did not make it a public GTK operation. Six
+fragments/includes were removed; the public TTextTagTableForeach callback declaration
+was relocated intact to its table class-types fragment, not removed or wrapped.
+
+GTK2.24.33 gtktextsegment.h/c and the private BTree header distinguish logical lines,
+indexable/zero-length segments, gravity and native ownership. The old Nim segment
+body incorrectly stood in for a union, split/cleanup function types were structures
+instead of callable types, and the line record omitted native direction fields.
+They are removed, not repaired into an application subclass/segment API. Native
+line-data width is a signed 24-bit field and validity is packed; the OR-writing
+unsigned helpers did not express public policy. No native tree/body allocation,
+bit reinterpretation, vtable copying or private list access is permitted by ABI
+storage declarations.
+
+Unneeded node/tag-info/toggle/child-body/segment callback and concrete types are
+removed. PTextLine/PTextLineData remain **opaque private pointers only** because
+remaining GtkTextLayout signatures still mention them; their concrete names/fields
+are not exported. Public GtkTextIter/ChildAnchor/Mark/View instance/class storage
+and callback ABI are unchanged. TextLayout/line-display/cursor internals are still
+pending their own removal audit, not certified as a public workaround. Do not
+allocate, dereference, ref as GObjects or forge the remaining opaque line pointers.
+
+Use public buffer edits/tag changes and iterator operations. get_chars_in_line /
+get_bytes_in_line include native paragraph delimiters; CRLF occupies two code points
+but one logical line break. These counts are not display-line lengths or grapheme
+counts. GtkTextView display-line navigation uses the actual realized layout/wrap
+policy; logical iterator forward_line is independent of wrapping. Theme/BiDi/
+rounding and boundary return semantics remain native; there is no segment/data
+cache to reset. The SDK adds no persistent iterator or geometry cache API.
+
+Public get_marks/get_toggled_tags own GSList nodes but borrow mark/tag elements;
+anchor_get_widgets owns GList nodes but borrows widgets. Free the container, ref
+objects explicitly if needed beyond their owner's lifetime. GtkTextIter copy and
+GLib boxed copy allocate independent iterator **storage**, not a document snapshot
+or a buffer ref: both copies become invalid on edits/buffer release. Reacquire
+from marks/offsets and free allocated storage with the matching public function,
+without inspecting invalid iterators. Public anchor insertion/range deletion and
+view child embedding handle widget lifetimes; never ref/unref widget segments or
+manually associate a child with a native layout. No installed GTK changes, patches,
+warning suppression, implicit realization or synthetic editing is introduced.
+
+Fourteen public native signatures, public iterator size/alignment and anchor
+instance/class/segment-pointer offsets plus a full above-BMP gunichar callback
+probe verify supported ABI, not guessed private layouts. New unrealized
+tests/tgtk2textlineaudit.nim rejects imports/helpers/masks/concrete exports and
+checks CRLF/Unicode counts, copy/storage/buffer lifetime, borrowed lists and anchor
+cleanup. Extended isolated testMappedTextGeometry checks real display-line motion
+and genuine wrap-policy changes. Normal tests use no views/selections/PRIMARY;
+realized view tests require isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1.
+The text example's Wrap display toggle affects both native views without changing
+logical document counts or rebinding their shared buffer.
+
 ## GtkTextBTree private entry-point removal
 
 Removed **57 _gtk_text_btree_* imports** across buffer/iterator/anchor/table
@@ -57,11 +116,10 @@ positional calls and exact tree procedure types, while testing native IconSet re
 Do not cast trees to IconSets/other opaque types; IconSets are native boxed refs,
 not GObjects and not storage that applications should allocate/dereference.
 
-Public instance/class ABI is unchanged, including opaque PTextBTree storage. Other
-legacy private line/segment/layout APIs/types are **not** certified by this batch;
-they remain separately scoped for removal/audit. Four preexisting line-data masks
-were relocated beside their existing helpers in textlayout_4.nim, not newly added
-or reinterpreted. No SDK accesses tree/flag storage. Seventeen new public signature
+Public instance/class ABI is unchanged, including opaque PTextBTree storage. The
+subsequent line/segment audit above removes those private APIs/types and the four
+line-data masks previously relocated beside their helpers. Remaining TextLayout/
+line-display/cursor APIs/types still await their own audit, not public endorsement. No SDK accesses tree/flag storage. Seventeen new public signature
 checks and an enum plus signed coordinate/out-pointer probe complement existing
 buffer/class layout tests; no guessed private tree layout is probed. Public
 TTextWindowType is corrected from Nim's default byte enum to native sizeof(cint),
