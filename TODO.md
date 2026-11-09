@@ -8,17 +8,43 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied PNG byte encoding
+## Next proposed functionality batch: copied Pixbuf geometry transforms
 
-- [ ] Add explicit bounded copied PNG byte results from owning Pixbufs through public
-      non-varargs native buffer encoding, with native buffer/gsize/error cleanup and
-      copied value access. No decoder, format guessing, file writes or automatic offers.
-- [ ] Define UI-thread image/native lifetime pins, pure guards and native errors. Bound
-      application byte copies before allocation, without claiming limits on native
-      encoder buffers/CPU, total memory or hostile-codec sandboxing.
+- [ ] Add checked copied Pixbuf crops, flips and quarter-turn rotations through public
+      native APIs with independently owned pixels, not shared subpixbuf aliases.
+- [ ] Preserve native geometry/channel/alpha/orientation semantics, UI-thread lifetime
+      pins and early pure guards; validate bounds/overflow before allocation/native
+      calls. No private layout, decoder, file work or automatic source mutation.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      trusted tiny-fixture actual encoding/pixel/error/lifetime regressions. Broader
-      formats/options, file transactions/persistence and private audits remain separate.
+      actual pixel/rendering/lifetime regressions. Broader codec options/formats,
+      asynchronous work, file transactions/persistence and private audits stay separate.
+
+## Completed functionality batch: copied PNG byte encoding
+
+- [x] Added encodePng(maxBytes=16MiB): PngBytes with pure len/isEmpty/copied bytes access,
+      private immutable payload/default empty and no native buffer/handle/filename roots.
+      Actual non-varargs save_to_bufferv fixed PNG/NULL vectors, native image pin and
+      deferred g_free/GError cleanup including bound/error/exception exits.
+- [x] Compare unsigned full-width native gsize against nonnegative 0..high(int) cap
+      before int conversion/SDK allocation. Native encoding finishes first: cap does
+      not constrain native allocation/reallocation/CPU/aggregate memory/getter copies.
+      Exact native GError domain/code/message retained; no-error/empty-native-result
+      diagnostics have zero domain/code. Early pure/negative/empty-handle guards.
+- [x] Added pre-init pure/default values/pre-native hidden validation and actual tiny
+      trusted RGB/RGBA/transparent RGB/all-byte PNG raw-loader round trips, private
+      copied bytes/history after source release/mutation, exact/short/zero/high-int
+      bounds, nonempty pure access and success/rejection native image pin cleanup.
+      Raw unsupported-format native GError probe is not a forced SDK PNG failure;
+      missing PNG/OOM/native failure paths are not faked or claimed runtime-forced.
+- [x] Added typed raw save_to_bufferv binding/header prototype, NULL vectors/GError**/
+      signed gboolean/full-width unsigned gsize/binary out-pointer ABI and source
+      guards; desktop explicit bounded in-RAM encode action and guides. No decoder,
+      file writes, automatic offers, options/fallback, native codec/cache changes or
+      persistence added. Private layout audits remain deferred.
+- [x] Validated hidden/mapped ARC/ORC under fatal native warnings, full hidden/UI/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64
+      semantic checks, every example, generator/package/diff, every isolated mapped
+      task and missing-opt-in exit1 guard. No installed GTK/codec changes.
 
 ## Completed functionality batch: explicit Pixbuf PNG file encoding
 
@@ -771,7 +797,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Explicitly trusted COPY-only image drag/drop pads (functionality batch above).
 - [x] Copied Pixbuf RGBA pixel values (functionality batch above).
 - [x] Explicit Pixbuf PNG file encoding (functionality batch above).
-- [ ] Copied PNG byte encoding (proposed next).
+- [x] Copied PNG byte encoding (functionality batch above).
+- [ ] Copied Pixbuf geometry transforms (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -826,6 +853,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Bounded copied PNG byte encoding, pure owning values/native buffer/error cleanup,
+      full-width ABI and actual trusted tiny-fixture pixel/bound/lifetime tests (above).
 - [x] Explicit pinned PNG file encoding/native errors/Windows UTF-8 entries and actual
       trusted tiny-fixture file/pixel/error/lifetime regressions (above).
 - [x] Pure copied RGBA8 values, native stride-aware snapshots/native-owned construction

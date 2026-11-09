@@ -3,6 +3,21 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_png_bytes_abi(gboolean (*probe)(GdkPixbuf *, gchar **, gsize *, const char *, char **, char **, GError **)) {
+  typedef gboolean (*Save)(GdkPixbuf *, gchar **, gsize *, const char *, char **, char **, GError **);
+  typedef char save_proto[__builtin_types_compatible_p(Save, __typeof__(&gdk_pixbuf_save_to_bufferv)) ? 1 : -1];
+  typedef char size_width[sizeof(gsize) == sizeof(void *) ? 1 : -1];
+  (void)sizeof(save_proto); (void)sizeof(size_width);
+  /* ABI-only callback output uses static test bytes; never an SDK encoder result. */
+  gchar *buffer = NULL;
+  gsize size = 0;
+  GError *error = NULL;
+  gboolean result = probe((GdkPixbuf *)(guintptr)0xf3, &buffer, &size, "png", NULL, NULL, &error);
+  return result == -29 && buffer != NULL && (guchar)buffer[0] == 0 &&
+    (guchar)buffer[1] == 255 && (guchar)buffer[2] == 80 &&
+    size == G_MAXSIZE - 7 && error == NULL;
+}
+
 gboolean nim_gtk2_png_files_abi(gboolean (*probe)(GdkPixbuf *, const char *, const char *, char **, char **, GError **)) {
   typedef gboolean (*Save)(GdkPixbuf *, const char *, const char *, char **, char **, GError **);
   typedef GdkPixbuf *(*Load)(const char *, GError **);

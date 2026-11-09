@@ -42,9 +42,20 @@ proc main() =
   let copyImage = newButton("Copy sample image")
   let clearImage = newButton("Clear image offer")
   let saveImage = newButton("Save sample PNG…")
+  let encodeImage = newButton("Encode PNG bytes")
   imageRow.packStart(copyImage, packShrink)
   imageRow.packStart(clearImage, packShrink)
   imageRow.packStart(saveImage, packShrink)
+  imageRow.packStart(encodeImage, packShrink)
+  encodeImage.onClicked(proc () =
+    try:
+      let png = imageSample.encodePng(maxBytes = 64 * 1024) # Limit only the post-encoding SDK copy.
+      let copy = png.bytes # Independent pure bytes, not a native buffer or automatic offer/file.
+      status.text = "Encoded " & $png.len & " PNG bytes in RAM; copied " & $copy.len & ". No file/clipboard changes."
+    except PixbufError as error:
+      status.text = "Native PNG encode failed (" & $error.domain & ":" & $error.code & "): " & error.msg
+    except ValueError as error:
+      status.text = "PNG application-copy limit: " & error.msg)
   saveImage.onClicked(proc () =
     let dialog = newFileChooserDialog(window, "Save sample as PNG", fileSave)
     dialog.overwriteConfirmation = true # UI confirmation, not atomic save/permission enforcement.

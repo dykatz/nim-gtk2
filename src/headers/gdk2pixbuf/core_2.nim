@@ -51,6 +51,10 @@ proc save*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
 proc savev*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
                    option_keys: PPchar, option_values: PPchar, error: ptr ptr GError): gboolean{.
     cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_savev".}
+proc save_to_bufferv*(pixbuf: PPixbuf, buffer: ptr cstring, buffer_size: ptr gsize,
+                      `type`: cstring, option_keys: PPchar, option_values: PPchar,
+                      error: ptr ptr GError): gboolean {.
+    cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_save_to_bufferv".}
 when defined(windows):
   proc savev_utf8*(pixbuf: PPixbuf, filename: cstring, `type`: cstring,
                   option_keys: PPchar, option_values: PPchar, error: ptr ptr GError): gboolean {.

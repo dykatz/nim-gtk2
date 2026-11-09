@@ -453,6 +453,7 @@ include gtk2/text
 include gtk2/pixbufs
 include gtk2/rgbapixels
 include gtk2/pngfiles
+include gtk2/pngbytes
 include gtk2/models
 include gtk2/trees
 include gtk2/proxies

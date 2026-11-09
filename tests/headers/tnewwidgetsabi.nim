@@ -14,6 +14,20 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type PngBufferAbi = proc (image: pb.PPixbuf, buffer: ptr cstring, size: ptr g.gsize,
+  format: cstring, keys, values: g.PPchar, error: ptr ptr g.GError): g.gboolean {.cdecl.}
+proc pngBytesAbi(probe: PngBufferAbi): g.gboolean {.cdecl, importc: "nim_gtk2_png_bytes_abi".}
+var pngBufferCalls: int
+var pngProbeBytes = [0'u8, 255, 80, 0]
+proc pngBufferProbe(image: pb.PPixbuf, buffer: ptr cstring, size: ptr g.gsize,
+    format: cstring, keys, values: g.PPchar, error: ptr ptr g.GError): g.gboolean {.cdecl.} =
+  doAssert cast[uint](image) == 0xf3 and $format == "png" and keys == nil and values == nil
+  doAssert buffer != nil and buffer[] == nil and size != nil and size[] == 0
+  doAssert error != nil and error[] == nil
+  buffer[] = cast[cstring](addr pngProbeBytes[0])
+  size[] = high(g.gsize) - 7
+  inc pngBufferCalls
+  g.gboolean(-29)
 type PngSaveAbi = proc (image: pb.PPixbuf, filename, format: cstring, keys, values: g.PPchar,
   error: ptr ptr g.GError): g.gboolean {.cdecl.}
 proc pngFilesAbi(probe: PngSaveAbi): g.gboolean {.cdecl, importc: "nim_gtk2_png_files_abi".}
@@ -380,6 +394,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "PNG buffer prototype/out pointers/full-width unsigned gsize/NULL options/signed gboolean ABI":
+    check g.toBool(pngBytesAbi(pngBufferProbe))
+    check pngBufferCalls == 1
   test "PNG vector save/native load prototypes, NULL options, GError double pointer and signed gboolean ABI":
     check g.toBool(pngFilesAbi(pngSaveProbe))
     check pngSaveCalls == 1

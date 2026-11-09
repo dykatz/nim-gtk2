@@ -30,6 +30,31 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied Pixbuf PNG byte encoding
+
+Pixbuf.encodePng(maxBytes=16MiB) returns pure owning PngBytes with len/isEmpty/copied
+bytes access (default empty, successful encoding nonempty). Native non-varargs
+save_to_bufferv uses fixed PNG/NULL options, an image ref pin, full-width gsize size
+checks before int conversion/application allocation, and deferred g_free/GError
+cleanup. Native errors preserve domain/code/message; size-policy errors are ValueError.
+The cap constrains the completed SDK payload copy, not native buffers/reallocation,
+CPU, aggregate memory, source pixels or subsequent getter copies. Native hooks must
+not mutate aliases; a lifetime pin is not an immutable pixel snapshot.
+
+No SDK decoder, file write, format guessing/options, automatic offer/persistence or
+native pointer escapes. Native result ownership ends at return, while pure bytes can
+outlive images and be used inside synchronous decision functions. Encoding itself has
+an early pure guard and remains synchronous UI-thread work.
+
+Desktop adds an explicit bounded Encode PNG bytes action. Hidden pure/pre-native
+checks, isolated tiny RGB/RGBA/all-byte/alpha/raw-loader round trips of self-produced
+trusted bytes, copy/mutation/lifetime/bound/pure-use tests, native prototype/full-width
+gsize/NULL-vector/GError**/signed gboolean ABI/source guards plus ARC/ORC/cross-target
+checks cover the bridge. A raw unsupported-format native error probe is not a forced
+SDK fixed-PNG failure; PNG absence/OOM are not simulated. Installed codecs unchanged.
+See the [PNG byte guide](gtk2.md#copied-png-byte-encoding). Copied geometry transforms,
+broader codec options/formats and file transaction protocols remain separate.
+
 ### Explicit Pixbuf PNG file encoding
 
 Pixbuf.savePng(filename) now invokes native non-varargs savev with fixed PNG/NULL
@@ -54,8 +79,9 @@ alpha/all-byte/native-filename/overwrite/error/lifetime tests, save/load prototy
 NULL-vector/GError double-pointer/signed gboolean ABI/source guards plus ARC/ORC/
 cross-target checks cover the path. PNG support is required by runtime tests;
 unavailable-writer/close failure is handled natively, not simulated as tested behavior.
-See [PNG file guide](gtk2.md#explicit-png-file-encoding). Byte encoding, broader options/
-formats, async file transactions and private audits remain separate.
+See [PNG file guide](gtk2.md#explicit-png-file-encoding). Copied PNG byte encoding is
+available separately; broader options/formats, async file transactions and private
+audits remain separate.
 
 ### Copied Pixbuf RGBA8 values
 

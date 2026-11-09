@@ -68,6 +68,29 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_png_bytes_are_copied_bounded_and_native_buffers_always_freed(self):
+        text = (ROOT / 'src/gtk2/pngbytes.nim').read_text()
+        pure = text.split('proc encodePng*', 1)[0]
+        self.assertIn('payload: seq[byte]', pure)
+        self.assertIn('newSeq[byte](value.payload.len)', pure)
+        self.assertNotIn('rawPixbuf.', pure)
+        self.assertLess(text.index('requireOutsideModelFunction()'), text.index('if maxBytes < 0'))
+        self.assertIn('g.g_object_ref(p)', text)
+        self.assertIn('defer: g.g_object_unref(p)', text)
+        self.assertIn('if buffer != nil: g.g_free(buffer)', text)
+        self.assertIn('if error != nil: g.g_error_free(error)', text)
+        self.assertLess(text.index('if buffer != nil: g.g_free(buffer)'), text.index('rawPixbuf.save_to_bufferv('))
+        self.assertIn('failure.domain = error.domain', text)
+        self.assertIn('failure.code = error.code.int', text)
+        self.assertIn('addr size, "png", nil, nil, addr error)', text)
+        self.assertLess(text.index('size > g.gsize(maxBytes)'), text.index('int(size)'))
+        self.assertIn('copyMem(addr result.payload[0], buffer, result.payload.len)', text)
+        raw = (ROOT / 'src/headers/gdk2pixbuf/core_2.nim').read_text()
+        self.assertIn('buffer: ptr cstring, buffer_size: ptr gsize', raw)
+        for forbidden in ('rawPixbuf.save(', 'rawPixbuf.savev(', 'loadPixbuf(', '$buffer',
+                          'request_', 'set_can_store', 'realize(', 'main_iteration', 'writeFile('):
+            self.assertNotIn(forbidden, text)
+
     def test_png_files_use_pinned_vector_encoding_and_owned_native_errors(self):
         text = (ROOT / 'src/gtk2/pngfiles.nim').read_text()
         self.assertLess(text.index('requireOutsideModelFunction()'), text.index('checkedString(filename)'))

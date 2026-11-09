@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied PNG byte encoding now returns pure owning PngBytes with bounded application
+copies, native buffer/error cleanup and no file/clipboard side effects. See the
+[PNG byte guide](docs/gtk2.md#copied-png-byte-encoding) and desktop's explicit encode
+action. `testMappedPngBytes` uses only trusted self-produced tiny image data.
+
 Explicit Pixbuf PNG saving now provides pinned synchronous native encoding, typed
 GError propagation and Windows UTF-8 filename entries, without atomic-save/rollback
 claims. See the [PNG file guide](docs/gtk2.md#explicit-png-file-encoding) and desktop's
