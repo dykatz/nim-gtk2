@@ -1,4 +1,11 @@
 # Included by headers/gdk2pixbuf.nim; do not import directly.
+type TPixbufRotation* {.size: sizeof(cint).} = enum
+  PIXBUF_ROTATE_NONE = 0, PIXBUF_ROTATE_COUNTERCLOCKWISE = 90,
+  PIXBUF_ROTATE_UPSIDEDOWN = 180, PIXBUF_ROTATE_CLOCKWISE = 270
+proc rotate_simple*(src: PPixbuf, angle: TPixbufRotation): PPixbuf {.
+  cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_rotate_simple".}
+proc flip*(src: PPixbuf, horizontal: gboolean): PPixbuf {.
+  cdecl, dynlib: pixbuflib, importc: "gdk_pixbuf_flip".}
 proc scale*(src: PPixbuf, dest: PPixbuf, dest_x: int32, dest_y: int32,
                    dest_width: int32, dest_height: int32, offset_x: float64,
                    offset_y: float64, scale_x: float64, scale_y: float64,

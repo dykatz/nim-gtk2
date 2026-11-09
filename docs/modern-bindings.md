@@ -30,6 +30,30 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied Pixbuf geometry transforms
+
+Pixbuf.cropped(x,y,width,height), flipped(horizontal) and rotated(PixbufRotation)
+now return independently owned RGB8/RGBA8 pixels, including full crops/rotateNone.
+Checked origins/positive dimensions/subtraction bounds/format/source sample spans/
+aligned destination allocations precede native copying, with conservative gint limits,
+early pure guards and UI-thread source/temp lifetime pins. No shared crop subpixbuf,
+implicit source/offer/icon installation, parser, file work or private layout is used.
+
+Crops use public new/copy_area; native rotations map None/Counterclockwise/UpsideDown/
+Clockwise to 0/90/180/270. Vertical flips explicitly compose native 180° rotation plus
+horizontal flip rather than call native flip(FALSE)'s padding-copying branch, which
+can overread valid final RGB rows (inspected 2.24.1/2.42.12). Raw semantics remain
+unchanged; this is public transform composition, not a layout/state/cache repair or
+installed library patch. Padding/metadata/encoded-file identity is not promised.
+
+Desktop adds explicit crop/flip/rotate/reset and result installation for preview/future
+drags. Hidden exact geometry/alpha/all-byte/RGB padding/subpixbuf/independence/lifetime/
+validation/pure tests; opted-in real rendering/ownership plus POSIX final-row guard
+pages and post-disposal page protection; three native prototypes/C-width enum values/
+signed ABI/source guards; ARC/ORC/cross-target regressions cover the path. No huge/fake
+native allocations are used to test arithmetic. See [geometry guide](gtk2.md#copied-pixbuf-geometry-transforms).
+Compositing, broader codecs/formats, file transactions and private audits stay separate.
+
 ### Copied Pixbuf PNG byte encoding
 
 Pixbuf.encodePng(maxBytes=16MiB) returns pure owning PngBytes with len/isEmpty/copied
@@ -52,8 +76,9 @@ trusted bytes, copy/mutation/lifetime/bound/pure-use tests, native prototype/ful
 gsize/NULL-vector/GError**/signed gboolean ABI/source guards plus ARC/ORC/cross-target
 checks cover the bridge. A raw unsupported-format native error probe is not a forced
 SDK fixed-PNG failure; PNG absence/OOM are not simulated. Installed codecs unchanged.
-See the [PNG byte guide](gtk2.md#copied-png-byte-encoding). Copied geometry transforms,
-broader codec options/formats and file transaction protocols remain separate.
+See the [PNG byte guide](gtk2.md#copied-png-byte-encoding). Copied geometry transforms
+are available separately; broader codec options/formats and file transaction protocols
+remain separate.
 
 ### Explicit Pixbuf PNG file encoding
 

@@ -8,16 +8,44 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied Pixbuf geometry transforms
+## Next proposed functionality batch: copied Pixbuf overlays
 
-- [ ] Add checked copied Pixbuf crops, flips and quarter-turn rotations through public
-      native APIs with independently owned pixels, not shared subpixbuf aliases.
-- [ ] Preserve native geometry/channel/alpha/orientation semantics, UI-thread lifetime
-      pins and early pure guards; validate bounds/overflow before allocation/native
-      calls. No private layout, decoder, file work or automatic source mutation.
+- [ ] Add checked native alpha compositing of an overlay into an independently copied
+      base Pixbuf, with explicit integer placement/opacity and no resizing or clipping.
+      Preserve actual native RGB/RGBA blending/rounding, not hand-normalized pixels.
+- [ ] Define bounds/channel/allocation validation, UI-thread source/base/output pins,
+      source-alias safety and pure guards. No in-place mutation, parser/file work,
+      automatic source installation or native state/rounding repair.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      actual pixel/rendering/lifetime regressions. Broader codec options/formats,
-      asynchronous work, file transactions/persistence and private audits stay separate.
+      actual pixel/rendering/lifetime regressions. Broader scaling/codec options,
+      async work/file transactions/persistence/private audits remain separate.
+
+## Completed functionality batch: copied Pixbuf geometry transforms
+
+- [x] Added cropped(x,y,width,height), flipped(horizontal) and rotated(PixbufRotation)
+      independent native RGB8/RGBA8 pixels, including full-image/zero-turn copies.
+      Public new/copy_area/rotate_simple/flip(TRUE), explicit native enum mapping and
+      early pure guards. Crops never export shared subpixbuf storage.
+- [x] Validate native format/actual source span/stride via public getters, crop gint/
+      positive/subtraction bounds and aligned destination allocation before copying.
+      Conservative gint offset/allocation cap; no unchecked products/huge fake native
+      fixtures. UI-thread source ref/vertical temporary pins release on all exits.
+- [x] Vertical flip explicitly composes native 180° rotation and horizontal flip,
+      avoiding native flip(FALSE)'s padded-row overread (actual 2.24.1/2.42.12 source).
+      No library patch/private access/state/cache/layout repair/interposition, and raw
+      flip semantics unchanged. Padding/metadata/encoded-file identity is not promised.
+- [x] Hidden exact nonsquare RGB/RGBA/alpha/all-byte/single-row-column/zero-turn/full-
+      crop/subpixbuf/stride/source-output mutation/backing disposal/error/pure tests;
+      opted-in real oriented rendering/GtkImage ownership and POSIX final-sample guard
+      page plus source-page protection after disposal. Source refs do not escape.
+      Three native prototypes/C-width enum values/signed/full-width callback ABI and
+      source guards; desktop explicit crop/flip/rotate/reset/result installation and
+      all guides. No codec/file writes or automatic native site/offer changes.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/UI/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64
+      semantic checks, every example, generator/package/diff, every isolated mapped
+      task and missing-opt-in exit1 guard. POSIX guard pages ran natively; Windows/
+      macOS runtime rendering remains platform-specific. Installed GTK unchanged.
 
 ## Completed functionality batch: copied PNG byte encoding
 
@@ -798,7 +826,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied Pixbuf RGBA pixel values (functionality batch above).
 - [x] Explicit Pixbuf PNG file encoding (functionality batch above).
 - [x] Copied PNG byte encoding (functionality batch above).
-- [ ] Copied Pixbuf geometry transforms (proposed next).
+- [x] Copied Pixbuf geometry transforms (functionality batch above).
+- [ ] Copied Pixbuf overlays (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -853,6 +882,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied checked Pixbuf geometry/native composition, independent pixels/lifetimes,
+      actual rendering and protected final-row/source-page regressions (above).
 - [x] Bounded copied PNG byte encoding, pure owning values/native buffer/error cleanup,
       full-width ABI and actual trusted tiny-fixture pixel/bound/lifetime tests (above).
 - [x] Explicit pinned PNG file encoding/native errors/Windows UTF-8 entries and actual

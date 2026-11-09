@@ -14,6 +14,25 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  RotateAbi = proc (src: pb.PPixbuf, angle: pb.TPixbufRotation): pb.PPixbuf {.cdecl.}
+  FlipAbi = proc (src: pb.PPixbuf, horizontal: g.gboolean): pb.PPixbuf {.cdecl.}
+  CopyAreaAbi = proc (src: pb.PPixbuf, x, y, w, h: g.gint, dest: pb.PPixbuf, dx, dy: g.gint) {.cdecl.}
+proc transformsAbi(rotate: RotateAbi, flip: FlipAbi, area: CopyAreaAbi): g.gboolean {.
+  cdecl, importc: "nim_gtk2_pixbuf_transforms_abi".}
+var transformCalls: int
+proc rotateProbe(src: pb.PPixbuf, angle: pb.TPixbufRotation): pb.PPixbuf {.cdecl.} =
+  doAssert cast[uint](src) == 0xf4 and angle == pb.PIXBUF_ROTATE_CLOCKWISE and ord(angle) == 270
+  inc transformCalls
+  cast[pb.PPixbuf](0xf5)
+proc flipProbe(src: pb.PPixbuf, horizontal: g.gboolean): pb.PPixbuf {.cdecl.} =
+  doAssert cast[uint](src) == 0xf4 and g.gint(horizontal) == -9
+  inc transformCalls
+  cast[pb.PPixbuf](0xf6)
+proc copyAreaProbe(src: pb.PPixbuf, x, y, w, h: g.gint, dest: pb.PPixbuf, dx, dy: g.gint) {.cdecl.} =
+  doAssert cast[uint](src) == 0xf4 and cast[uint](dest) == 0xf7
+  doAssert x == -17 and y == 23 and w == 0x123456 and h == 0x654321 and dx == -31 and dy == 41
+  inc transformCalls
 type PngBufferAbi = proc (image: pb.PPixbuf, buffer: ptr cstring, size: ptr g.gsize,
   format: cstring, keys, values: g.PPchar, error: ptr ptr g.GError): g.gboolean {.cdecl.}
 proc pngBytesAbi(probe: PngBufferAbi): g.gboolean {.cdecl, importc: "nim_gtk2_png_bytes_abi".}
@@ -394,6 +413,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Pixbuf rotation enum/three native transform prototypes/signed full-width/callback pointer ABI":
+    check g.toBool(transformsAbi(rotateProbe, flipProbe, copyAreaProbe))
+    check transformCalls == 3
   test "PNG buffer prototype/out pointers/full-width unsigned gsize/NULL options/signed gboolean ABI":
     check g.toBool(pngBytesAbi(pngBufferProbe))
     check pngBufferCalls == 1

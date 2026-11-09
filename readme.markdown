@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied Pixbuf crops/flips/quarter-turns now return independent native pixels with
+checked geometry and source lifetimes. See the [geometry guide](docs/gtk2.md#copied-pixbuf-geometry-transforms)
+and desktop's explicit transform controls. `testMappedPixbufTransforms` covers actual
+rendering and POSIX guard-page row/alias safety without codecs or file writes.
+
 Copied PNG byte encoding now returns pure owning PngBytes with bounded application
 copies, native buffer/error cleanup and no file/clipboard side effects. See the
 [PNG byte guide](docs/gtk2.md#copied-png-byte-encoding) and desktop's explicit encode

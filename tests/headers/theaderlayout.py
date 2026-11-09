@@ -68,6 +68,27 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_pixbuf_transforms_copy_pixels_and_never_use_unsafe_vertical_padding_copy(self):
+        text = (ROOT / 'src/gtk2/pixbuftransforms.nim').read_text()
+        for function in ('cropped*', 'flipped*', 'rotated*'):
+            body = text.split('proc ' + function, 1)[1].split('\nproc ', 1)[0]
+            self.assertLess(body.index('requireOutsideModelFunction()'), body.index('image.raw'))
+            self.assertIn('g.g_object_ref(p)', body)
+            self.assertIn('defer: g.g_object_unref(p)', body)
+            self.assertIn('checkTransformAllocation(', body)
+        self.assertIn('w > info.w - sx or h > info.h - sy', text)
+        self.assertIn('h.int64 > high(g.gint).int64 div stride', text)
+        self.assertIn('(result.h.int64 - 1) * stride + row > high(g.gint).int64', text)
+        self.assertIn('rawPixbuf.copy_area(p, sx, sy, w, h, result.raw, 0, 0)', text)
+        self.assertIn('rawPixbuf.rotate_simple(p, rawPixbuf.PIXBUF_ROTATE_UPSIDEDOWN)', text)
+        self.assertIn('defer: g.g_object_unref(turned)', text)
+        for forbidden in ('g.gbool(false)', 'new_subpixbuf(', 'get_pixels(', 'copyMem(',
+                          'loadPixbuf(', 'savePng(', 'realize(', 'main_iteration'):
+            self.assertNotIn(forbidden, text)
+        raw = (ROOT / 'src/headers/gdk2pixbuf/transform.nim').read_text()
+        self.assertIn('TPixbufRotation* {.size: sizeof(cint).}', raw)
+        self.assertIn('PIXBUF_ROTATE_CLOCKWISE = 270', raw)
+
     def test_png_bytes_are_copied_bounded_and_native_buffers_always_freed(self):
         text = (ROOT / 'src/gtk2/pngbytes.nim').read_text()
         pure = text.split('proc encodePng*', 1)[0]

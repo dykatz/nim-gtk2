@@ -1058,6 +1058,72 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Copied Pixbuf geometry transforms
+
+`image.cropped(x, y, width, height)`, `image.flipped(horizontal = true|false)` and
+`image.rotated(rotation)` return owning Pixbufs with **independent pixels**. Even a
+full-image crop or rotateNone makes a copy. Sources, existing clipboard/drag offers,
+active drag snapshots and icons are not automatically changed. Ordinary aliases to
+a returned handle still share that result's mutable pixels; use `.copy()` if another
+independent application image is needed.
+
+```nim
+let tile = image.cropped(1, 2, 8, 12) # Positive half-open rectangle, entirely in source.
+let mirror = tile.flipped(horizontal = true)
+let portrait = mirror.rotated(rotateClockwise)
+# Explicit application choice, not a transform side effect:
+preview.pixbuf = portrait
+source.setImage(portrait)
+```
+
+Crops reject negative origins, nonpositive dimensions, non-gint values and any rectangle
+outside source bounds. Ends use subtraction checks, not overflowing x+width/y+height;
+there is no clipping or silent coordinate normalization. Native RGB8/RGBA8 channels,
+straight alpha/transparent RGB samples and native quarter-turn orientations are
+preserved. Rotation values are rotateNone, rotateCounterclockwise, rotateUpsideDown,
+rotateClockwise (native 0/90/180/270 respectively; native 90 is counterclockwise).
+Quarter turns swap dimensions. No arbitrary-angle interpolation, EXIF orientation,
+metadata/encoded-file preservation or color-management promise is added.
+
+Input format/rowstride and actual sample span are checked through public getters.
+Unpadded final rows and subpixbuf strides are supported; source sample spans and
+padded destination allocations conservatively fit signed gint (2GiB-minus-one) to
+avoid native gint offset/allocation overflow. This is a checked range, not an allocation
+quota: native allocation can still fail. Size/format/geometry/invalid enum and early
+pure-function failures raise ValueError; NULL native allocation raises PixbufError
+without invented GError domain/code (these native transform APIs have no GError).
+
+Crops allocate an independent native image and use native copy_area, not an exported
+shared subpixbuf. Rotations use native rotate_simple; zero uses its real native copy.
+Horizontal flips use native flip(TRUE). **Vertical flips are defined as native 180°
+rotation followed by native horizontal flip**, with an additional temporary image.
+Inspected native GdkPixbuf 2.24.1 and 2.42.12 flip(FALSE) copies destination rowstride
+bytes, which can read past a valid unpadded final RGB row. The SDK never calls that
+branch. This is an explicit composition of real public transforms, not patched native
+state, layout access, symbol interposition or replacement of raw native semantics;
+raw flip(FALSE) still has its own native behavior. No installed library is changed.
+Padding byte contents/rowstride equality are not part of the copied-pixel contract.
+
+Native source references and the vertical temporary are pinned/released on the UI
+thread on success/error; outputs keep no source/subpixbuf/backing/controller roots.
+No GUI event loop is pumped. Pins are not immutable snapshots against unsafe raw
+reentrant pixel mutation: native hooks must not mutate aliases or tear down controllers.
+No codec, file IO, automatic source installation or mutable borrowed pixel pointer is
+introduced. Desktop adds explicit crop/flip/rotate/reset controls and explicitly
+installs results into preview/future image drags; existing transfers stay independent.
+
+Hidden ARC/ORC tests cover exact nonsquare orientations/alpha/all-byte samples, RGB
+padding/subpixbufs, no-op copies, source/result mutations, external-backing disposal,
+argument/overflow/pure rejection and source pin cleanup. `testMappedPixbufTransforms`
+requires isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1: actual native rendering,
+GtkImage ownership/replacement and retained snapshots, plus POSIX guard pages whose
+valid unpadded final RGB sample ends at inaccessible memory. All transforms pass;
+after source disposal even its former readable page is protected, proving outputs do
+not alias it. Windows skips this POSIX fixture; cross-target semantic checks are not
+native Windows/macOS runtime claims. Three native prototypes, C-width rotation enum/
+values and signed/full-width/callback ABI plus source guards cover the bridge. Broader
+compositing/options/formats, transactions/persistence and private audits stay separate.
+
 ### Copied PNG byte encoding
 
 `pixbuf.encodePng(maxBytes = 16 * 1024 * 1024)` synchronously returns a pure owning

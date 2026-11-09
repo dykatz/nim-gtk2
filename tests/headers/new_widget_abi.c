@@ -3,6 +3,28 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_pixbuf_transforms_abi(
+    GdkPixbuf *(*rotate)(const GdkPixbuf *, GdkPixbufRotation),
+    GdkPixbuf *(*flip)(const GdkPixbuf *, gboolean),
+    void (*area)(const GdkPixbuf *, int, int, int, int, GdkPixbuf *, int, int)) {
+  typedef GdkPixbuf *(*Rotate)(const GdkPixbuf *, GdkPixbufRotation);
+  typedef GdkPixbuf *(*Flip)(const GdkPixbuf *, gboolean);
+  typedef void (*Area)(const GdkPixbuf *, int, int, int, int, GdkPixbuf *, int, int);
+#define TRANSFORM_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  TRANSFORM_ABI(Rotate, gdk_pixbuf_rotate_simple);
+  TRANSFORM_ABI(Flip, gdk_pixbuf_flip);
+  TRANSFORM_ABI(Area, gdk_pixbuf_copy_area);
+#undef TRANSFORM_ABI
+  typedef char rotation_width[sizeof(GdkPixbufRotation) == sizeof(int) ? 1 : -1];
+  (void)sizeof(rotation_width);
+  if (GDK_PIXBUF_ROTATE_NONE != 0 || GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE != 90 ||
+      GDK_PIXBUF_ROTATE_UPSIDEDOWN != 180 || GDK_PIXBUF_ROTATE_CLOCKWISE != 270) return FALSE;
+  /* Calling-convention probes only, not real geometry operations on fake pointers. */
+  area((GdkPixbuf *)(guintptr)0xf4, -17, 23, 0x123456, 0x654321, (GdkPixbuf *)(guintptr)0xf7, -31, 41);
+  return rotate((GdkPixbuf *)(guintptr)0xf4, GDK_PIXBUF_ROTATE_CLOCKWISE) == (GdkPixbuf *)(guintptr)0xf5 &&
+    flip((GdkPixbuf *)(guintptr)0xf4, -9) == (GdkPixbuf *)(guintptr)0xf6;
+}
+
 gboolean nim_gtk2_png_bytes_abi(gboolean (*probe)(GdkPixbuf *, gchar **, gsize *, const char *, char **, char **, GError **)) {
   typedef gboolean (*Save)(GdkPixbuf *, gchar **, gsize *, const char *, char **, char **, GError **);
   typedef char save_proto[__builtin_types_compatible_p(Save, __typeof__(&gdk_pixbuf_save_to_bufferv)) ? 1 : -1];

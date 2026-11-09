@@ -22,7 +22,7 @@ proc main() =
   layout.packEnd(status, packShrink)
   let imageRow = newHBox(spacing = 8)
   layout.packStart(imageRow, packShrink)
-  let imageSample = block:
+  var imageSample = block:
     var rgba = newSeq[byte](32 * 24 * 4)
     for y in 0..<24:
       for x in 0..<32:
@@ -34,7 +34,9 @@ proc main() =
     newPixbuf(newRgbaPixels(32, 24, rgba)) # Copied native-owned gradient, no codec.
   let imageSourcePad = newEventBox()
   imageSourcePad.setSizeRequest(48, 40)
-  imageSourcePad.add(newImage(imageSample))
+  let originalImage = imageSample
+  let samplePreview = newImage(imageSample)
+  imageSourcePad.add(samplePreview)
   imageRow.packStart(imageSourcePad, packShrink)
   let imageDrag = imageSourcePad.enableImageDrag(imageSample) # Drag this preview: private begin snapshots.
   imageDrag.setIcon(imageSample)
@@ -72,6 +74,30 @@ proc main() =
       except PixbufError as error:
         status.text = "PNG save failed (native " & $error.domain & ":" & $error.code & "): " & error.msg)
     dialog.present())
+  let transformRow = newHBox(spacing = 8)
+  layout.packStart(transformRow, packShrink)
+  let cropSample = newButton("Crop center")
+  let flipHorizontal = newButton("Flip horizontal")
+  let flipVertical = newButton("Flip vertical")
+  let rotateSample = newButton("Rotate clockwise")
+  let resetSample = newButton("Reset sample")
+  for button in [cropSample, flipHorizontal, flipVertical, rotateSample, resetSample]:
+    transformRow.packStart(button, packShrink)
+  proc installSample(value: Pixbuf) =
+    # Explicit app installation; transforms themselves never mutate a source/site.
+    imageDrag.setImage(value)
+    imageDrag.setIcon(value)
+    samplePreview.pixbuf = value
+    imageSample = value
+    status.text = "Copied " & $value.width & "×" & $value.height & " pixels. Future drags/copies/saves use preview; active transfers stay unchanged."
+  cropSample.onClicked(proc () =
+    let w = max(1, imageSample.width div 2)
+    let h = max(1, imageSample.height div 2)
+    installSample(imageSample.cropped((imageSample.width-w) div 2, (imageSample.height-h) div 2, w, h)))
+  flipHorizontal.onClicked(proc () = installSample(imageSample.flipped(horizontal = true)))
+  flipVertical.onClicked(proc () = installSample(imageSample.flipped(horizontal = false)))
+  rotateSample.onClicked(proc () = installSample(imageSample.rotated(rotateClockwise)))
+  resetSample.onClicked(proc () = installSample(originalImage))
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()
   copyImage.onClicked(proc () =
