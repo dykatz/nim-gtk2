@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied aspect-fit Pixbuf scaling now provides checked bounding boxes, optional
+upscaling, native interpolation and independent unchanged-size copies. See the
+[fit guide](docs/gtk2.md#copied-aspect-fit-pixbuf-scaling), desktop/icons previews and
+`testMappedPixbufFit` rendering/interpolation/protected-row regressions.
+
 Copied Pixbuf alpha conversion now adds/preserves alpha, applies exact RGB keys and
 flattens onto an explicit RGB background without changing source pixels. See the
 [alpha guide](docs/gtk2.md#copied-pixbuf-alpha-conversion), desktop controls and

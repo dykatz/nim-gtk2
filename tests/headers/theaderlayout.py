@@ -68,6 +68,24 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_pixbuf_fit_uses_checked_integer_geometry_and_independent_native_pixels(self):
+        text = (ROOT / 'src/gtk2/pixbuffit.nim').read_text()
+        self.assertLess(text.index('requireOutsideModelFunction()'), text.index('pixbufDimension(maxWidth)'))
+        self.assertLess(text.index('invalid pixbuf interpolation'), text.index('image.raw'))
+        self.assertIn('g.g_object_ref(p)', text)
+        self.assertIn('defer: g.g_object_unref(p)', text)
+        self.assertIn('transformInfo(p)', text)
+        self.assertIn('boundW.int64 * info.h <= boundH.int64 * info.w', text)
+        self.assertIn('max(1, int(info.h.int64 * w div info.w))', text)
+        self.assertIn('max(1, int(info.w.int64 * h div info.h))', text)
+        self.assertIn('checkTransformAllocation(w, h, info.channels)', text)
+        self.assertIn('if w == info.w and h == info.h:', text)
+        self.assertIn('requiredPixbuf(rawPixbuf.copy(p))', text)
+        self.assertIn('rawPixbuf.scale_simple(p, g.gint(w), g.gint(h), nativeInterpolation)', text)
+        for forbidden in ('get_pixels(', 'copyMem(', 'new_subpixbuf(', 'loadPixbuf(', 'savePng(',
+                          'realize(', 'main_iteration', 'return image', 'float64'):
+            self.assertNotIn(forbidden, text)
+
     def test_pixbuf_alpha_copies_use_native_key_and_explicit_rgb_flattening(self):
         text = (ROOT / 'src/gtk2/pixbufalpha.nim').read_text()
         self.assertIn("rgb > 0xffffff'u32", text)

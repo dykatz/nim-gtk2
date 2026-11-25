@@ -8,18 +8,44 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied aspect-fit Pixbuf scaling
+## Next proposed functionality batch: copied Pixbuf saturation/pixelation
 
-- [ ] Add explicit checked aspect-fit scaling into positive bounded dimensions with
-      independent pixels, documented integer rounding/one-pixel minimum, optional
-      upscaling and selected native interpolation; unchanged fits must not alias.
-- [ ] Validate dimensions/format/enum/overflow before native allocation and preserve
-      UI-thread source/result lifetime and pure guards. No implicit widget resize,
-      parser/file work, background padding or source/site installation.
+- [ ] Add explicit native copied saturation/pixelation effects with checked finite
+      normalized saturation and independent RGB/RGBA output, including no-effect copies.
+      Preserve native luminance/alpha/channel/rounding, not hand-normalized pixels.
+- [ ] Define float32 conversion/range/format/size checks, UI-thread source/result pins
+      and early pure guards. No in-place changes, parser/file work, implicit preview/
+      background/source-site installation or private/native state repair.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      pixel/rendering/guard-page/lifetime regressions, replacing duplicated manual
-      preview-fit calculations where appropriate. Broader options/file protocols/
-      persistence/private audits remain separate.
+      pixel/rendering/guard-page/lifetime regressions. Broader effects/codec/file
+      protocols/persistence/private audits remain separate.
+
+## Completed functionality batch: copied aspect-fit Pixbuf scaling
+
+- [x] Added fitted(maxWidth,maxHeight,allowUpscale=false,interpolation=Bilinear), checked
+      positive gint bounds, explicit int64 limiting-axis/floor/one-pixel geometry,
+      optional enlargement and no-op native copy (never identity aliases/filtering).
+      Actual native scale_simple for changed sizes with explicit checked mode mapping.
+- [x] Public source format/span and aligned output gint allocation checks, early pure/
+      dimension/enum/handle guards, UI-thread source/result ownership. Huge boxes with
+      no upscale allocate only source-sized copies; oversized computed outputs reject
+      before allocation. No fake huge native fixtures, background/widget/source changes,
+      codecs/files or repaired native filtering/alpha/rounding. Boxes aren't memory quotas.
+- [x] Hidden both-axis/floor/tie/one-pixel/default-no-upscale/no-op/round-back-to-source/
+      exact-nearest/all-mode raw references/all-byte RGB/RGBA/subpixbuf/stride/backing/
+      mutation/overflow/error/pure tests; real down/up/identity rendering/GtkImage
+      ownership/source disposal/snapshots and every mode at RGB/RGBA guarded final
+      samples with protected former-source pages. Scale/copy prototypes/enum width/
+      values/full-width callback ABI/source guards; docs/readme/tasks updated.
+- [x] Desktop replaces manual trusted clipboard preview calculations with copied fits,
+      fits drop previews and offers an explicit optional-upscale sample action; Icons
+      now aspect-fits instead of stretching selected previews. No implicit source/site
+      mutations, native version fast-path emulation or installed library changes.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/UI/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64
+      semantic checks, every example, generator/package/diff, every isolated mapped
+      task and missing-opt-in exit1 guard. Every interpolation ran at RGB/RGBA protected
+      final samples; Windows/macOS runtime rendering remains platform-specific.
 
 ## Completed functionality batch: copied Pixbuf alpha conversion
 
@@ -882,7 +908,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied Pixbuf geometry transforms (functionality batch above).
 - [x] Copied Pixbuf overlays (functionality batch above).
 - [x] Copied Pixbuf alpha conversion (functionality batch above).
-- [ ] Copied aspect-fit Pixbuf scaling (proposed next).
+- [x] Copied aspect-fit Pixbuf scaling (functionality batch above).
+- [ ] Copied Pixbuf saturation/pixelation (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -937,6 +964,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied checked aspect-fit scaling/integer geometry/native interpolation/no-op
+      independence, actual rendering and every-mode protected source-page tests (above).
 - [x] Copied Pixbuf alpha/key/explicit-background conversion/native blending, independent
       pixels/lifetimes, actual keyed rendering and protected source-page tests (above).
 - [x] Copied checked Pixbuf overlays/native blending, alias-safe pixels/lifetimes,

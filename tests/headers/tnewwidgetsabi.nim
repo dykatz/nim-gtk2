@@ -14,6 +14,14 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type FitScaleAbi = proc (src: pb.PPixbuf, w, h: g.gint, interpolation: pb.TInterpType): pb.PPixbuf {.cdecl.}
+proc fitAbi(scale: FitScaleAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_fit_abi".}
+var fitCalls: int
+proc fitScaleProbe(src: pb.PPixbuf, w, h: g.gint, interpolation: pb.TInterpType): pb.PPixbuf {.cdecl.} =
+  doAssert cast[uint](src) == 0xfd and w == 0x123456 and h == 0x654321
+  doAssert interpolation == pb.INTERP_TILES
+  inc fitCalls
+  cast[pb.PPixbuf](0xfe)
 type
   AddAlphaAbi = proc (src: pb.PPixbuf, substitute: g.gboolean, r, green, b: g.guchar): pb.PPixbuf {.cdecl.}
   FillPixbufAbi = proc (dest: pb.PPixbuf, pixel: g.guint32) {.cdecl.}
@@ -437,6 +445,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "native scale/copy prototypes/interpolation width and values/full-width scaling ABI":
+    check g.toBool(fitAbi(fitScaleProbe))
+    check fitCalls == 1
   test "native add-alpha/fill prototypes/unsigned channels/32-bit color/signed gboolean ABI":
     check g.toBool(alphaAbi(addAlphaProbe, fillPixbufProbe))
     check alphaCalls == 2

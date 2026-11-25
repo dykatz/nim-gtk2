@@ -110,13 +110,15 @@ proc main() =
   let addAlpha = newButton("Copy/add alpha")
   let keyAlpha = newButton("Key top-left RGB")
   let flattenAlpha = newButton("Flatten on #102030")
-  for button in [addAlpha, keyAlpha, flattenAlpha]: alphaRow.packStart(button, packShrink)
+  let fitSample = newButton("Fit 24×16 (upscale)")
+  for button in [addAlpha, keyAlpha, flattenAlpha, fitSample]: alphaRow.packStart(button, packShrink)
   addAlpha.onClicked(proc () = installSample(imageSample.withAlpha()))
   keyAlpha.onClicked(proc () =
     let bytes = imageSample.rgbaPixels(maxBytes = 4096).bytes # Sample stays at most 24×24; owned snapshot.
     let key = (uint32(bytes[0]) shl 16) or (uint32(bytes[1]) shl 8) or uint32(bytes[2])
     installSample(imageSample.withAlpha(keyRgb = key))) # Exact RGB only, not an alpha reset or tolerance.
   flattenAlpha.onClicked(proc () = installSample(imageSample.flattened(backgroundRgb = 0x102030'u32)))
+  fitSample.onClicked(proc () = installSample(imageSample.fitted(24, 16, allowUpscale = true)))
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()
   copyImage.onClicked(proc () =
@@ -152,9 +154,7 @@ proc main() =
       of imageAvailable:
         let w = value.image.width
         let h = value.image.height
-        let extent = max(w, h)
-        incomingImage.pixbuf = if extent <= 64: value.image else:
-          value.image.scaled(max(1, w * 64 div extent), max(1, h * 64 div extent))
+        incomingImage.pixbuf = value.image.fitted(64, 64) # Independent bounded preview, no implicit upscaling.
         let pixels = value.image.rgbaPixels(maxBytes = 4096 * 4)
         status.text = "Trusted decoded copy: " & $w & "x" & $h & "; " & $pixels.len & " copied RGBA8 bytes"
       of imageUnavailable:
@@ -176,7 +176,7 @@ proc main() =
       status.text = "Previous image drop is draining; retry enabling from a later event."
     else:
       imageDrop = imageDestPad.onImageDrop(true, proc (value: ImageDrop) =
-        incomingImage.pixbuf = value.image # Native COPY is already finished.
+        incomingImage.pixbuf = value.image.fitted(64, 64) # Native COPY already finished; separate preview pixels.
         status.text = "Trusted image COPY at " & $value.info.x & "," & $value.info.y & ": " &
           $value.info.width & "x" & $value.info.height,
         maxPixels = 4096, accept = smallImage))

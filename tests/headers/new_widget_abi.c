@@ -3,6 +3,18 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_pixbuf_fit_abi(GdkPixbuf *(*scale)(const GdkPixbuf *, int, int, GdkInterpType)) {
+  typedef GdkPixbuf *(*Scale)(const GdkPixbuf *, int, int, GdkInterpType);
+  typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);
+  typedef char scale_proto[__builtin_types_compatible_p(Scale, __typeof__(&gdk_pixbuf_scale_simple)) ? 1 : -1];
+  typedef char copy_proto[__builtin_types_compatible_p(Copy, __typeof__(&gdk_pixbuf_copy)) ? 1 : -1];
+  typedef char interp_width[sizeof(GdkInterpType) == sizeof(int) ? 1 : -1];
+  (void)sizeof(scale_proto); (void)sizeof(copy_proto); (void)sizeof(interp_width);
+  /* ABI-only payload, not a real scaling call. */
+  return GDK_INTERP_NEAREST == 0 && GDK_INTERP_TILES == 1 && GDK_INTERP_BILINEAR == 2 &&
+    GDK_INTERP_HYPER == 3 && scale((GdkPixbuf *)(guintptr)0xfd, 0x123456, 0x654321, GDK_INTERP_TILES) == (GdkPixbuf *)(guintptr)0xfe;
+}
+
 gboolean nim_gtk2_pixbuf_alpha_abi(
     GdkPixbuf *(*add)(const GdkPixbuf *, gboolean, guchar, guchar, guchar),
     void (*fill)(GdkPixbuf *, guint32)) {

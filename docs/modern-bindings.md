@@ -30,6 +30,34 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied aspect-fit Pixbuf scaling
+
+Pixbuf.fitted(maxWidth,maxHeight,allowUpscale=false,interpolation=interpolateBilinear)
+fits into a checked positive gint box with independent RGB8/RGBA8 pixels, including
+unchanged fits. The limiting axis fills the bound, the other floors the exact int64
+ratio with one-pixel minimum; tiny-output quantization is explicit, not exact fractional
+aspect preservation. Default no-upscale returns source dimensions when they already
+fit. Huge boxes don't imply full-box allocations. All four interpolation values are
+validated/mapped explicitly; changed sizes call native scale_simple, unchanged sizes
+use actual native copy rather than filtering or aliasing, independent of native
+version-specific scale_simple fast paths.
+
+Public source format/span and aligned output gint allocation checks, source lifetime
+pins and early dimension/enum/pure guards cover synchronous UI-thread work. No widget
+resize/background/crop/file work/source-site mutation; native interpolation/alpha/
+rounding are never repaired. Bounding dimensions aren't an aggregate/native memory
+quota, and unchanged copies may preserve source stride gaps/metadata is not guaranteed.
+Native allocation NULL is PixbufError, not fabricated GError.
+
+Desktop replaces manual trusted clipboard preview-fit arithmetic, uses copied dropped
+image previews and an explicit optional-upscale sample action; Icons fits rather than
+stretches. Hidden integer geometry/no-op/one-pixel/overflow/pure/RGB/RGBA/native mode/
+independence/lifetime tests and opted-in rendering/GtkImage ownership/all-interpolation
+RGB/RGBA guarded final samples/former-source pages plus scale/copy prototype/enum/full-
+width ABI/source guards and ARC/ORC/cross-target checks cover the path. See the
+[fit guide](gtk2.md#copied-aspect-fit-pixbuf-scaling). Installed libraries/codecs stay
+unchanged; saturation/effects, broader options/file protocols/private audits remain separate.
+
 ### Copied Pixbuf alpha conversion
 
 Pixbuf.withAlpha() independently copies RGB to RGBA (alpha 255), or copies existing
@@ -55,8 +83,8 @@ pure tests plus opted-in real keyed/flattened rendering/GtkImage ownership and P
 source guard pages cover actual behavior. Add-alpha/fill prototypes/unsigned channels/
 word/signed gboolean ABI, composite ABI/source guards and ARC/ORC/cross-target checks
 cover the bridge. See [alpha guide](gtk2.md#copied-pixbuf-alpha-conversion). Native
-libraries/state/rounding remain unchanged. Aspect-fit scaling/broader codec/file
-protocols/persistence/private audits remain separate.
+libraries/state/rounding remain unchanged. Copied aspect-fit scaling is available
+separately; broader codec/file protocols/persistence/private audits remain separate.
 
 ### Copied Pixbuf overlays
 

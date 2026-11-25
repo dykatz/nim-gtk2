@@ -1058,6 +1058,72 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Copied aspect-fit Pixbuf scaling
+
+`image.fitted(maxWidth, maxHeight, allowUpscale = false,
+interpolation = interpolateBilinear)` returns independent RGB8/RGBA8 pixels within
+a positive integer bounding box. It adds no background, letterboxing, crop, widget
+resize, file parsing or automatic source/site installation.
+
+```nim
+let thumbnail = image.fitted(64, 48) # Shrink if needed, never enlarge by default.
+let larger = image.fitted(112, 112, allowUpscale = true,
+  interpolation = interpolateNearest)
+preview.pixbuf = thumbnail # Explicit app choice; existing offers/drags stay unchanged.
+```
+
+If upscaling is disabled and both source dimensions fit, dimensions stay unchanged.
+Otherwise the limiting axis fills its box bound; the other dimension is the **floor
+of the exact integer ratio**, clamped to at least one pixel. For example 6×4 into 5×3
+becomes 4×3, and 257×1 into 1×1 becomes 1×1. Ties choose the width-limited calculation.
+Quantization/one-pixel clamping can change the mathematical aspect ratio, especially
+for tiny outputs; there is no promise of exact fractional geometry. Integer gint
+factors multiply in int64 (safe even on i386), not overflowing native int or floating
+ratios. Outputs never exceed either box dimension. Huge boxes without upscaling
+copy only the source-sized result, not an allocation of the entire box.
+
+All four interpolation values are validated and explicitly mapped to native nearest,
+tiles, bilinear or hyper. Changed dimensions use actual native scale_simple; sample
+positions, filtering, transparent RGB/alpha behavior and channel rounding remain
+native backend/version semantics, not repaired pixels. **Unchanged dimensions use
+native copy**, even when upscaling is enabled but rounded dimensions are unchanged:
+no identity alias and no filtering/alpha normalization in that path. Source pixels,
+existing widgets/offers/drag snapshots/icons are not modified. Ordinary aliases to a
+returned handle share that result's mutable pixels; `.copy()` separates them again.
+
+Positive gint bounds, interpolation enum, public RGB8/RGBA8 format/source sample span/
+stride and padded output allocation are checked before native copying/scaling.
+Geometry/source/destination gint offset/allocation limits are conservative, not a
+memory/CPU quota: box dimensions do not bound source storage, rowstride gaps, aggregate
+memory or native filter working memory. Unchanged copies may retain source rowstride,
+including copied padding/gaps; compact layout, metadata and encoded-file identity are
+not promised. No fake huge native buffers are needed to test overflow arithmetic.
+Invalid bounds/enum/empty handle/unsupported storage/oversized output/pure-function use
+raise ValueError; native allocation NULL raises PixbufError without invented GError
+(these native functions have no error parameter).
+
+Source native lifetime stays pinned through synchronous UI-thread work and allocation/
+copy errors; completed results retain no source/subpixbuf/backing/controller roots.
+Pins do not freeze raw aliases against unsafe native reentrancy: hooks must not mutate
+pixels/pump events/tear down controllers. No nested event loop is pumped. This method
+is separate from scaled(width,height), which requests exact dimensions rather than
+an aspect-fit box.
+
+Desktop replaces manual clipboard preview ratio calculations and uses copied fits
+for dropped-image previews; an explicit sample control shows optional upscaling.
+Icons uses aspect-fit enlargement instead of stretching a selected image square.
+Hidden ARC/ORC tests cover both limiting axes/floor/ties/one-pixel rows/columns/default
+no-upscale/optional enlarge, nearest exact samples and all four modes against native
+references, all-byte RGBA, RGB/subpixbuf/unpadded final rows, no-op independence/backing
+lifetime, huge boxes/output rejection/invalid enums/pure guards. `testMappedPixbufFit`
+requires isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1: actual down/up/identity
+rendering/native GtkImage ownership/source disposal/retained snapshots and all four
+interpolations at guarded RGB/RGBA final samples, then protected former source pages.
+Windows skips the POSIX fixture; cross-target semantic checks are not native Windows/
+macOS runtime claims. Native scale/copy prototypes/interpolation width/values/full-width
+callback ABI/source guards cover the bridge. Installed libraries/codecs stay unchanged.
+Saturation/effects, broader options/file protocols/persistence/private audits stay separate.
+
 ### Copied Pixbuf alpha conversion
 
 `image.withAlpha()` returns independently owned RGBA pixels: RGB gains alpha 255,
@@ -1118,8 +1184,9 @@ GtkImage ownership/replacement/retained snapshots, plus RGB/RGBA final-sample gu
 pages and protected former source pages after disposal. Windows skips the POSIX fixture;
 cross-target semantic checks do not claim native Windows/macOS rendering. Add-alpha/
 fill native prototypes, unsigned channel/word/signed gboolean ABI, existing composite
-ABI and source guards cover the bridge. No installed library/codec changes. Aspect-fit
-scaling, broader codec options, file protocols/persistence and private audits stay separate.
+ABI and source guards cover the bridge. No installed library/codec changes. Copied
+aspect-fit scaling is available separately; broader codec options, file protocols/
+persistence and private audits stay separate.
 
 ### Copied Pixbuf overlays
 

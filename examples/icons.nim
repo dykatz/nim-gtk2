@@ -56,7 +56,7 @@ proc main() =
     else:
       let row = value.rows[0]
       if row.valid:
-        preview.pixbuf = value.model.value(row.path, 1).pixbufValue.scaled(112, 112)
+        preview.pixbuf = value.model.value(row.path, 1).pixbufValue.fitted(112, 112, allowUpscale = true)
         caption.text = $value.rows.len & " selected; preview: " & value.model.value(row.path, 0).stringValue
   icons.onActivated do (value: IconActivation):
     if value.row.valid:
