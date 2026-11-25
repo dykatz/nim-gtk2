@@ -3,6 +3,23 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+size_t nim_gtk2_cell_renderer_abi(guint slot) {
+  typedef void (*Size)(GtkCellRenderer *, GtkWidget *, GdkRectangle *, gint *, gint *, gint *, gint *);
+  typedef void (*Draw)(GtkCellRenderer *, GdkDrawable *, GtkWidget *, GdkRectangle *, GdkRectangle *, GdkRectangle *, GtkCellRendererState);
+  typedef GtkCellRenderer *(*NewProgress)(void);
+  typedef char size_ok[__builtin_types_compatible_p(Size, __typeof__(((GtkCellRendererClass *)0)->get_size)) ? 1 : -1];
+  typedef char draw_ok[__builtin_types_compatible_p(Draw, __typeof__(((GtkCellRendererClass *)0)->render)) ? 1 : -1];
+  typedef char ctor_ok[__builtin_types_compatible_p(NewProgress, __typeof__(&gtk_cell_renderer_progress_new)) ? 1 : -1];
+  static const size_t values[] = {
+    sizeof(GtkCellRendererClass), offsetof(GtkCellRendererClass, get_size),
+    offsetof(GtkCellRendererClass, render), offsetof(GtkCellRendererClass, editing_canceled),
+    offsetof(GtkCellRendererClass, editing_started), sizeof(GtkCellRendererState),
+    sizeof(GTypeInfo), offsetof(GTypeInfo, class_init), offsetof(GTypeInfo, instance_size),
+    offsetof(GParamSpec, flags), offsetof(GParamSpec, value_type)
+  };
+  return slot < G_N_ELEMENTS(values) ? values[slot] : 0;
+}
+
 gboolean nim_gtk2_model_drag_abi(void) {
   typedef void (*TreeSet)(GtkTreeView *, gboolean);
   typedef gboolean (*TreeGet)(GtkTreeView *);

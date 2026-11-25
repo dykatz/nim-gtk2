@@ -74,7 +74,7 @@ proc `canFocus=`*(w: Widget, value: bool) = rawGtk.set_can_focus(w.raw, g.gbool(
 
 proc raw*(c: DrawContext): ptr rawCairo.Context =
   ## Borrowed for this draw callback ONLY. Neither destroy nor retain this pointer.
-  if c.scope == nil or c.scope.p == nil or c.scope.owner.destroyed:
+  if c.scope == nil or c.scope.p == nil or (c.scope.owner != nil and c.scope.owner.destroyed):
     raise newException(ValueError, "drawing context is outside its live callback scope")
   c.scope.p
 proc setSource*(c: DrawContext, color: Color) =

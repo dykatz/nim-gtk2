@@ -14,6 +14,7 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc cellRendererAbi(slot: g.guint): csize_t {.cdecl, importc: "nim_gtk2_cell_renderer_abi".}
 proc modelDragAbi(): g.gboolean {.cdecl, importc: "nim_gtk2_model_drag_abi".}
 proc persistenceAbi(): g.gboolean {.cdecl, importc: "nim_gtk2_clipboard_persistence_abi".}
 type FitScaleAbi = proc (src: pb.PPixbuf, w, h: g.gint, interpolation: pb.TInterpType): pb.PPixbuf {.cdecl.}
@@ -447,6 +448,13 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "cell renderer class slots and GType/GParamSpec registration ABI":
+    let sizes = [sizeof(gtk.TCellRendererClass), offsetOf(gtk.TCellRendererClass, get_size),
+      offsetOf(gtk.TCellRendererClass, render), offsetOf(gtk.TCellRendererClass, editing_canceled),
+      offsetOf(gtk.TCellRendererClass, editing_started), sizeof(gtk.TCellRendererState),
+      sizeof(g.TGTypeInfo), offsetOf(g.TGTypeInfo, class_init), offsetOf(g.TGTypeInfo, instance_size),
+      offsetOf(g.TGParamSpec, flags), offsetOf(g.TGParamSpec, value_type)]
+    for i, size in sizes: check cellRendererAbi(g.guint(i)) == csize_t(size)
   test "native TreeView/IconView reorder mode and TreeView hit-test prototype":
     check g.toBool(modelDragAbi())
   test "native clipboard hint/store/support/text-target and atom-vector prototypes":

@@ -35,6 +35,13 @@ proc main() =
   nameColumn.resizable = true
   nameColumn.editable = true
   discard view.appendTextColumn("Category", 1)
+  view.appendDrawColumn("Score", 80, 20, proc (c: DrawContext, row: ModelRow, info: CellDrawInfo) =
+    let width = max(0.0, info.width.float64 - 8.0)
+    let height = max(0.0, info.height.float64 - 8.0)
+    let fraction = clamp(row.values[4].floatValue / 10.0, 0.0, 1.0)
+    c.setSource(if info.selected: rgba16(48000, 61000, 65535) else: rgba16(9000, 29000, 39000))
+    c.rectangle(4, 4, width * fraction, height)
+    c.fill())
   let enabledColumn = view.appendToggleColumn("Active", 3)
   nameColumn.onEdited(proc (edit: TextEdit) =
     if edit.row.valid and edit.row.model.raw == store.raw:

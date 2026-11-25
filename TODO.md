@@ -10,8 +10,25 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Model drag-and-drop is complete below. Optional Pixbuf
-effects are backlog.
+No next batch selected. Native/custom renderer columns are complete below. Optional
+Pixbuf effects are backlog.
+
+## Completed functionality batch: native and custom TreeView cell renderers
+
+- [x] Pack a live native renderer with optional checked writable property bindings
+      and exact model GTypes. GTK retains its own renderer behavior and floating
+      reference rules; the returned column holds column/renderer lifetimes.
+- [x] Display-only native GtkCellRenderer subclass for copied model rows and scoped
+      Cairo. Fixed measurement, native state, cell/expose clipping, pure GTK handle
+      guard, exception containment and context expiry. Use public class slots and
+      native GType instance size, not guessed private storage.
+- [x] Correct native class slots and add layout/prototype checks, unrealized
+      validation/ownership tests and isolated actual Cairo pixels/repaint tests.
+      Updated models example and guides. Custom editors, general GObject property
+      access and additional cell-layout hosts stay outside this batch.
+- [x] ARC/ORC hidden and offscreen pixel runs under fatal native warnings, full UI,
+      calculator and binding/ABI suites, related isolated mapped tasks, cross-target
+      semantic checks, example, generator/package and opt-in guard passed.
 
 ## Completed functionality batch: model drag-and-drop
 
@@ -929,7 +946,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 - [x] Native same-view model row/subtree drag-and-drop (batch above).
 - [x] Same-application cross-view row COPY and application-controlled placement.
-- [ ] Arbitrary/custom cell renderers beyond the audited presentation batch.
+- [x] Arbitrary native and custom drawing renderers for TreeView (batch above).
 
 ### Text editing
 

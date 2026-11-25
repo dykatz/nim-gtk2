@@ -17,6 +17,8 @@ proc cell_background_set*(a: PCellRenderer): guint
 proc set_cell_background_set*(a: PCellRenderer, `cell_background_set`: guint)
 proc cell_renderer_get_type*(): GType{.cdecl, dynlib: lib,
                                        importc: "gtk_cell_renderer_get_type".}
+proc cell_renderer_progress_new*(): PCellRenderer {.cdecl, dynlib: lib,
+    importc: "gtk_cell_renderer_progress_new".}
 proc get_size*(cell: PCellRenderer, widget: PWidget,
                              cell_area: gdk2.PRectangle, x_offset: Pgint,
                              y_offset: Pgint, width: Pgint, height: Pgint){.

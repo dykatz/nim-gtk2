@@ -724,6 +724,46 @@ construction in this batch: there is no generic model setter that could silently
 invalidate column bindings or replace ComboBoxText's private model. Editable
 model-backed combos are also deferred; ComboBoxText still supports editable text.
 
+### Native and custom TreeView cell renderers
+
+`view.appendRendererColumn(title, renderer, attributes)` packs any live, unpacked
+native `GtkCellRenderer`. For example, pass `headers/gtk2.cell_renderer_progress_new()`
+and `[("value", percentColumn)]` to display an integer percentage. Optional
+`CellAttribute` bindings require distinct writable, non-construction-only properties
+and **identical native GTypes** on the model columns, checked before attaching. The
+application still supplies values in each property’s valid range (e.g. 0–100 for
+progress). GTK applies the attributes and runs the renderer’s own behavior. The SDK
+does not add editing or activation callbacks to arbitrary native renderers.
+
+GTK sinks a floating renderer when packing. The returned `RendererColumn` retains
+column and renderer references; `.raw` and `.rendererRaw` are borrowed pointers.
+The caller still owns any nonfloating reference it brought. Don’t repack a renderer,
+modify SDK-owned cell data bindings, or replace the model with an incompatible schema
+via raw FFI.
+
+`view.appendDrawColumn(title, width, height, fn)` installs a display-only native
+GtkCellRenderer subclass with a fixed requested size (each dimension 1–32767). The
+callback takes a scoped `DrawContext`, a copied `ModelRow`, and `CellDrawInfo` with
+the actual allocated width/height, native state bits, and selection/prelight/
+insensitive helpers. Draw coordinates are local to the cell and the SDK clips to
+both the cell and the exposed region. This does not force realization or redraw.
+
+The painter runs synchronously on the UI thread and can run repeatedly for the same
+row. Use copied scalars and the supplied drawing context; live GTK handle operations,
+model mutation, and nested GUI work are forbidden during painting. Exceptions are
+contained, but already drawn pixels are not rolled back. A retained `DrawContext`
+expires on callback exit, including failure. Its raw Cairo pointer is only borrowed
+within the callback; do not destroy it, reset the clip, or escape the scope. Pixbuf
+cells are owning references rather than pixel snapshots and aren't accessible as live
+GTK handles inside the painter. Renderer-owned callback captures are released with
+its last reference; avoid capturing the owning view or renderer by reference cycle.
+
+[The models example](../examples/models.nim) shows a custom score column. Normal
+tests measure unrealized cells and check native property binding and ownership;
+`nimble testMappedCellRenderers` checks real rendered pixels, clipping, copied row
+updates, selection state, exception recovery, and context expiry on an isolated
+DISPLAY with `GTK2_TEST_VIRTUAL_DISPLAY=1`.
+
 ### Model drag-and-drop
 
 Call `view.enableRowDragReorder()` before realization to enable GTK's built-in

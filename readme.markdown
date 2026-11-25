@@ -126,6 +126,9 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+[TreeView renderer columns](docs/gtk2.md#native-and-custom-treeview-cell-renderers)
+can bind an existing native renderer or draw custom cells with scoped Cairo.
+
 [Model drag-and-drop](docs/gtk2.md#model-drag-and-drop) supports native same-view
 row moves (including TreeStore subtrees) and same-application row copies between
 TreeView and IconView, with application-controlled placement.

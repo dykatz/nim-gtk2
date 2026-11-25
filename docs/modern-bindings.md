@@ -30,6 +30,16 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Native and custom cell renderers
+
+TreeView can pack existing native renderers with checked property/column GType
+bindings, or host a display-only native subclass with fixed measurement and
+scoped Cairo painting from copied model rows. The subclass uses public
+GtkCellRendererClass slots and GType-reported instance size, not an instance
+layout mirror. Normal tests measure without realizing; isolated offscreen pixels
+verify drawing, clipping, row updates, and scope expiry. See the
+[renderer guide](gtk2.md#native-and-custom-treeview-cell-renderers).
+
 ### Model drag-and-drop
 
 `enableRowDragReorder` opts into native, same-widget MOVE before realization for

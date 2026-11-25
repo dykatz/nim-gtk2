@@ -505,6 +505,7 @@ include gtk2/entryediting
 include gtk2/entryprogress
 include gtk2/modelfunctions
 include gtk2/modeldrag
+include gtk2/cellrenderers
 include gtk2/iconselection
 include gtk2/textanchors
 include gtk2/textserialization

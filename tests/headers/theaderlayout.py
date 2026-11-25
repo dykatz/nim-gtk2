@@ -68,6 +68,18 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_cell_renderers_use_native_class_and_scoped_draws(self):
+        text = (ROOT / 'src/gtk2/cellrenderers.nim').read_text()
+        for required in ('g.g_type_query(parent, addr query)', 'query.instance_size',
+                         'p.get_size = measureCell', 'p.render = paintCell',
+                         'spec.value_type != rawGtk.get_column_type', 'copyModelRow(model, iter)',
+                         'inc modelFunctionDepth', 'finally: dec modelFunctionDepth',
+                         'scope.p = nil', 'rawCairo.clip(scope.p)'):
+            self.assertIn(required, text)
+        for forbidden in ('rawGtk.realize(', 'rawGtk.main_iteration', 'sizeof(rawGtk.TCellRenderer)',
+                          'cell.flag0', 'p.start_editing =', 'p.activate ='):
+            self.assertNotIn(forbidden, text)
+
     def test_model_drag_uses_native_same_widget_mode(self):
         native, local = (ROOT / 'src/gtk2/modeldrag.nim').read_text().split('# Local COPY', 1)
         text = native
