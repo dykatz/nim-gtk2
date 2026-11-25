@@ -126,6 +126,14 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Explicit clipboard-manager persistence now supports copied text/URI/binary/image
+offers with exact-target authorization and native handoff, without invented success
+or durability guarantees. SDK setText no longer implicitly authorizes storage.
+See the [persistence guide](docs/gtk2.md#explicit-clipboard-manager-persistence),
+desktop's opt-in Store action and `testMappedClipboardPersistence` real X11 manager tests.
+A native GTK2 timeout-cleanup critical is documented with a diagnostic and optional
+source-only patch; installed libraries are not changed.
+
 Copied aspect-fit Pixbuf scaling now provides checked bounding boxes, optional
 upscaling, native interpolation and independent unchanged-size copies. See the
 [fit guide](docs/gtk2.md#copied-aspect-fit-pixbuf-scaling), desktop/icons previews and

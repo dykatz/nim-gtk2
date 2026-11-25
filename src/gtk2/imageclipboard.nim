@@ -3,6 +3,7 @@ type
   ImageOfferState = ref object
     clipboard: Clipboard
     snapshot: Pixbuf
+    targets: seq[string]
     active, pinned: bool
   ImageClipboardOffer* = object
     state: ImageOfferState
@@ -11,6 +12,7 @@ proc active*(offer: ImageClipboardOffer): bool = offer.state != nil and offer.st
 proc releaseImageOffer(s: ImageOfferState) =
   s.active = false
   s.snapshot = Pixbuf()
+  s.targets.setLen(0)
   s.clipboard = Clipboard()
   if s.pinned:
     s.pinned = false
@@ -43,6 +45,7 @@ proc offerImage*(clipboard: Clipboard, image: Pixbuf): ImageClipboardOffer =
   if targets == nil or count <= 0:
     raise newException(ValueError, "GTK has no writable clipboard image targets")
   let s = ImageOfferState(clipboard: clipboard, snapshot: snapshot, active: true, pinned: true)
+  for i in 0..<count.int: s.targets.add($cast[ptr UncheckedArray[rawGtk.TTargetEntry]](targets)[i].target)
   result.state = s
   GC_ref(s)
   if not g.toBool(rawGtk.set_with_data(p, targets, g.guint(count), imageOfferGet,

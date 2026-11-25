@@ -68,6 +68,25 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_clipboard_persistence_is_explicit_exact_target_and_native_void_store(self):
+        text = (ROOT / 'src/gtk2/clipboardpersistence.nim').read_text()
+        self.assertIn('clipboard.selectionKind != clipboardStandard', text)
+        self.assertIn('clipboardStoreBusy = true', text)
+        self.assertIn('defer: clipboardStoreBusy = false', text)
+        self.assertIn('defer: g.g_object_unref(p)', text)
+        self.assertIn('rawGtk.set_can_store(p, addr entries[0], g.gint(entries.len))', text)
+        self.assertIn('if now: rawGtk.store(p)', text)
+        self.assertNotIn('set_can_store(p, nil', text)
+        self.assertIn('copiedOfferPersistence(TextClipboardOffer, s.targets)', text)
+        self.assertIn('copiedOfferPersistence(ImageClipboardOffer, s.targets)', text)
+        offers = (ROOT / 'src/gtk2/clipboard.nim').read_text()
+        self.assertIn('discard c.offerText(text)', offers)
+        self.assertIn('rawGtk.add_text_targets(list, 0)', offers)
+        self.assertNotIn('rawGtk.set_text(c.raw', offers)
+        for forbidden in ('wait_for_', 'g_main_loop_run', 'g_timeout_add', 'storing_selection',
+                          'gtk_clipboard_get_selection', 'selection_owner_set'):
+            self.assertNotIn(forbidden, text)
+
     def test_pixbuf_fit_uses_checked_integer_geometry_and_independent_native_pixels(self):
         text = (ROOT / 'src/gtk2/pixbuffit.nim').read_text()
         self.assertLess(text.index('requireOutsideModelFunction()'), text.index('pixbufDimension(maxWidth)'))

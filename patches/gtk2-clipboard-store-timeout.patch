@@ -1,0 +1,30 @@
+From: nim-gtk2 native persistence regression
+Subject: [PATCH] clipboard: retain store timeout until store's existing cleanup removes it
+
+GTK 2.24.33's store-timeout callback quits the loop and returns FALSE, removing
+its own source. gtk_clipboard_store then unconditionally calls g_source_remove
+on the expired ID. Modern GLib reports a critical (fatal under G_DEBUG=fatal-warnings).
+
+Keep the timeout registered until the existing synchronous store cleanup removes
+it after the loop unwinds. This does not change the native deadline, return type,
+manager acceptance semantics or ownership. No second timeout/claim is fabricated.
+
+Optional GTK SOURCE patch only. The SDK does not apply it, suppress the warning,
+mutate private timer fields or change installed libraries. Rebuild GTK separately.
+Diagnostic: isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1, G_DEBUG=fatal-warnings,
+  nimble probeNativeClipboardStoreTimeout
+The unpatched native regression exits 1; a separately rebuilt patched library must
+be validated independently. A normal return still does not prove storage success.
+
+--- a/gtk/gtkclipboard.c
++++ b/gtk/gtkclipboard.c
+@@ -1923,7 +1923,8 @@
+ {
+   g_main_loop_quit (clipboard->store_loop);
+   
+-  return FALSE;
++  /* gtk_clipboard_store removes this source after the loop unwinds. */
++  return TRUE;
+ }
+ 
+ /**

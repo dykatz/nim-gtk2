@@ -484,6 +484,7 @@ include gtk2/imageclipboard
 include gtk2/imagerequests
 include gtk2/binaryclipboard
 include gtk2/binaryrequests
+include gtk2/clipboardpersistence
 include gtk2/textdrag
 include gtk2/uridrag
 include gtk2/binarydrag

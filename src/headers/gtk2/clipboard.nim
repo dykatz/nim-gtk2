@@ -15,6 +15,9 @@ proc set_with_owner*(clipboard: PClipboard, targets: PTargetEntry,
                                n_targets: guint, get_func: TClipboardGetFunc,
                                clear_func: TClipboardClearFunc, owner: PGObject): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_clipboard_set_with_owner".}
+proc set_can_store*(clipboard: PClipboard, targets: PTargetEntry, n_targets: gint) {.
+    cdecl, dynlib: lib, importc: "gtk_clipboard_set_can_store".}
+proc store*(clipboard: PClipboard) {.cdecl, dynlib: lib, importc: "gtk_clipboard_store".}
 proc get_owner*(clipboard: PClipboard): PGObject{.cdecl, dynlib: lib,
     importc: "gtk_clipboard_get_owner".}
 proc clear*(clipboard: PClipboard){.cdecl, dynlib: lib,

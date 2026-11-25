@@ -1,7 +1,15 @@
 # Included by gtk2.nim. No blocking wait_for_* or nested GTK main loops.
 type
-  Clipboard* = object of ObjectHandle
   ClipboardKind* = enum clipboardStandard, clipboardPrimary
+  Clipboard* = object of ObjectHandle
+    selectionKind: ClipboardKind # Identity supplied to the public clipboard constructor.
+  TextOfferState = ref object
+    clipboard: Clipboard
+    text: string
+    targets: seq[string]
+    active, pinned: bool
+  TextClipboardOffer* = object
+    state: TextOfferState
   ClipboardText* = object
     available*: bool
     text*: string
@@ -21,12 +29,55 @@ proc getClipboard*(kind = clipboardStandard): Clipboard =
   requireOutsideModelFunction() # Reject before atom/native clipboard lookup, too.
   let name = if kind == clipboardStandard: "CLIPBOARD" else: "PRIMARY"
   let atom = rawGdk.atom_intern(name.cstring, g.gbool(false))
+  result.selectionKind = kind
   result.state = adoptObject(rawGtk.clipboard_get(atom), borrowed = true, cache = true,
     hasDestroySignal = false, sink = false)
+proc active*(offer: TextClipboardOffer): bool = offer.state != nil and offer.state.active
+proc releaseTextOffer(s: TextOfferState) =
+  s.active = false
+  s.text = ""
+  s.targets.setLen(0)
+  s.clipboard = Clipboard()
+  if s.pinned:
+    s.pinned = false
+    GC_unref(s)
+proc textOfferClear(c: rawGtk.PClipboard, data: pointer) {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}: releaseTextOffer(cast[TextOfferState](data))
+proc textOfferGet(c: rawGtk.PClipboard, selection: rawGtk.PSelectionData,
+    info: g.guint, data: pointer) {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}:
+    let s = cast[TextOfferState](data)
+    try:
+      if s.active:
+        let text = s.text
+        discard rawGtk.set_text(selection, text.cstring, g.gint(text.len))
+    except Exception as error: reportSignalError(error)
+proc offerText*(c: Clipboard, text: string): TextClipboardOffer =
+  requireOutsideModelFunction()
+  discard checkedUtf8Text(text)
+  let p = c.raw
+  let list = rawGtk.list_new(nil, 0)
+  if list == nil: raise newException(ValueError, "GTK could not allocate text targets")
+  defer: rawGtk.unref(list)
+  rawGtk.add_text_targets(list, 0)
+  var count: g.gint
+  let targets = rawGtk.target_table_new_from_list(list, addr count)
+  defer:
+    if targets != nil: rawGtk.target_table_free(targets, count)
+  if targets == nil or count <= 0: raise newException(ValueError, "GTK has no text targets")
+  let s = TextOfferState(clipboard: c, text: text, active: true, pinned: true)
+  for i in 0..<count.int: s.targets.add($cast[ptr UncheckedArray[rawGtk.TTargetEntry]](targets)[i].target)
+  result.state = s
+  GC_ref(s)
+  if not g.toBool(rawGtk.set_with_data(p, targets, g.guint(count), textOfferGet, textOfferClear, cast[pointer](s))):
+    releaseTextOffer(s)
+    raise newException(ValueError, "GTK could not claim text clipboard ownership")
 proc setText*(c: Clipboard, text: string) =
-  let value = checkedUtf8Text(text)
-  rawGtk.set_text(c.raw, value, g.gint(text.len))
+  discard c.offerText(text) # Unlike native set_text, no implicit set_can_store/exit persistence.
 proc clear*(c: Clipboard) = rawGtk.clear(c.raw)
+proc clear*(offer: TextClipboardOffer) =
+  requireOutsideModelFunction()
+  if offer.active: offer.state.clipboard.clear()
 proc pending*(r: TextRequest): bool = r.state != nil and r.state.active
 proc detachRequestOwner(s: TextRequestState) =
   s.owner.disconnect()

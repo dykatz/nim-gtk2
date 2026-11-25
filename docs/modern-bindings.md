@@ -30,6 +30,44 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Explicit clipboard-manager persistence
+
+Copied text/URI/binary/image offers now expose allowPersistence() (exact offered target
+hints) and store() (hint plus real void gtk_clipboard_store). Clipboard.supportsPersistence
+queries native capability, not success/authority. PRIMARY/inactive/pure calls reject;
+clipboard/target strings are pinned, and recursive SDK persistence calls reject while
+an SDK operation is active. Store may dispatch arbitrary UI work in a native nested
+loop for about ten seconds; no async token/cancellation/timeout/success result, native
+state repair, second ownership claim, rollback or persistence guarantee is invented.
+The guard cannot observe raw/native-shutdown store loops; applications must not
+reenter persistence there and must handle destroyed UI after explicit store returns.
+
+New TextClipboardOffer/offerText uses public native text targets/conversion/copy pins.
+SDK setText now delegates to it without implicit storage permission: native GTK
+set_text silently marks all forms storable. This intentional privacy-policy correction
+requires offerText(...).allowPersistence()/store() for retention. Native widget/raw
+copy actions can still follow native policy; hints aren't confidentiality controls.
+Exact text/image targets are captured at claim; URI/binary permit only their published
+MIME. No blanket NULL/all-target hints, rich-text/custom/raw-owner persistence, global
+privacy sandbox, clipboard history or manager daemon is added. Native outermost
+GTK main-loop exit may hand off authorized data, not arbitrary process exit/kill.
+
+Desktop adds initially-off authorization and explicit current-offer Store UI, reporting
+call return only. Hidden no-claim/pure contracts and actual isolated independent X11
+SAVE_TARGETS manager tests cover default no-store text, missing/rejecting manager,
+PRIMARY/stale/recursive/clear recovery, native shutdown, exact hints and survival after
+source exit for text/empty/URI/PNG/600013-byte native INCR. Test manager caches bytes
+without decoding and refuses existing-manager replacement. Five native header
+prototypes/source guards plus ARC/ORC/cross-target checks cover the bridge. Only the
+self-produced tiny PNG is explicitly decoded. Native Windows/macOS manager behavior
+is semantically checked, not claimed runtime-tested. See the
+[persistence guide](gtk2.md#explicit-clipboard-manager-persistence). No installed GTK,
+manager configuration or native caches change. A separately reproduced native GTK
+2.24.33 timeout double-remove emits a modern-GLib critical (fatal-warnings exit1);
+probeNativeClipboardStoreTimeout diagnoses it and an optional source-only patch is
+provided, not applied/rebuild-validated. Normal handoff tests do not claim this native
+failure fixed. Broader rich/custom protocols remain separate.
+
 ### Copied aspect-fit Pixbuf scaling
 
 Pixbuf.fitted(maxWidth,maxHeight,allowUpscale=false,interpolation=interpolateBilinear)

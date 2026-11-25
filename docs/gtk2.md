@@ -3269,7 +3269,8 @@ reflects those notifications, **not an atomic cross-process ownership lock**;
 server ownership changes/events can race with GTK's native clear operation. Empty
 lists are publishable.
 No source widget, file descriptor or lazy application callback is retained.
-No clipboard-manager persistence or data survival after process exit is promised.
+Publication alone promises no clipboard-manager persistence or survival after process
+exit; explicit copied-offer allowPersistence/store is a separate opt-in API.
 
 `requestUris(fn)` / `requestUris(owner: Widget, fn)` return a `UriRequest` with
 `pending` and idempotent `cancel`. Application delivery always occurs at UI idle,
@@ -3358,7 +3359,7 @@ repeated clear are no-ops. Reentrant old-owner clear may install a winner and ca
 GTK itself to clear the failed candidate before returning false. Cleanup is
 idempotent, raises for the failed claim and never retries over the winner. Already-
 started requests may complete old data; clear is not a secure eraser or transaction.
-No persistence/set_can_store, startup publication, parser, application acknowledgment or binary DnD is added by offers. The separate
+No implicit persistence/set_can_store, startup publication, parser or application acknowledgment is added by offers. The separate
 bounded incoming byte API is described next. PRIMARY is explicit only.
 
 [examples/desktop.nim](../examples/desktop.nim) has user-triggered opaque byte copy/
@@ -3478,7 +3479,8 @@ codec/target registry is maintained. The native getter callback pins the origina
 private Pixbuf locally through encoding and calls `gtk_selection_data_set_pixbuf`,
 which selects a native encoder for the requested MIME target. Clear releases the
 independent native callback pin. Unlike `gtk_clipboard_set_image`, this API does **not**
-call `set_can_store`: persistence is deliberately not enabled.
+call `set_can_store` during publication: persistence requires separate explicit
+allowPersistence/store authorization on the offer token.
 
 An active offer means claimed/not yet notified lost, **not** delivery or encoding
 success. Installed writable encoders determine available targets and may fail, be
@@ -3964,6 +3966,98 @@ The [text editor](../examples/text.nim) now has Copy/Cut/Paste buttons, and the
 Clipboard contents are shared desktop state; obtaining a handle is not permission
 to overwrite a user's clipboard during tests or startup.
 
+### Explicit clipboard-manager persistence
+
+Persistence is **opt-in per copied offer**, not a default clipboard operation:
+
+```nim
+let clipboard = getClipboard()
+let offer = clipboard.offerText("Retain this text")
+# Choose one explicit authorization path:
+offer.allowPersistence() # Exact offered targets may be fetched/stored, including native GTK shutdown.
+# Or request an immediate native handoff (also authorizes those targets):
+offer.store()            # VOID; may block/reenter UI for about ten seconds. NOT success proof.
+```
+
+TextClipboardOffer, UriClipboardOffer, BinaryClipboardOffer and ImageClipboardOffer
+have active/clear, allowPersistence and store. Text is validated/copied and offered
+through native text target discovery/conversion. Text/image permissions list the exact
+targets captured at publication; URI lists only text/uri-list; binary lists only its
+application MIME. Never use NULL/all-target permission or infer authority from MIME,
+URI validity or image trust. Rich-text offers, raw/custom owners/displays/selections,
+manager policy/daemon implementation and clipboard-history management are not added.
+
+**Behavior correction:** SDK setText now delegates to copied offerText and does not
+authorize persistence. Native gtk_clipboard_set_text silently calls set_can_store with
+NULL/all forms; the SDK no longer inherits that side effect. Callers wanting retention
+must keep an offer token and opt in explicitly. Dropping a token still does not revoke
+native ownership; its wire pin owns copied data until clear. Native widget built-in
+copy actions and raw GTK APIs can still apply GTK's own automatic policy: this API is
+not a global privacy/FFI sandbox. Managers/other clients can request public clipboard
+data regardless of SAVE_TARGETS hints. Never publish secrets assuming hints enforce
+confidentiality. Authorization may allow proactive caching and cannot retract copies.
+
+clipboard.supportsPersistence() asks the native display capability/manager query;
+false is returned for PRIMARY. It is not a promise of successful retention, an atomic
+owner check or an installed-manager identity guarantee. Both hint/store reject PRIMARY,
+inactive/default offers and pure decision scopes before native work. Hint changes
+reset on native ownership change. There is deliberately no fake persistent flag,
+revocation API, success/timeout Boolean, application acknowledgment or cancellation.
+clear after manager takeover is an inactive-token no-op, not erasure of another owner's
+copy. Active is native clear-notification state, not an atomic X-server ownership lock.
+
+allowPersistence invokes native set_can_store with exact target entries. Native GTK
+may store authorized data when its **outermost gtk_main exits**; ordinary process
+exit/exception/kill without that native path is not covered. store explicitly invokes
+native gtk_clipboard_store. Its void API may return because no manager/support exists,
+because of rejection/timeout/ownership change, or after a real handoff; return alone
+proves none of those outcomes. The native timeout is about ten seconds, not an SDK
+request deadline. External manager retention is not disk durability, reboot survival,
+authorization validation or a guarantee that every representation was cached.
+
+**Known native timeout defect:** the installed GTK 2.24.33 timeout callback removes
+its own source, then native store removes that expired ID again. A real unresponsive
+manager produces GLib-CRITICAL "Source ID ... was not found when attempting to remove
+it" on modern GLib (fatal under G_DEBUG=fatal-warnings). The SDK does not suppress it,
+rewrite native timer fields or fabricate completion. Optional source-only
+[timeout cleanup patch](../patches/gtk2-clipboard-store-timeout.patch) requires an
+independent GTK rebuild/validation; it is not applied to installed libraries.
+`nimble probeNativeClipboardStoreTimeout` reproduces the actual native defect on an
+isolated display and currently exits 1 under fatal warnings. It is a diagnostic,
+not part of passing handoff tests or a simulated expected-success timeout. Native
+automatic shutdown storage uses the same path. Normal return without fatal warnings
+still proves no acceptance. Deployments needing warning-clean timeout behavior must
+use a separately fixed/validated native library.
+
+This is an explicit exception to the nonblocking request API: native store can run a
+nested main loop, dispatching application idles, signals, requests and destruction
+**before the call returns**. Base clipboard and copied target strings stay owned/
+natively pinned even if callbacks clear/destroy the offer. Native callbacks own their
+payload snapshots; final releases remain UI-thread operations. The SDK rejects
+recursive allow/store calls while an SDK persistence operation is in progress and
+restores the guard on all exits. That guard does not observe a raw GTK or native
+shutdown-initiated store loop; applications must not reenter persistence from those
+callbacks. Do not close the display, pump another loop, assume UI state is unchanged,
+or blindly touch destroyed widgets after return. Reentrant replacement/foreign owner
+changes retain actual GTK semantics: no second claim, winner revocation, native cache/
+permission repair, rollback or fabricated completion is performed.
+
+Desktop adds an initially-off retention authorization checkbox and explicit Store
+current SDK offer action. It does not publish/store at startup and reports only native
+call return, not success; unchecking does not revoke earlier authorization/caches.
+Hidden tests have no claims/requests. testMappedClipboardPersistence requires isolated
+DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1, X11 and GTK2 development headers: an independent
+public-API X11 SAVE_TARGETS manager refuses existing-manager replacement, inspects exact
+atom lists, caches encoded bytes without decoding and uses native GTK INCR reception/
+serving. Real source-process exit/native shutdown, text/empty/URI/image/binary 600013-
+byte retention, rejecting manager, absent manager, PRIMARY/stale offers, default text
+non-storability, nested-call rejection/clear/pin recovery are tested. Only the tiny
+self-produced image is decoded under explicit trust. Cross-target checks are semantic,
+not native Windows/macOS manager coverage. Header prototypes/source guards verify the
+bridge. Native unresponsive-manager timeout cleanup was separately reproduced under
+fatal warnings (known exit1 defect above), not repaired or counted as passing.
+Installed GTK/libraries/manager configuration are never changed.
+
 ### Nonblocking clipboard requests
 
 getClipboard(kind=clipboardStandard) returns an owning cached view of GTK's
@@ -3975,9 +4069,10 @@ UI thread and require GTK initialization/a display.
 
 setText(text) copies validated UTF-8/NUL-free text into native GTK ownership.
 clear() releases this application's ownership; it is not a guaranteed eraser for
-another process's clipboard. Clipboard-manager persistence, images, arbitrary
-formats, custom lazy owners, custom displays/selections and blocking wait_for_*
-operations remain raw. No persistence guarantee is made when the application exits.
+another process's clipboard. Copied text/URI/image/application-byte offers and explicit
+clipboard-manager persistence are described separately above. Custom lazy owners,
+custom displays/selections and blocking wait_for_* operations remain raw. No survival
+guarantee is made merely because the application exits.
 
 requestText(proc(ClipboardText)) returns a TextRequest; requestText(owner:Widget,fn)
 also binds cancellation to owner destruction. **User callbacks always run at UI

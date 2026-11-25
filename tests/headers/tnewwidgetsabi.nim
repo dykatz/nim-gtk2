@@ -14,6 +14,7 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+proc persistenceAbi(): g.gboolean {.cdecl, importc: "nim_gtk2_clipboard_persistence_abi".}
 type FitScaleAbi = proc (src: pb.PPixbuf, w, h: g.gint, interpolation: pb.TInterpType): pb.PPixbuf {.cdecl.}
 proc fitAbi(scale: FitScaleAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_fit_abi".}
 var fitCalls: int
@@ -445,6 +446,8 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "native clipboard hint/store/support/text-target and atom-vector prototypes":
+    check g.toBool(persistenceAbi())
   test "native scale/copy prototypes/interpolation width and values/full-width scaling ABI":
     check g.toBool(fitAbi(fitScaleProbe))
     check fitCalls == 1

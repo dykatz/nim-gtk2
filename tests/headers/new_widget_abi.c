@@ -3,6 +3,22 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_clipboard_persistence_abi(void) {
+  typedef void (*Hint)(GtkClipboard *, const GtkTargetEntry *, gint);
+  typedef void (*Store)(GtkClipboard *);
+  typedef gboolean (*Support)(GdkDisplay *);
+  typedef void (*TextTargets)(GtkTargetList *, guint);
+  typedef gboolean (*Targets)(GtkSelectionData *, GdkAtom **, gint *);
+#define PERSIST_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  PERSIST_ABI(Hint, gtk_clipboard_set_can_store);
+  PERSIST_ABI(Store, gtk_clipboard_store);
+  PERSIST_ABI(Support, gdk_display_supports_clipboard_persistence);
+  PERSIST_ABI(TextTargets, gtk_target_list_add_text_targets);
+  PERSIST_ABI(Targets, gtk_selection_data_get_targets);
+#undef PERSIST_ABI
+  return TRUE;
+}
+
 gboolean nim_gtk2_pixbuf_fit_abi(GdkPixbuf *(*scale)(const GdkPixbuf *, int, int, GdkInterpType)) {
   typedef GdkPixbuf *(*Scale)(const GdkPixbuf *, int, int, GdkInterpType);
   typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);

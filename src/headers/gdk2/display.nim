@@ -5,6 +5,8 @@ proc DISPLAY_CLASS*(klass: pointer): PDisplayClass
 proc IS_DISPLAY*(anObject: pointer): bool
 proc IS_DISPLAY_CLASS*(klass: pointer): bool
 proc DISPLAY_GET_CLASS*(obj: pointer): PDisplayClass
+proc supports_clipboard_persistence*(display: PDisplay): gboolean {.
+    cdecl, dynlib: lib, importc: "gdk_display_supports_clipboard_persistence".}
 proc display_open*(display_name: cstring): PDisplay{.cdecl, dynlib: lib,
     importc: "gdk_display_open".}
 proc get_name*(display: PDisplay): cstring{.cdecl, dynlib: lib,

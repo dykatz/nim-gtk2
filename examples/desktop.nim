@@ -250,6 +250,43 @@ proc main() =
         status.text = if value.uris.len == 0: "Available empty URI list" else: value.uris.join("\n")
       of urisUnavailable: status.text = "No text/uri-list target available"
       of urisRejected: status.text = "Rejected URI data: " & value.error))
+  let persistenceRow = newHBox(spacing = 8)
+  layout.packStart(persistenceRow, packShrink)
+  let copyPersistentText = newButton("Copy sample text")
+  let permitPersistence = newCheckButton("Authorize manager retention (not secrets)") # Initially OFF.
+  let storeOffer = newButton("Store current SDK offer")
+  persistenceRow.packStart(copyPersistentText, packShrink)
+  persistenceRow.packStart(permitPersistence, packShrink)
+  persistenceRow.packStart(storeOffer, packShrink)
+  storeOffer.sensitive = false
+  var textOffer: TextClipboardOffer
+  defer: textOffer.clear()
+  copyPersistentText.onClicked(proc () =
+    textOffer = getClipboard().offerText("Explicit clipboard-manager sample λ")
+    status.text = "Text offered, without manager authorization. Store separately if wanted.")
+  permitPersistence.onToggled(proc () =
+    storeOffer.sensitive = permitPersistence.active
+    if not permitPersistence.active:
+      status.text = "Store disabled; earlier authorization/external copies cannot be revoked by unchecking.")
+  storeOffer.onClicked(proc () =
+    if not permitPersistence.active: return
+    if not getClipboard().supportsPersistence():
+      status.text = "No native clipboard persistence support/manager currently reported."
+      return
+    storeOffer.sensitive = false
+    var report: string
+    try:
+      # Native store can reenter UI for about ten seconds. No success/timeout status exists.
+      if textOffer.active: textOffer.store()
+      elif uriOffer.active: uriOffer.store()
+      elif binaryOffer.active: binaryOffer.store()
+      elif imageOffer.active: imageOffer.store()
+      else: raise newException(ValueError, "No current copied SDK offer; another owner is untouched")
+      report = "Native store call returned; retention/acceptance/durability is NOT proven."
+    except ValueError as error: report = error.msg
+    if not status.isDestroyed: status.text = report
+    if not storeOffer.isDestroyed and not permitPersistence.isDestroyed:
+      storeOffer.sensitive = permitPersistence.active)
   let uriPads = newHBox(spacing = 16)
   layout.packStart(uriPads, packShrink)
   let uriSource = newEventBox()

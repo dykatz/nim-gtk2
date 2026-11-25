@@ -47,6 +47,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufoverlays.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufalpha.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbuffit.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2clipboardpersistence.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2selectors.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2ranges.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2containers.nim"
@@ -113,6 +114,12 @@ task testMappedExtensions, "Test Cairo pixels and native editing (isolated virtu
 
 task testMappedUriDrag, "Test URI COPY-only pads (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1 and X11/XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappeduridrag.nim"
+
+task probeNativeClipboardStoreTimeout, "Diagnose native GTK2 store timeout cleanup (isolated display; may fail on unpatched GTK)":
+  exec "ulimit -c 0; nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim --timeout-probe"
+
+task testMappedClipboardPersistence, "Test real X11 clipboard manager handoff (isolated DISPLAY/opt-in, GTK2 headers/X11)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim"
 
 task testMappedPixbufFit, "Test native aspect fit/rendering/interpolation/guard pages (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedpixbuffit.nim"

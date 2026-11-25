@@ -53,6 +53,10 @@ proc set_uris*(selection_data: PSelectionData, uris: PPgchar): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_selection_data_set_uris".}
 proc get_uris*(selection_data: PSelectionData): PPgchar{.cdecl,
     dynlib: lib, importc: "gtk_selection_data_get_uris".}
+proc get_targets*(selection: PSelectionData, targets: ptr ptr gdk2.TAtom, count: Pgint): gboolean {.
+    cdecl, dynlib: lib, importc: "gtk_selection_data_get_targets".}
+proc add_text_targets*(list: PTargetList, info: guint) {.
+    cdecl, dynlib: lib, importc: "gtk_target_list_add_text_targets".}
 proc add_image_targets*(list: PTargetList, info: guint, writable: gboolean) {.cdecl,
     dynlib: lib, importc: "gtk_target_list_add_image_targets".}
 proc target_table_new_from_list*(list: PTargetList, nTargets: Pgint): PTargetEntry {.cdecl,

@@ -8,17 +8,43 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied Pixbuf saturation/pixelation
+## Next functionality batch
 
-- [ ] Add explicit native copied saturation/pixelation effects with checked finite
-      normalized saturation and independent RGB/RGBA output, including no-effect copies.
-      Preserve native luminance/alpha/channel/rounding, not hand-normalized pixels.
-- [ ] Define float32 conversion/range/format/size checks, UI-thread source/result pins
-      and early pure guards. No in-place changes, parser/file work, implicit preview/
-      background/source-site installation or private/native state repair.
-- [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      pixel/rendering/guard-page/lifetime regressions. Broader effects/codec/file
-      protocols/persistence/private audits remain separate.
+No next batch selected. Optional Pixbuf saturation/pixelation is backlog, not required
+finishing work. User priority switched to clipboard-manager persistence below; await
+user direction after that batch. Rich/custom clipboard persistence remains separate.
+
+## Completed functionality batch: explicit clipboard-manager persistence
+
+- [x] Added copied offerText/TextClipboardOffer active/clear/native text conversion and
+      target capture. SDK setText now uses it without native set_text's implicit blanket
+      persistence hint. Existing widget/raw GTK copy policies remain native, not sandboxed.
+- [x] Copied text/URI/binary/image offer allowPersistence/store authorize exact published
+      targets; native supportsPersistence query; PRIMARY/inactive/pure guards and source/
+      clipboard/target lifetime pins. Actual void GTK store can run a native nested
+      loop/about-ten-second timeout: no invented success/cancel/timeout/retention proof.
+      Recursive SDK persistence is guarded; raw/native shutdown loops aren't observable.
+- [x] Explicit native automatic handoff on outermost gtk_main exit, not arbitrary process
+      exit. No revocation/manager history/daemon, rich/custom owner support, native cache/
+      permission repair, second claim, winner revocation or durability guarantee. Installed
+      GTK/manager config untouched. Existing raw/native widget calls can authorize storage.
+- [x] Hidden no-claim/inactive/invalid-text/pure guards; independent real isolated X11
+      SAVE_TARGETS byte-caching manager refusing existing-manager replacement. Actual
+      no/rejecting manager, PRIMARY/stale/default text, recursive calls/clear/pin guard
+      recovery, exact target hints, native shutdown/source-process exit and text/empty/
+      URI/PNG/600013-byte INCR retention. Only self-produced tiny PNG explicitly decoded.
+      Five header prototypes/source guards; desktop initially-off retention consent and
+      explicit current-offer native Store UI; guides/readme/task registration updated.
+- [x] Independently reproduced actual unresponsive-manager native GTK 2.24.33 timeout
+      double-remove GLib critical under fatal warnings (exit1), with explicit diagnostic
+      probe task and optional source-only cleanup patch. No warning suppression/private
+      repair/installed change or claimed rebuilt-library validation. Native warning-clean
+      timeout requires an independently fixed native library; handoff tests don't claim it.
+- [x] Regular hidden/mapped ARC/ORC under fatal native warnings, full hidden/UI/calculator/
+      bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64 semantic checks,
+      every example/generator/package/diff, all regular isolated mapped tasks and missing-
+      opt-in exit1 passed. Timeout probe separately confirms native critical/exit1;
+      source patch dry-run applies, not a rebuilt-native validation. Installed GTK unchanged.
 
 ## Completed functionality batch: copied aspect-fit Pixbuf scaling
 
@@ -909,8 +935,9 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied Pixbuf overlays (functionality batch above).
 - [x] Copied Pixbuf alpha conversion (functionality batch above).
 - [x] Copied aspect-fit Pixbuf scaling (functionality batch above).
-- [ ] Copied Pixbuf saturation/pixelation (proposed next).
-- [ ] Clipboard-manager persistence.
+- [ ] Optional copied Pixbuf saturation/pixelation (deferred; no longer proposed next).
+- [x] Explicit copied text/URI/binary/image clipboard-manager persistence (batch above).
+- [ ] Rich/custom-owner clipboard persistence, advanced manager policy/history (separate).
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).
@@ -964,6 +991,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Explicit exact-target clipboard-manager hints/native handoff and copied text
+      default-no-persistence policy, actual independent manager/source-exit/INCR tests.
 - [x] Copied checked aspect-fit scaling/integer geometry/native interpolation/no-op
       independence, actual rendering and every-mode protected source-page tests (above).
 - [x] Copied Pixbuf alpha/key/explicit-background conversion/native blending, independent
