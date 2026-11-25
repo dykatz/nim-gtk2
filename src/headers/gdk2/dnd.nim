@@ -3,6 +3,10 @@ proc drag_drop_succeeded*(context: PDragContext): gboolean {.cdecl, dynlib: lib,
     importc: "gdk_drag_drop_succeeded".}
 proc drag_context_get_selected_action*(context: PDragContext): TDragAction {.cdecl,
     dynlib: lib, importc: "gdk_drag_context_get_selected_action".}
+proc drag_context_get_source_window*(context: PDragContext): PWindow {.cdecl,
+    dynlib: lib, importc: "gdk_drag_context_get_source_window".}
+proc drag_context_get_actions*(context: PDragContext): TDragAction {.cdecl,
+    dynlib: lib, importc: "gdk_drag_context_get_actions".}
 const
   ACTION_DEFAULT* = 1 shl 0
 const

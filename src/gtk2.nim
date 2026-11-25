@@ -462,7 +462,6 @@ include gtk2/models
 include gtk2/trees
 include gtk2/proxies
 include gtk2/icons
-include gtk2/modeldrag
 include gtk2/selectors
 include gtk2/ranges
 include gtk2/containers
@@ -505,6 +504,7 @@ include gtk2/entryicons
 include gtk2/entryediting
 include gtk2/entryprogress
 include gtk2/modelfunctions
+include gtk2/modeldrag
 include gtk2/iconselection
 include gtk2/textanchors
 include gtk2/textserialization

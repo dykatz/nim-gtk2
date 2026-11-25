@@ -30,15 +30,18 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
-### Same-view model drag-and-drop
+### Model drag-and-drop
 
 `enableRowDragReorder` opts into native, same-widget MOVE before realization for
 TreeView (direct unsorted ListStore/TreeStore) and IconView (direct unsorted ListStore).
 GTK inserts a copy and deletes the source, so original row references do not follow
-moves. No cross-view transfer, runtime toggle, policy callback or manual finish is
-added. Examples demonstrate list moves and subtree reparenting. Isolated XTEST checks
-real moves and rejection; the raw TreeView hit test now has correct optional out
-pointers and gboolean return. See the [model guide](gtk2.md#same-view-model-drag-and-drop).
+moves. `configureModelRowDrag` provides mutually exclusive local COPY sites with a
+pressed-row snapshot at drag begin and a synchronous receiver that validates and
+commits its own placement. GTK identifies the local flight; no pointer or serialized
+row payload crosses a selection, and COPY never requests source deletion. The models
+and trees examples show cross-view projection and native subtree reparenting.
+Isolated XTEST checks both modes, rejection, snapshot timing and receiver teardown.
+See the [model guide](gtk2.md#model-drag-and-drop).
 
 ### Explicit clipboard-manager persistence
 

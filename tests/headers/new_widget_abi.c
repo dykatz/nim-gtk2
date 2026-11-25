@@ -9,12 +9,18 @@ gboolean nim_gtk2_model_drag_abi(void) {
   typedef void (*IconSet)(GtkIconView *, gboolean);
   typedef gboolean (*IconGet)(GtkIconView *);
   typedef gboolean (*Hit)(GtkTreeView *, gint, gint, GtkTreePath **, GtkTreeViewColumn **, gint *, gint *);
+  typedef void (*Convert)(GtkTreeView *, gint, gint, gint *, gint *);
+  typedef GdkWindow *(*SourceWindow)(GdkDragContext *);
+  typedef GdkDragAction (*Actions)(GdkDragContext *);
 #define ROW_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
   ROW_ABI(TreeSet, gtk_tree_view_set_reorderable);
   ROW_ABI(TreeGet, gtk_tree_view_get_reorderable);
   ROW_ABI(IconSet, gtk_icon_view_set_reorderable);
   ROW_ABI(IconGet, gtk_icon_view_get_reorderable);
   ROW_ABI(Hit, gtk_tree_view_get_path_at_pos);
+  ROW_ABI(Convert, gtk_tree_view_convert_widget_to_bin_window_coords);
+  ROW_ABI(SourceWindow, gdk_drag_context_get_source_window);
+  ROW_ABI(Actions, gdk_drag_context_get_actions);
 #undef ROW_ABI
   return GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID == -2;
 }

@@ -69,7 +69,8 @@ class HeaderLayout(unittest.TestCase):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
     def test_model_drag_uses_native_same_widget_mode(self):
-        text = (ROOT / 'src/gtk2/modeldrag.nim').read_text()
+        native, local = (ROOT / 'src/gtk2/modeldrag.nim').read_text().split('# Local COPY', 1)
+        text = native
         for required in ('rawGtk.get_realized(w)', 'rawGtk.get_sort_column_id',
                          'rawGtk.drag_source_get_target_list', 'rawGtk.drag_dest_get_target_list',
                          'rawGtk.set_reorderable(p,', 'rawGtk.icon_view_set_reorderable(p,'):
@@ -77,6 +78,13 @@ class HeaderLayout(unittest.TestCase):
         for forbidden in ('drag_finish', 'drag_get_data', 'tree_set_row_drag_data',
                           'drag_source_set(', 'drag_dest_set(', 'get_priv', 'removeRow('):
             self.assertNotIn(forbidden, text)
+        for required in ('rawGtk.TARGET_SAME_APP', 'rawGtk.drag_get_source_widget(context)',
+                         'origin.sourceWindow == rawGdk.drag_context_get_source_window(context)',
+                         'origin.available = false', 'rawGtk.drag_finish(context, g.gbool(accepted), g.gbool(false)'):
+            self.assertIn(required, local)
+        for forbidden in ('drag_get_data', 'tree_get_row_drag_data', 'tree_set_row_drag_data',
+                          'ACTION_MOVE', 'removeRow(', 'drag-data-received'):
+            self.assertNotIn(forbidden, local)
 
     def test_clipboard_persistence_is_explicit_exact_target_and_native_void_store(self):
         text = (ROOT / 'src/gtk2/clipboardpersistence.nim').read_text()

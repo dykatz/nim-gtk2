@@ -119,7 +119,7 @@ task testMappedUriDrag, "Test URI COPY-only pads (isolated DISPLAY, GTK2_TEST_VI
 task probeNativeClipboardStoreTimeout, "Diagnose native GTK2 store timeout cleanup (isolated display; may fail on unpatched GTK)":
   exec "ulimit -c 0; nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim --timeout-probe"
 
-task testMappedModelDrag, "Test native same-view model row MOVE (isolated X11 DISPLAY/opt-in, XTEST)":
+task testMappedModelDrag, "Test model row MOVE and local COPY (isolated X11 DISPLAY/opt-in, XTEST)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmodeldrag.nim"
 
 task testMappedClipboardPersistence, "Test real X11 clipboard manager handoff (isolated DISPLAY/opt-in, GTK2 headers/X11)":

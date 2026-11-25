@@ -154,6 +154,8 @@ proc set_destroy_count_func*(tree_view: PTreeView,
                                        fun: TTreeDestroyCountFunc,
                                        data: gpointer, destroy: TDestroyNotify){.
     cdecl, dynlib: lib, importc: "gtk_tree_view_set_destroy_count_func".}
+proc convert_widget_to_bin_window_coords*(tree_view: PTreeView, wx, wy: gint,
+    bx, by: ptr gint) {.cdecl, dynlib: lib, importc: "gtk_tree_view_convert_widget_to_bin_window_coords".}
 proc get_path_at_pos*(tree_view: PTreeView, x, y: gint, path: ptr PTreePath,
     column: ptr PTreeViewColumn, cell_x, cell_y: ptr gint): gboolean {.cdecl,
     importc: "gtk_tree_view_get_path_at_pos", dynlib: lib.}

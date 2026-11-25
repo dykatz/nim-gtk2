@@ -18,7 +18,19 @@ proc main() =
   let comboStatus = newLabel()
   layout.packStart(comboStatus, packShrink)
   let view = newTreeView(store)
-  view.enableRowDragReorder()
+  view.configureModelRowDrag()
+  let shortlist = newListStore([cellString])
+  let review = newTreeView(shortlist)
+  discard review.appendTextColumn("Shortlist (drop here)", 0)
+  review.configureModelRowDrag(source = false, receive = proc (drop: ModelRowDrop): bool =
+    if drop.row.values.len == 0 or drop.row.values[0].kind != cellString: return false
+    let name = drop.row.values[0].stringValue
+    if name.len == 0: return false
+    for i in 0..<shortlist.rowCount:
+      if shortlist.value(i, 0).stringValue == name: return false
+    let at = if drop.hit.isRoot: shortlist.rowCount else: drop.hit.indices[0]
+    shortlist.insertRow(at, [cell(name)])
+    true)
   let nameColumn = view.appendTextColumn("Language", 0)
   nameColumn.resizable = true
   nameColumn.editable = true
@@ -33,11 +45,16 @@ proc main() =
       store.setValue(row, edit.column, cell(not store.value(row, edit.column).boolValue)))
   let multiple = newCheckButton("Multiple selection (mode changes clear selection)")
   layout.packStart(multiple, packShrink)
-  layout.packStart(newLabel("Drag within the list to move one row; edit names inline or toggle Active."), packShrink)
+  layout.packStart(newLabel("Drag a language to the shortlist to copy its name. Duplicates are rejected."), packShrink)
   view.rulesHint = true
   let scroll = newScrolledWindow()
   scroll.add(view)
-  layout.packStart(scroll)
+  let lists = newHBox(spacing = 8)
+  lists.packStart(scroll)
+  let shortlistScroll = newScrolledWindow()
+  shortlistScroll.add(review)
+  lists.packStart(shortlistScroll)
+  layout.packStart(lists)
   let actions = newHBox(spacing = 6)
   let name = newEntry("New language")
   let add = newButton("Add")

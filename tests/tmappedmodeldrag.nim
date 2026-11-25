@@ -33,7 +33,7 @@ when defined(posix) and not defined(macosx):
     doAssert XTestFakeButtonEvent(d, 1, cint(down), 0) != 0
     discard x.XSync(d, 0)
     settle()
-  proc drag(a, b: Point) =
+  proc drag(a, b: Point, afterBegin: proc () = nil) =
     moveTo(a)
     button(true)
     defer:
@@ -41,6 +41,7 @@ when defined(posix) and not defined(macosx):
       # X11 may animate a rejected drag back to its source before drag-end.
       for _ in 0..<5: settle()
     moveTo((a.x + 20, a.y))
+    if afterBegin != nil: afterBegin()
     moveTo(b)
     moveTo((b.x + 1, b.y))
   proc origin(w: gd.PWindow): Point =
@@ -75,7 +76,12 @@ when defined(posix) and not defined(macosx):
     let wp = cast[n.PWidget](view.raw)
     let handler = g.g_signal_connect_data(wp, "drag-end", cast[g.TGCallback](countEnd), addr count, nil, g.TGConnectFlags(0))
     defer: g.g_signal_handler_disconnect(wp, handler)
-  suite "native GTK same-widget row MOVE":
+  proc countAccepted(w: n.PWidget, context: gd.PDragContext, data: pointer) {.cdecl.} =
+    if g.toBool(gd.drag_drop_succeeded(context)): inc cast[ptr int](data)[]
+  proc countDataRequest(w: n.PWidget, context: gd.PDragContext, selection: n.PSelectionData,
+                        info, time: g.guint, data: pointer) {.cdecl.} =
+    inc cast[ptr int](data)[]
+  suite "native GTK model drag-and-drop":
     test "ListStore insert/delete and reference invalidation; sibling view rejects":
       let host = newWindow("Model drag lists", 520, 180)
       defer: host.destroy()
@@ -156,6 +162,95 @@ when defined(posix) and not defined(macosx):
       require m.rowCount == 2
       check m.value(0, 0).stringValue == "Beta"
       check m.value(0, 1).pixbufValue.raw == b.raw
+    test "local TreeView/IconView COPY commits application-defined placement exactly once":
+      let host = newWindow("Cross-view model drag", 600, 180)
+      defer: host.destroy()
+      let box = newHBox(spacing = 12)
+      host.add(box)
+      let tree = newTreeStore([cellString, cellInt])
+      let root = tree.appendRow([cell("Product"), cell(42)])
+      let list = newListStore([cellString, cellPixbuf])
+      let image = newPixbuf(24, 24, 0x842012ff'u32)
+      discard list.appendRow([cell("Existing"), cell(image)])
+      let a = newTreeView(tree)
+      discard a.appendTextColumn("Tree", 0)
+      let b = newIconView(list, 1, 0)
+      box.packStart(a)
+      box.packStart(b)
+      var calls, inserted, accepted, dataRequests, deletions = 0
+      let sourceWidget = cast[n.PWidget](a.raw)
+      let acceptedId = g.g_signal_connect_data(sourceWidget, "drag-end", cast[g.TGCallback](countAccepted), addr accepted, nil, g.TGConnectFlags(0))
+      let requestId = g.g_signal_connect_data(sourceWidget, "drag-data-get", cast[g.TGCallback](countDataRequest), addr dataRequests, nil, g.TGConnectFlags(0))
+      let deleteId = g.g_signal_connect_data(sourceWidget, "drag-data-delete", cast[g.TGCallback](countEnd), addr deletions, nil, g.TGConnectFlags(0))
+      defer:
+        for id in [acceptedId, requestId, deleteId]: g.g_signal_handler_disconnect(sourceWidget, id)
+      var observed: ModelRowDrop
+      a.configureModelRowDrag(receive = proc (value: ModelRowDrop): bool =
+        if value.hit.isRoot: return false
+        discard tree.insertRow(0, [cell(value.row.values[0].stringValue), cell(7)], value.hit)
+        true)
+      b.configureModelRowDrag(receive = proc (value: ModelRowDrop): bool =
+        inc calls
+        observed = value
+        case calls
+        of 1: return false
+        of 2: raise newException(ValueError, "expected test rejection")
+        else:
+          list.insertRow(value.hit.indices[0], [cell(value.row.values[0].stringValue), cell(image)])
+          inc inserted
+          true)
+      host.showAll()
+      settle()
+      expect ValueError: a.configureModelRowDrag()
+      let start = a.point([0])
+      let dest = b.point(0)
+      drag((start.x, start.y + 80), dest)
+      check calls == 0
+      let acceptedBeforeMatched = accepted # Ignore a native outcome for an unmatched drag.
+      drag(start, dest)
+      check calls == 1 and list.rowCount == 1 and tree.hasRow(root)
+      drag(start, dest)
+      check calls == 2 and list.rowCount == 1 and tree.hasRow(root)
+      drag(start, dest, proc () = tree.setValue(root, 1, cell(43)))
+      check calls == 3
+      check inserted == 1
+      check observed.row.values[0].stringValue == "Product"
+      check accepted - acceptedBeforeMatched == 1
+      check dataRequests == 0
+      check deletions == 0
+      check observed.row.path == root and observed.row.values[1].intValue == 42
+      check observed.hit.indices == @[0]
+      check list.rowCount == 2 and list.value(0, 0).stringValue == "Product"
+      check tree.childCount == 1 and tree.value(root, 1).intValue == 43
+      drag(b.point(0), a.point([0]))
+      require tree.childCount(root) == 1
+      check tree.value(treePath(0, 0), 0).stringValue == "Product"
+      check list.rowCount == 2
+    test "committing receiver may destroy its own view without a second completion":
+      let host = newWindow("Destroy local receiver", 600, 180)
+      defer: host.destroy()
+      let box = newHBox(spacing = 12)
+      host.add(box)
+      let src = newListStore([cellString])
+      discard src.appendRow([cell("Source")])
+      let dst = newListStore([cellString])
+      discard dst.appendRow([cell("Destination")])
+      let a = newTreeView(src)
+      let b = newTreeView(dst)
+      for view in [a, b]:
+        discard view.appendTextColumn("Row", 0)
+        box.packStart(view)
+      a.configureModelRowDrag()
+      var calls = 0
+      b.configureModelRowDrag(source = false, receive = proc (value: ModelRowDrop): bool =
+        inc calls
+        discard dst.appendRow(value.row.values)
+        b.destroy()
+        true)
+      host.showAll()
+      settle()
+      drag(a.point([0]), b.point([0]))
+      check b.isDestroyed and calls == 1 and dst.rowCount == 2 and src.rowCount == 1
   discard x.XCloseDisplay(d)
 else:
   quit("Model drag tests require X11/XTEST", 1)

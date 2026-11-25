@@ -724,13 +724,13 @@ construction in this batch: there is no generic model setter that could silently
 invalidate column bindings or replace ComboBoxText's private model. Editable
 model-backed combos are also deferred; ComboBoxText still supports editable text.
 
-### Same-view model drag-and-drop
+### Model drag-and-drop
 
 Call `view.enableRowDragReorder()` before realization to enable GTK's built-in
 row MOVE mode. TreeView accepts a direct unsorted ListStore or TreeStore; IconView
 accepts a direct unsorted ListStore. The mode is off by default. The getter
 `view.rowDragReorderEnabled` reports GTK's mode flag, not whether a drop will succeed.
-For examples see [models](../examples/models.nim) and [trees](../examples/trees.nim).
+[The trees example](../examples/trees.nim) uses this mode.
 
 GTK registers `GTK_TREE_MODEL_ROW` with `GTK_TARGET_SAME_WIDGET`. The user can
 move a single row even if multiple rows are selected. A TreeStore move can move a
@@ -748,11 +748,48 @@ Sorted stores, sort/filter proxies, custom models, and detectable existing raw d
 sites are rejected. Keep the model unsorted and do not replace it or change the
 view's native drag sites via raw FFI after opting in. GTK cannot enumerate every
 raw site (e.g. sites with no target list); only opt in on a view that has no other
-DnD configuration. There is no SDK runtime toggle, cross-view exchange, custom drop
-predicate, external row payload, or application-side deletion. The SDK leaves drag
-negotiation, failure, and source deletion to GTK. Normal tests only inspect unrealized
-configuration; `nimble testMappedModelDrag` exercises real row/subtree/item moves on
-an isolated X11 DISPLAY with XTEST and `GTK2_TEST_VIRTUAL_DISPLAY=1`.
+DnD configuration. The SDK leaves same-view MOVE negotiation, failure, and source
+deletion to GTK.
+
+For cross-view transfer with application-controlled placement, configure a local
+COPY source and receiver before realization instead of enabling native MOVE:
+
+```nim
+sourceView.configureModelRowDrag()
+destinationView.configureModelRowDrag(source = false, receive = proc (drop: ModelRowDrop): bool =
+  if drop.row.values.len == 0 or drop.row.values[0].kind != cellString: return false
+  let at = if drop.hit.isRoot: destinationStore.rowCount else: drop.hit.indices[0]
+  destinationStore.insertRow(at, [cell(drop.row.values[0].stringValue)])
+  true)
+```
+
+`configureModelRowDrag` accepts either view type; configure source only (the default),
+receiver only (`source = false` with a handler), or both. Source models must be direct
+ListStore or TreeStore (ListStore only for IconView). A receiver may display a proxy;
+`hit` is a path in that **displayed** model, or the virtual root over empty space.
+The handler supplies schema validation, proxy mapping if needed, and insertion or
+other application-defined placement. GTK delivers widget-relative `x`/`y` and native
+`time`. See the [models example](../examples/models.nim) for a two-list transfer
+that projects one column and rejects duplicate names.
+
+COPY takes one row from the button-1 press; it tracks the pressed row until drag-begin
+and snapshots its path and cells then. It does not transfer a selection or a subtree.
+Strings and scalar values are copied; Pixbuf cells retain owning handles to the same
+pixels (call `copy()` if you need independent pixels). Source paths in snapshots are
+historical, not live references. The GTK same-application target and active GTK
+source widget/window identify the local flight. There is no row selection payload,
+external exchange, selection conversion, automatic source deletion, or cross-view
+MOVE. This is not a security boundary against hostile clients on the same X server.
+
+The handler runs **synchronously at drop**, once per matched flight. Return true
+only after committing; false and exceptions reject the native drop. There is no
+rollback if a handler already edited a model before rejecting. Don’t spin a nested
+main loop, replace native drag sites, or close the display from the handler. The two
+modes are exclusive per view, with no runtime toggle; a destroyed view releases its
+configuration. No application-placement callback runs on hover. Normal tests only
+inspect unrealized configuration; `nimble testMappedModelDrag` exercises moves,
+cross-view copies, policy rejection and teardown on isolated X11 DISPLAY with XTEST
+and `GTK2_TEST_VIRTUAL_DISPLAY=1`.
 
 ### Model signals and ownership
 

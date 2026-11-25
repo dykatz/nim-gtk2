@@ -10,10 +10,10 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Same-view model drag-and-drop is complete below. Cross-view
-model transfer and custom policies remain separate. Optional Pixbuf effects are backlog.
+No next batch selected. Model drag-and-drop is complete below. Optional Pixbuf
+effects are backlog.
 
-## Completed functionality batch: native same-view model drag-and-drop
+## Completed functionality batch: model drag-and-drop
 
 - [x] Opt-in `enableRowDragReorder` and native mode getter for ordinary TreeView
       (unsorted direct ListStore/TreeStore) and IconView (unsorted direct ListStore).
@@ -29,6 +29,15 @@ model transfer and custom policies remain separate. Optional Pixbuf effects are 
 - [x] ARC/ORC hidden and mapped tests under fatal native warnings; full UI/calculator,
       bindings/layout/ABI suites, relevant mapped regressions, cross-target semantic
       checks, updated examples, generator/package validation and opt-in guard.
+- [x] Local cross-view COPY for TreeView and IconView with application-controlled
+      schema mapping, validation and placement. Snapshot the pressed row at real drag
+      begin, match native same-app source widget and source window, and report the
+      receiver's synchronous commit with no selection request or source deletion.
+      Test both directions, source edits after begin, rejection/exception, exact
+      native success/no DELETE and destruction during the commit; update the shared
+      model example and guide. No external exchange or cross-view MOVE. Validated
+      under ARC/ORC and fatal native warnings, with UI/calculator/ABI suites, related
+      isolated tasks and Windows/macOS semantic checks.
 
 ## Completed functionality batch: explicit clipboard-manager persistence
 
@@ -919,7 +928,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 ### Models and views
 
 - [x] Native same-view model row/subtree drag-and-drop (batch above).
-- [ ] Cross-view model drag-and-drop and application-controlled row placement.
+- [x] Same-application cross-view row COPY and application-controlled placement.
 - [ ] Arbitrary/custom cell renderers beyond the audited presentation batch.
 
 ### Text editing
