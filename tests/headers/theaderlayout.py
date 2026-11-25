@@ -68,6 +68,16 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_model_drag_uses_native_same_widget_mode(self):
+        text = (ROOT / 'src/gtk2/modeldrag.nim').read_text()
+        for required in ('rawGtk.get_realized(w)', 'rawGtk.get_sort_column_id',
+                         'rawGtk.drag_source_get_target_list', 'rawGtk.drag_dest_get_target_list',
+                         'rawGtk.set_reorderable(p,', 'rawGtk.icon_view_set_reorderable(p,'):
+            self.assertIn(required, text)
+        for forbidden in ('drag_finish', 'drag_get_data', 'tree_set_row_drag_data',
+                          'drag_source_set(', 'drag_dest_set(', 'get_priv', 'removeRow('):
+            self.assertNotIn(forbidden, text)
+
     def test_clipboard_persistence_is_explicit_exact_target_and_native_void_store(self):
         text = (ROOT / 'src/gtk2/clipboardpersistence.nim').read_text()
         self.assertIn('clipboard.selectionKind != clipboardStandard', text)

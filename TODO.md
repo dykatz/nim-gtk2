@@ -10,9 +10,25 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Optional Pixbuf saturation/pixelation is backlog, not required
-finishing work. User priority switched to clipboard-manager persistence below; await
-user direction after that batch. Rich/custom clipboard persistence remains separate.
+No next batch selected. Same-view model drag-and-drop is complete below. Cross-view
+model transfer and custom policies remain separate. Optional Pixbuf effects are backlog.
+
+## Completed functionality batch: native same-view model drag-and-drop
+
+- [x] Opt-in `enableRowDragReorder` and native mode getter for ordinary TreeView
+      (unsorted direct ListStore/TreeStore) and IconView (unsorted direct ListStore).
+      Configure before realization; reject proxies, sorted stores and detectable
+      existing sites. No native state mirrors, custom row payloads or manual finish.
+- [x] Document native same-widget MOVE, subtree placement, insert/delete signals,
+      row-reference invalidation and synchronous reentrancy limits. Demonstrate in
+      `examples/models.nim` and `examples/trees.nim`.
+- [x] Unrealized configuration tests and isolated `testMappedModelDrag`: real XTEST
+      row moves and insert/delete paths, same-model sibling-view rejection, subtree
+      reparenting, cycle rejection and moving icons with their pixbufs. Native ABI
+      checks and corrected TreeView hit-test out pointers and gboolean return.
+- [x] ARC/ORC hidden and mapped tests under fatal native warnings; full UI/calculator,
+      bindings/layout/ABI suites, relevant mapped regressions, cross-target semantic
+      checks, updated examples, generator/package validation and opt-in guard.
 
 ## Completed functionality batch: explicit clipboard-manager persistence
 
@@ -902,7 +918,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Models and views
 
-- [ ] Model drag-and-drop.
+- [x] Native same-view model row/subtree drag-and-drop (batch above).
+- [ ] Cross-view model drag-and-drop and application-controlled row placement.
 - [ ] Arbitrary/custom cell renderers beyond the audited presentation batch.
 
 ### Text editing

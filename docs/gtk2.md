@@ -724,6 +724,36 @@ construction in this batch: there is no generic model setter that could silently
 invalidate column bindings or replace ComboBoxText's private model. Editable
 model-backed combos are also deferred; ComboBoxText still supports editable text.
 
+### Same-view model drag-and-drop
+
+Call `view.enableRowDragReorder()` before realization to enable GTK's built-in
+row MOVE mode. TreeView accepts a direct unsorted ListStore or TreeStore; IconView
+accepts a direct unsorted ListStore. The mode is off by default. The getter
+`view.rowDragReorderEnabled` reports GTK's mode flag, not whether a drop will succeed.
+For examples see [models](../examples/models.nim) and [trees](../examples/trees.nim).
+
+GTK registers `GTK_TREE_MODEL_ROW` with `GTK_TARGET_SAME_WIDGET`. The user can
+move a single row even if multiple rows are selected. A TreeStore move can move a
+whole subtree into a different parent; GTK decides placement and rejects cycles.
+A second view cannot receive the drag even if it displays the same model, though
+it will see changes to the shared model after a successful same-view move.
+GTK inserts a copy and then deletes the original; this is **not** an atomic
+permutation or a `rows-reordered` signal. Observe insertion/deletion with existing
+model signals. A `TreeRowReference` to the original becomes invalid on deletion;
+use an application ID column if identity must survive a move. Notifications are
+native and may expose intermediate state. Defer structural edits or teardown from
+synchronous model signal handlers instead of changing the model during a move.
+
+Sorted stores, sort/filter proxies, custom models, and detectable existing raw drag
+sites are rejected. Keep the model unsorted and do not replace it or change the
+view's native drag sites via raw FFI after opting in. GTK cannot enumerate every
+raw site (e.g. sites with no target list); only opt in on a view that has no other
+DnD configuration. There is no SDK runtime toggle, cross-view exchange, custom drop
+predicate, external row payload, or application-side deletion. The SDK leaves drag
+negotiation, failure, and source deletion to GTK. Normal tests only inspect unrealized
+configuration; `nimble testMappedModelDrag` exercises real row/subtree/item moves on
+an isolated X11 DISPLAY with XTEST and `GTK2_TEST_VIRTUAL_DISPLAY=1`.
+
 ### Model signals and ownership
 
 `onRowInserted`, `onRowChanged`, and `onRowDeleted` accept `proc (row: int)` and

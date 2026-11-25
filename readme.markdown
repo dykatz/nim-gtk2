@@ -126,6 +126,9 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+TreeView and IconView can opt into [native same-view row moves](docs/gtk2.md#same-view-model-drag-and-drop)
+with direct unsorted stores; TreeView also supports moving TreeStore subtrees.
+
 Explicit clipboard-manager persistence now supports copied text/URI/binary/image
 offers with exact-target authorization and native handoff, without invented success
 or durability guarantees. SDK setText no longer implicitly authorizes storage.

@@ -48,6 +48,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufalpha.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbuffit.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2clipboardpersistence.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modeldrag.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2selectors.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2ranges.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2containers.nim"
@@ -117,6 +118,9 @@ task testMappedUriDrag, "Test URI COPY-only pads (isolated DISPLAY, GTK2_TEST_VI
 
 task probeNativeClipboardStoreTimeout, "Diagnose native GTK2 store timeout cleanup (isolated display; may fail on unpatched GTK)":
   exec "ulimit -c 0; nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim --timeout-probe"
+
+task testMappedModelDrag, "Test native same-view model row MOVE (isolated X11 DISPLAY/opt-in, XTEST)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedmodeldrag.nim"
 
 task testMappedClipboardPersistence, "Test real X11 clipboard manager handoff (isolated DISPLAY/opt-in, GTK2 headers/X11)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim"

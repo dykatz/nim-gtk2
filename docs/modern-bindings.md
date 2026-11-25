@@ -30,6 +30,16 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Same-view model drag-and-drop
+
+`enableRowDragReorder` opts into native, same-widget MOVE before realization for
+TreeView (direct unsorted ListStore/TreeStore) and IconView (direct unsorted ListStore).
+GTK inserts a copy and deletes the source, so original row references do not follow
+moves. No cross-view transfer, runtime toggle, policy callback or manual finish is
+added. Examples demonstrate list moves and subtree reparenting. Isolated XTEST checks
+real moves and rejection; the raw TreeView hit test now has correct optional out
+pointers and gboolean return. See the [model guide](gtk2.md#same-view-model-drag-and-drop).
+
 ### Explicit clipboard-manager persistence
 
 Copied text/URI/binary/image offers now expose allowPersistence() (exact offered target

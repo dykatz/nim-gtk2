@@ -18,6 +18,7 @@ proc main() =
   let comboStatus = newLabel()
   layout.packStart(comboStatus, packShrink)
   let view = newTreeView(store)
+  view.enableRowDragReorder()
   let nameColumn = view.appendTextColumn("Language", 0)
   nameColumn.resizable = true
   nameColumn.editable = true
@@ -32,7 +33,7 @@ proc main() =
       store.setValue(row, edit.column, cell(not store.value(row, edit.column).boolValue)))
   let multiple = newCheckButton("Multiple selection (mode changes clear selection)")
   layout.packStart(multiple, packShrink)
-  layout.packStart(newLabel("Edit names inline; toggle Active; Ctrl/Shift-click for multiple selection."), packShrink)
+  layout.packStart(newLabel("Drag within the list to move one row; edit names inline or toggle Active."), packShrink)
   view.rulesHint = true
   let scroll = newScrolledWindow()
   scroll.add(view)

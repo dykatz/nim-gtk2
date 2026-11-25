@@ -154,7 +154,7 @@ proc set_destroy_count_func*(tree_view: PTreeView,
                                        fun: TTreeDestroyCountFunc,
                                        data: gpointer, destroy: TDestroyNotify){.
     cdecl, dynlib: lib, importc: "gtk_tree_view_set_destroy_count_func".}
-proc get_path_at_pos*(tree_view: PTreeView, x:gint, y:gint, path: ptr PTreePath,
-    column: PTreeViewColumn, cell_x: gint, cell_y: gint): gint {.cdecl,
+proc get_path_at_pos*(tree_view: PTreeView, x, y: gint, path: ptr PTreePath,
+    column: ptr PTreeViewColumn, cell_x, cell_y: ptr gint): gboolean {.cdecl,
     importc: "gtk_tree_view_get_path_at_pos", dynlib: lib.}
 proc TYPE_VBUTTON_BOX*(): GType

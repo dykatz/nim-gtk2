@@ -3,6 +3,22 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_model_drag_abi(void) {
+  typedef void (*TreeSet)(GtkTreeView *, gboolean);
+  typedef gboolean (*TreeGet)(GtkTreeView *);
+  typedef void (*IconSet)(GtkIconView *, gboolean);
+  typedef gboolean (*IconGet)(GtkIconView *);
+  typedef gboolean (*Hit)(GtkTreeView *, gint, gint, GtkTreePath **, GtkTreeViewColumn **, gint *, gint *);
+#define ROW_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  ROW_ABI(TreeSet, gtk_tree_view_set_reorderable);
+  ROW_ABI(TreeGet, gtk_tree_view_get_reorderable);
+  ROW_ABI(IconSet, gtk_icon_view_set_reorderable);
+  ROW_ABI(IconGet, gtk_icon_view_get_reorderable);
+  ROW_ABI(Hit, gtk_tree_view_get_path_at_pos);
+#undef ROW_ABI
+  return GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID == -2;
+}
+
 gboolean nim_gtk2_clipboard_persistence_abi(void) {
   typedef void (*Hint)(GtkClipboard *, const GtkTargetEntry *, gint);
   typedef void (*Store)(GtkClipboard *);

@@ -18,6 +18,8 @@ proc main() =
   discard store.appendRow([cell("Documentation"), cell(6)])
 
   let view = newTreeView(store)
+  view.enableRowDragReorder()
+  layout.packStart(newLabel("Drag within the tree to move a subtree, including into another parent."), packShrink)
   let column = view.appendTextColumn("Project items", 0)
   column.resizable = true
   let scroll = newScrolledWindow()
