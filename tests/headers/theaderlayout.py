@@ -98,6 +98,17 @@ class HeaderLayout(unittest.TestCase):
                           'ACTION_MOVE', 'removeRow(', 'drag-data-received'):
             self.assertNotIn(forbidden, local)
 
+    def test_custom_clipboard_uses_unique_native_owner_and_explicit_subset(self):
+        text = (ROOT / 'src/gtk2/customclipboard.nim').read_text()
+        for required in ('g.g_object_new(g.G_TYPE_OBJECT, nil)', 'rawGtk.set_with_owner',
+                         'rawGtk.get_owner', 'name notin s.names or name in names',
+                         'persistClipboardOffer(s.clipboard, names, now)',
+                         'finally: dec modelFunctionDepth', 'rawGtk.selection_data_get_target'):
+            self.assertIn(required, text)
+        self.assertNotIn('set_can_store', text)
+        rich = (ROOT / 'src/gtk2/richclipboard.nim').read_text()
+        self.assertIn('copiedOfferPersistence(RichClipboardOffer, s.targets)', rich)
+
     def test_clipboard_persistence_is_explicit_exact_target_and_native_void_store(self):
         text = (ROOT / 'src/gtk2/clipboardpersistence.nim').read_text()
         self.assertIn('clipboard.selectionKind != clipboardStandard', text)

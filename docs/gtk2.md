@@ -4086,13 +4086,40 @@ offer.allowPersistence() # Exact offered targets may be fetched/stored, includin
 offer.store()            # VOID; may block/reenter UI for about ten seconds. NOT success proof.
 ```
 
-TextClipboardOffer, UriClipboardOffer, BinaryClipboardOffer and ImageClipboardOffer
-have active/clear, allowPersistence and store. Text is validated/copied and offered
+TextClipboardOffer, UriClipboardOffer, BinaryClipboardOffer, ImageClipboardOffer
+and RichClipboardOffer have active/clear, allowPersistence and store. Text is validated/copied and offered
 through native text target discovery/conversion. Text/image permissions list the exact
 targets captured at publication; URI lists only text/uri-list; binary lists only its
 application MIME. Never use NULL/all-target permission or infer authority from MIME,
-URI validity or image trust. Rich-text offers, raw/custom owners/displays/selections,
-manager policy/daemon implementation and clipboard-history management are not added.
+URI validity or image trust. For a rich offer, authorization covers the serialized
+format **and** all offered plain fallback targets. That snapshot may contain hidden
+text, tags and embedded images. Retention never authorizes decoding: recipients
+still need explicit trust. Raw owners, custom displays/selections, manager policy,
+daemon implementation and clipboard-history management remain outside the SDK.
+
+`clipboard.offerCustom(targets, provider, maxBytes = 16 * 1024 * 1024)` publishes
+1–256 distinct application MIME targets under a fresh native GObject owner. For
+each conversion, the synchronous `ClipboardProvider` receives the requested MIME
+and returns `BinaryData` of the same MIME. Default `BinaryData`, mismatched MIME,
+over-limit data or an exception declines conversion; matching empty data is valid.
+The byte limit bounds publication, not memory the provider allocates. There is no
+parser or automatic fallback.
+
+A `CustomClipboardOffer` authorizes only an explicit nonempty subset:
+`offer.allowPersistence([mime])` or `offer.store([mime])`. Unlisted targets are
+still requestable while the offer is live; the hint is not a privacy control.
+The provider may run more than once, including during store or native GTK shutdown;
+GTK does not identify a manager to the provider. Capture stable values for consistent
+replies. Do not perform blocking I/O, GTK calls or nested event loops in the provider.
+SDK GTK handle operations are guarded, recursive conversion is declined, and exceptions
+do not escape native callbacks.
+
+Each publication has a distinct owner even when reusing the same provider, so
+replacement cannot inherit old hints through GTK's same-owner fast path. Dropping
+the token does not clear ownership. Clear/replacement releases provider captures;
+GTK may independently retain the owner while it is marked storable. A stale token
+cannot authorize or clear a replacement. The desktop example offers two lazy
+sample targets and authorizes one; the text example explicitly allows rich retention.
 
 **Behavior correction:** SDK setText now delegates to copied offerText and does not
 authorize persistence. Native gtk_clipboard_set_text silently calls set_can_store with
@@ -4177,7 +4204,7 @@ UI thread and require GTK initialization/a display.
 setText(text) copies validated UTF-8/NUL-free text into native GTK ownership.
 clear() releases this application's ownership; it is not a guaranteed eraser for
 another process's clipboard. Copied text/URI/image/application-byte offers and explicit
-clipboard-manager persistence are described separately above. Custom lazy owners,
+clipboard-manager persistence are described separately above. Raw owners,
 custom displays/selections and blocking wait_for_* operations remain raw. No survival
 guarantee is made merely because the application exits.
 
@@ -6240,8 +6267,9 @@ not clear the offer; a native pin retains snapshot bytes until ownership is lost
 replaced or cleared. clear(offer) only acts while that offer remains active, so an
 old token cannot clear a subsequent local offer. Native loss notifications can be
 delayed until display events are processed. This is not proof of current foreign
-ownership or an atomic X-server ownership check. No clipboard-manager persistence
-or automatic store is requested. Clear notification releases data and the pin once,
+ownership or an atomic X-server ownership check. Publication does not authorize
+retention. Explicit allowPersistence/store covers rich and plain representations.
+Clear notification releases data and the pin once,
 including GTK's unusual failed/reentrant replacement path.
 
 An offer retains **no source buffer, view, marks or application callback**. It can

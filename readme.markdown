@@ -133,8 +133,8 @@ can bind an existing native renderer or draw custom cells with scoped Cairo.
 row moves (including TreeStore subtrees) and same-application row copies between
 TreeView and IconView, with application-controlled placement.
 
-Explicit clipboard-manager persistence now supports copied text/URI/binary/image
-offers with exact-target authorization and native handoff, without invented success
+Explicit clipboard-manager persistence supports copied text/URI/binary/image/rich
+and lazy custom-owner offers with exact-target authorization and native handoff, without invented success
 or durability guarantees. SDK setText no longer implicitly authorizes storage.
 See the [persistence guide](docs/gtk2.md#explicit-clipboard-manager-persistence),
 desktop's opt-in Store action and `testMappedClipboardPersistence` real X11 manager tests.

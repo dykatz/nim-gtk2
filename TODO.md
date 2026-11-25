@@ -10,8 +10,21 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Native/custom renderer columns are complete below. Optional
-Pixbuf effects are backlog.
+No next batch selected. Rich/custom-owner clipboard persistence is complete below.
+Optional Pixbuf effects are backlog.
+
+## Completed functionality batch: rich/custom-owner clipboard persistence
+
+- [x] RichClipboardOffer exact native serialization and plain fallback retention via
+      explicit allowPersistence/store; no publication-time hint or decoder trust change.
+- [x] Lazy format-8 `offerCustom` with a unique native GObject per claim, capped matching
+      application MIME replies, synchronous guarded provider, and exact nonempty subset
+      authorization. Native/store pins, stale-token and reentrant clear handling.
+- [x] Hidden validation and isolated manager handoff for rich bytes and custom subset
+      via immediate store and native shutdown (600013-byte INCR), stale owners, native
+      reference finalization, guarded, invalid and exceptional replies. Updated examples
+      and guides. ARC/ORC under fatal warnings, full UI/calculator and binding/ABI suites,
+      related isolated clipboard tests, cross-target semantic checks and opt-in guard passed.
 
 ## Completed functionality batch: native and custom TreeView cell renderers
 
@@ -980,7 +993,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied aspect-fit Pixbuf scaling (functionality batch above).
 - [ ] Optional copied Pixbuf saturation/pixelation (deferred; no longer proposed next).
 - [x] Explicit copied text/URI/binary/image clipboard-manager persistence (batch above).
-- [ ] Rich/custom-owner clipboard persistence, advanced manager policy/history (separate).
+- [x] Rich snapshot and lazy custom-owner clipboard persistence (batch above).
+- [ ] Advanced manager policy/history (outside the GTK2 clipboard API).
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).

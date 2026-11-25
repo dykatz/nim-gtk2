@@ -44,12 +44,16 @@ gboolean nim_gtk2_model_drag_abi(void) {
 
 gboolean nim_gtk2_clipboard_persistence_abi(void) {
   typedef void (*Hint)(GtkClipboard *, const GtkTargetEntry *, gint);
+  typedef gboolean (*OwnerSet)(GtkClipboard *, const GtkTargetEntry *, guint, GtkClipboardGetFunc, GtkClipboardClearFunc, GObject *);
+  typedef GObject *(*OwnerGet)(GtkClipboard *);
   typedef void (*Store)(GtkClipboard *);
   typedef gboolean (*Support)(GdkDisplay *);
   typedef void (*TextTargets)(GtkTargetList *, guint);
   typedef gboolean (*Targets)(GtkSelectionData *, GdkAtom **, gint *);
 #define PERSIST_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
   PERSIST_ABI(Hint, gtk_clipboard_set_can_store);
+  PERSIST_ABI(OwnerSet, gtk_clipboard_set_with_owner);
+  PERSIST_ABI(OwnerGet, gtk_clipboard_get_owner);
   PERSIST_ABI(Store, gtk_clipboard_store);
   PERSIST_ABI(Support, gdk_display_supports_clipboard_persistence);
   PERSIST_ABI(TextTargets, gtk_target_list_add_text_targets);

@@ -190,6 +190,7 @@ proc main() =
   binaryRow.packStart(inspectBinary, packShrink)
   let sampleBytes = newBinaryData("application/vnd.example.gtk2-demo", [0'u8, 255, 128, 0, 13, 10])
   var binaryOffer: BinaryClipboardOffer
+  var customOffer: CustomClipboardOffer
   var binaryRequest: BinaryRequest
   defer:
     binaryRequest.cancel()
@@ -255,6 +256,14 @@ proc main() =
   let copyPersistentText = newButton("Copy sample text")
   let permitPersistence = newCheckButton("Authorize manager retention (not secrets)") # Initially OFF.
   let storeOffer = newButton("Store current SDK offer")
+  let offerLazy = newButton("Offer lazy sample")
+  persistenceRow.packStart(offerLazy, packShrink)
+  const sessionMime = "application/vnd.example.gtk2-session-only"
+  offerLazy.onClicked(proc () =
+    customOffer = getClipboard().offerCustom([sampleBytes.mime, sessionMime], proc (name: string): BinaryData =
+      if name == sessionMime: newBinaryData(name, [1'u8])
+      else: sampleBytes)
+    status.text = "Offered two lazy targets; Store authorizes the sample target only.")
   persistenceRow.packStart(copyPersistentText, packShrink)
   persistenceRow.packStart(permitPersistence, packShrink)
   persistenceRow.packStart(storeOffer, packShrink)
@@ -279,6 +288,7 @@ proc main() =
       # Native store can reenter UI for about ten seconds. No success/timeout status exists.
       if textOffer.active: textOffer.store()
       elif uriOffer.active: uriOffer.store()
+      elif customOffer.active: customOffer.store([sampleBytes.mime])
       elif binaryOffer.active: binaryOffer.store()
       elif imageOffer.active: imageOffer.store()
       else: raise newException(ValueError, "No current copied SDK offer; another owner is untouched")

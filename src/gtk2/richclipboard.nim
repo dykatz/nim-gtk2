@@ -4,6 +4,7 @@ type
     clipboard: Clipboard
     text: SerializedText
     plain: string
+    targets: seq[string]
     active, pinned: bool
   RichClipboardOffer* = object
     state: RichOfferState
@@ -35,6 +36,7 @@ proc releaseRichOffer(s: RichOfferState) =
   s.active = false
   s.text = SerializedText()
   s.plain = ""
+  s.targets = @[]
   s.clipboard = Clipboard()
   if s.pinned:
     s.pinned = false
@@ -66,8 +68,9 @@ proc offerRichText*(clipboard: Clipboard, text: SerializedText,
   let s = RichOfferState(clipboard: clipboard, text: text, plain: plainText,
     active: true, pinned: true)
   result.state = s
-  let names = [text.name, "UTF8_STRING", "COMPOUND_TEXT", "TEXT", "STRING",
+  let names = @[text.name, "UTF8_STRING", "COMPOUND_TEXT", "TEXT", "STRING",
     "text/plain;charset=utf-8", "text/plain"]
+  s.targets = names
   var targets: array[7, rawGtk.TTargetEntry]
   for i in 0..<targets.len:
     targets[i] = rawGtk.TTargetEntry(target: names[i].cstring, flags: 0,
@@ -82,6 +85,8 @@ proc offerRichText*(clipboard: Clipboard, text: SerializedText,
 proc clear*(offer: RichClipboardOffer) =
   requireOutsideModelFunction()
   if offer.active: offer.state.clipboard.clear()
+
+copiedOfferPersistence(RichClipboardOffer, s.targets)
 
 proc pending*(request: RichTextRequest): bool = request.state != nil and request.state.active
 proc releaseRichRequest(s: RichRequestState) =

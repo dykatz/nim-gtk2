@@ -30,6 +30,12 @@ proc largeBytes(): seq[byte] =
   result = newSeq[byte](600013)
   for i in 0..<result.len: result[i] = byte(i mod 256)
 const mime = "application/vnd.example.persist"
+const transientMime = "application/vnd.example.transient"
+proc ownerFinalized(data: pointer, owner: g.PGObject) {.cdecl.} = inc cast[ptr int](data)[]
+proc richCodec(): TextFormat = newTextFormat("persist")
+proc customPayload(name: string): BinaryData =
+  if name == mime: newBinaryData(name, largeBytes())
+  else: newBinaryData(name, [9'u8])
 proc targetsReceived(c: n.PClipboard, value: n.PSelectionData, data: pointer) {.cdecl.} =
   let state = cast[ptr tuple[done, save: bool]](data)
   var atoms: ptr gd.TAtom
@@ -99,6 +105,20 @@ if paramCount() == 1 and paramStr(1).startsWith("--source-"):
     n.main() # Real gtk_main exit runs native store-all for explicitly authorized targets.
   of "--source-uri": c.offerUris(["file:///persisted%20path", "https://example.invalid/"]).store()
   of "--source-binary": c.offerBinary(mime, largeBytes()).store()
+  of "--source-rich":
+    let buffer = newTextBuffer()
+    buffer.text = "Persisted rich λ"
+    c.offerRichText(buffer.serialize(richCodec()), "different fallback").store()
+  of "--source-custom", "--source-custom-auto":
+    let offer = c.offerCustom([mime, transientMime], proc (name: string): BinaryData =
+      doAssert name == mime
+      customPayload(name))
+    if paramStr(1) == "--source-custom":
+      offer.store([mime])
+    else:
+      offer.allowPersistence([mime])
+      discard g.g_idle_add_full(g.G_PRIORITY_DEFAULT_IDLE, cast[pointer](quitIdle), nil, nil)
+      n.main() # The lazy provider must remain available at native shutdown.
   of "--source-image": c.offerImage(newPixbuf(2, 3, 0x1280ff7f'u32)).store()
   else: quit(2)
   stdout.writeLine("RETURNED")
@@ -125,6 +145,64 @@ suite "native clipboard manager persistence":
     expect ValueError: offer.allowPersistence()
     expect ValueError: offer.store()
     check replacement.active
+  test "unique native custom owners, guarded lazy replies, subset validation and stale tokens":
+    let c = getClipboard()
+    defer: c.clear()
+    var calls, guarded: int
+    let provider: ClipboardProvider = proc (name: string): BinaryData =
+      inc calls
+      try: c.clear()
+      except ValueError: inc guarded
+      if name == mime: return newBinaryData(name, [])
+      newBinaryData(mime, [1'u8]) # Wrong target: decline, not fallback.
+    let old = c.offerCustom([mime, transientMime], provider, maxBytes = 0)
+    let previous = n.get_owner(c.raw)
+    require previous != nil
+    var finalized = 0
+    g.weak_ref(previous, ownerFinalized, addr finalized)
+    check calls == 0 and not c.hasSaveTargets()
+    expect ValueError: old.allowPersistence([])
+    expect ValueError: old.allowPersistence([mime, mime])
+    expect ValueError: old.store(["application/x-unknown"])
+    check not c.hasSaveTargets()
+    old.store([mime]) # No manager; provider isn't invoked by authorization alone.
+    check calls == 0 and c.hasSaveTargets()
+    let offer = c.offerCustom([mime, transientMime], provider, maxBytes = 0)
+    check not old.active and offer.active and previous != n.get_owner(c.raw)
+    check finalized == 1
+    check not c.hasSaveTargets()
+    old.clear()
+    expect ValueError: old.store([mime])
+    for name in [mime, transientMime]:
+      var done = false
+      var value: ClipboardBytes
+      discard c.requestBinary(name, proc (v: ClipboardBytes) = (value = v; done = true))
+      require awaitUi(proc (): bool = done)
+      check value.kind == (if name == mime: bytesAvailable else: bytesUnavailable)
+      check value.bytes.len == 0
+    check calls == 2 and guarded == 2
+    offer.clear()
+    check not offer.active and n.get_owner(c.raw) == nil
+    let primary = getClipboard(clipboardPrimary).offerCustom([mime], provider)
+    defer: primary.clear()
+    expect ValueError: primary.allowPersistence([mime])
+  test "custom provider errors and over-cap replies are unavailable; later conversion recovers":
+    let c = getClipboard()
+    var calls = 0
+    let token = c.offerCustom([mime], proc (name: string): BinaryData =
+      inc calls
+      if calls == 1: raise newException(ValueError, "expected custom provider error")
+      if calls == 2: return newBinaryData(name, [1'u8, 2])
+      newBinaryData(name, [3'u8]), maxBytes = 1)
+    defer: token.clear()
+    for expected in [bytesUnavailable, bytesUnavailable, bytesAvailable]:
+      var done = false
+      var value: ClipboardBytes
+      discard c.requestBinary(mime, proc (v: ClipboardBytes) = (value = v; done = true))
+      require awaitUi(proc (): bool = done)
+      check value.kind == expected
+      if expected == bytesAvailable: check value.bytes == @[3'u8]
+    check calls == 3
   when not defined(windows) and not defined(macosx):
     test "real rejecting manager returns no guarantee and keeps source active":
       let peer = startProcess(getAppFilename(), args = ["--manager-reject"], options = {poUsePath, poStdErrToStdOut})
@@ -154,7 +232,7 @@ suite "native clipboard manager persistence":
       require peer.protocolLine() == "MANAGER_READY"
       let c = getClipboard()
       require c.supportsPersistence()
-      for kind in ["text", "empty", "auto", "uri", "binary", "image"]:
+      for kind in ["text", "empty", "auto", "uri", "binary", "image", "rich", "custom", "custom-auto"]:
         let source = startProcess(getAppFilename(), args = ["--source-" & kind], options = {poUsePath, poStdErrToStdOut})
         let report = source.outputStream.readAll()
         stdout.write(report) # Keep child/native diagnostics visible.
@@ -180,13 +258,28 @@ suite "native clipboard manager persistence":
           discard c.requestUris(proc (v: ClipboardUris) = (value = v; done = true))
           require awaitUi(proc (): bool = done)
           check value.kind == urisAvailable and value.uris == @["file:///persisted%20path", "https://example.invalid/"]
-        of "binary":
+        of "binary", "custom", "custom-auto":
           check hints == "HINTS 1 " & mime
           var done = false
           var value: ClipboardBytes
           discard c.requestBinary(mime, proc (v: ClipboardBytes) = (value = v; done = true))
           require awaitUi(proc (): bool = done)
           check value.kind == bytesAvailable and value.bytes == largeBytes()
+          if kind.startsWith("custom"):
+            done = false
+            discard c.requestBinary(transientMime, proc (v: ClipboardBytes) = (value = v; done = true))
+            require awaitUi(proc (): bool = done)
+            check value.kind == bytesUnavailable
+        of "rich":
+          let format = richCodec()
+          check hints == "HINTS 7 " & format.mimeType & " UTF8_STRING COMPOUND_TEXT TEXT STRING text/plain;charset=utf-8 text/plain"
+          check saved.startsWith("SAVED " & format.mimeType & " ")
+          var done = false
+          var value: RichClipboardResult
+          discard c.requestRichText(format, true, proc (v: RichClipboardResult) = (value = v; done = true))
+          require awaitUi(proc (): bool = done)
+          require value.kind == richDocument
+          check value.document.text == "Persisted rich λ"
         of "image":
           check "image/png" in hints
           var done = false

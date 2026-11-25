@@ -9,9 +9,25 @@ suite "explicit clipboard persistence pre-native contracts":
     expect ValueError: default(UriClipboardOffer).store()
     expect ValueError: default(BinaryClipboardOffer).store()
     expect ValueError: default(ImageClipboardOffer).store()
+    expect ValueError: default(RichClipboardOffer).allowPersistence()
+    expect ValueError: default(RichClipboardOffer).store()
+    expect ValueError: default(CustomClipboardOffer).allowPersistence(["application/x-demo"])
+    expect ValueError: default(CustomClipboardOffer).store(["application/x-demo"])
     expect ValueError: discard default(Clipboard).supportsPersistence()
     check not default(TextClipboardOffer).active
     expect ValueError: discard getClipboard().offerText("not claimed\0bad")
+  test "invalid lazy publications fail before ownership":
+    let c = getClipboard()
+    let provider: ClipboardProvider = proc (mime: string): BinaryData =
+      doAssert false, "provider never runs during validation"
+      BinaryData()
+    const name = "application/x-sample"
+    expect ValueError: discard c.offerCustom([], provider)
+    expect ValueError: discard c.offerCustom([name], nil)
+    expect ValueError: discard c.offerCustom([name, name], provider)
+    expect ValueError: discard c.offerCustom([name, "TARGETS"], provider)
+    expect ValueError: discard c.offerCustom([name], provider, maxBytes = -1)
+    expect ValueError: discard c.offerCustom([name], provider, maxBytes = high(int))
   test "early pure guards reject before active/handle/native manager operations":
     let entry = newEntry("a")
     defer: entry.destroy()
@@ -32,9 +48,15 @@ suite "explicit clipboard persistence pre-native contracts":
       try: discard c.supportsPersistence()
       except ValueError as error:
         if error.msg == guard: inc denied
+      try: default(CustomClipboardOffer).store([])
+      except ValueError as error:
+        if error.msg == guard: inc denied
+      try: default(RichClipboardOffer).store()
+      except ValueError as error:
+        if error.msg == guard: inc denied
       try: c.setText("not published")
       except ValueError as error:
         if error.msg == guard: inc denied
       true)
     completion.refilter()
-    check calls > 0 and denied == calls*4
+    check calls > 0 and denied == calls*6

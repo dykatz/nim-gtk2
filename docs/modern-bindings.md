@@ -71,8 +71,11 @@ set_text silently marks all forms storable. This intentional privacy-policy corr
 requires offerText(...).allowPersistence()/store() for retention. Native widget/raw
 copy actions can still follow native policy; hints aren't confidentiality controls.
 Exact text/image targets are captured at claim; URI/binary permit only their published
-MIME. No blanket NULL/all-target hints, rich-text/custom/raw-owner persistence, global
-privacy sandbox, clipboard history or manager daemon is added. Native outermost
+MIME. Rich snapshot authorization covers native serialization plus plain fallback.
+Custom lazy application MIME offers use a fresh native GObject owner per claim and
+require a nonempty exact retention subset; guarded providers return matching bounded
+format-8 bytes. No blanket NULL/all-target hints, raw-owner adoption, global privacy
+sandbox, clipboard history or manager daemon is added. Native outermost
 GTK main-loop exit may hand off authorized data, not arbitrary process exit/kill.
 
 Desktop adds initially-off authorization and explicit current-offer Store UI, reporting
@@ -89,7 +92,8 @@ manager configuration or native caches change. A separately reproduced native GT
 2.24.33 timeout double-remove emits a modern-GLib critical (fatal-warnings exit1);
 probeNativeClipboardStoreTimeout diagnoses it and an optional source-only patch is
 provided, not applied/rebuild-validated. Normal handoff tests do not claim this native
-failure fixed. Broader rich/custom protocols remain separate.
+failure fixed. The real manager also tests rich-byte retention after source exit and
+custom exact-subset retention over INCR at native shutdown.
 
 ### Copied aspect-fit Pixbuf scaling
 

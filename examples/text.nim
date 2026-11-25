@@ -84,14 +84,17 @@ proc main() =
   layout.packStart(files, packShrink)
   let richTools = newHBox(spacing = 6)
   let richCopy = newButton("Copy document (includes hidden text)")
+  let permitRich = newButton("Allow retention of copied document")
   let richImport = newButton("Import clipboard as document")
   let trustRich = newCheckButton("Trust native rich owner")
   richTools.packStart(richCopy, packShrink)
+  richTools.packStart(permitRich, packShrink)
   richTools.packStart(richImport, packShrink)
   richTools.packStart(trustRich, packShrink)
   layout.packStart(richTools, packShrink)
   let clipboard = getClipboard() # Does not overwrite its contents.
   var richRequest: RichTextRequest
+  var richOffer: RichClipboardOffer
   # Native GTK2 binary data, not RTF/HTML. The application
   # explicitly selects this named codec and permits imported tags in a fresh buffer.
   let richFormat = newTextFormat("nim-gtk2-text-example", canCreateTags = true)
@@ -173,9 +176,14 @@ proc main() =
   richCopy.onClicked(proc () =
     try:
       # Explicit whole document snapshot: tags/images/hidden text, never widgets.
-      discard clipboard.offerRichText(buffer.serialize(richFormat), buffer.text)
-      status.text = "Offered a document snapshot, not a live buffer"
+      richOffer = clipboard.offerRichText(buffer.serialize(richFormat), buffer.text)
+      status.text = "Offered a snapshot without retention authorization"
     except CatchableError as error: status.text = error.msg)
+  permitRich.onClicked(proc () =
+    try:
+      richOffer.allowPersistence()
+      status.text = "Authorized retention of rich and plain forms (including hidden text); not proof of storage."
+    except ValueError as error: status.text = error.msg)
   trustRich.onToggled(proc () = richRequest.cancel())
   richImport.onClicked(proc () =
     richRequest.cancel()
