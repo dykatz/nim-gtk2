@@ -30,6 +30,31 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied Pixbuf overlays
+
+base.overlaid(overlay,x,y,opacity=255) allocates independent base-format pixels, copies
+base with native copy_area and calls actual native composite at unit scale/nearest,
+with explicit fully contained integer placement and overall alpha 0..255. No clipping,
+in-place mutation, identity alias for zero opacity or hand-corrected blending/rounding.
+Native RGB/RGBA interpretation/rounding remains backend/version behavior, not a color-
+management/metadata/encoded-file guarantee. Same handles/overlapping subpixbuf inputs
+are safe because the output is separate. No parser/file/source-site mutation is added.
+
+Shared format/span/allocation and subtraction bounds checks precede copying; early
+pure/coordinate/opacity/empty-handle validation and base/overlay/output native refs
+cover synchronous UI-thread lifetimes and error cleanup. Pins do not freeze aliases
+against unsafe raw native reentrancy; no event loop is pumped. Native allocation NULL
+raises PixbufError, without invented GError for the void composite API.
+
+Desktop explicitly blends/installs a generated patch. Hidden opaque/reference RGB/
+RGBA/opacity/alias/mutation/lifetime/error/pure tests and isolated native blended
+rendering/GtkImage replacement plus both-input RGB/RGBA protected-final-row/source-
+page tests cover copied storage. Composite prototype/interpolation enum/full-width
+signed/floating callback ABI/source guards and ARC/ORC/cross-target checks cover the
+bridge. See [overlay guide](gtk2.md#copied-pixbuf-overlays). Native state/rounding and
+installed libraries are never repaired. Alpha conversion/broader scaling/options,
+file protocols/persistence and private audits remain separate.
+
 ### Copied Pixbuf geometry transforms
 
 Pixbuf.cropped(x,y,width,height), flipped(horizontal) and rotated(PixbufRotation)
@@ -52,7 +77,8 @@ validation/pure tests; opted-in real rendering/ownership plus POSIX final-row gu
 pages and post-disposal page protection; three native prototypes/C-width enum values/
 signed ABI/source guards; ARC/ORC/cross-target regressions cover the path. No huge/fake
 native allocations are used to test arithmetic. See [geometry guide](gtk2.md#copied-pixbuf-geometry-transforms).
-Compositing, broader codecs/formats, file transactions and private audits stay separate.
+Copied overlays are available separately; broader codecs/formats, file transactions
+and private audits stay separate.
 
 ### Copied Pixbuf PNG byte encoding
 

@@ -14,6 +14,17 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type CompositeAbi = proc (src, dest: pb.PPixbuf, x, y, w, h: g.gint,
+  ox, oy, sx, sy: g.gdouble, interpolation: pb.TInterpType, opacity: g.gint) {.cdecl.}
+proc overlaysAbi(probe: CompositeAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_overlays_abi".}
+var overlayCalls: int
+proc compositeProbe(src, dest: pb.PPixbuf, x, y, w, h: g.gint,
+    ox, oy, sx, sy: g.gdouble, interpolation: pb.TInterpType, opacity: g.gint) {.cdecl.} =
+  doAssert cast[uint](src) == 0xf8 and cast[uint](dest) == 0xf9
+  doAssert x == -17 and y == 23 and w == 0x123456 and h == 0x654321
+  doAssert ox == -17.25 and oy == 23.75 and sx == 1.25 and sy == 0.5
+  doAssert interpolation == pb.INTERP_HYPER and opacity == 201
+  inc overlayCalls
 type
   RotateAbi = proc (src: pb.PPixbuf, angle: pb.TPixbufRotation): pb.PPixbuf {.cdecl.}
   FlipAbi = proc (src: pb.PPixbuf, horizontal: g.gboolean): pb.PPixbuf {.cdecl.}
@@ -413,6 +424,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "native Pixbuf composite prototype/interpolation enum/signed full-width/floating callback ABI":
+    check g.toBool(overlaysAbi(compositeProbe))
+    check overlayCalls == 1
   test "Pixbuf rotation enum/three native transform prototypes/signed full-width/callback pointer ABI":
     check g.toBool(transformsAbi(rotateProbe, flipProbe, copyAreaProbe))
     check transformCalls == 3

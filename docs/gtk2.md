@@ -1058,6 +1058,64 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Copied Pixbuf overlays
+
+`base.overlaid(overlay, x, y, opacity = 255)` returns an owning independent copy of
+base pixels with a fully contained overlay composited at integer coordinates. The
+result keeps base dimensions and RGB/RGBA channel/alpha format. Neither input is
+modified, even if inputs are the same handle or overlapping subpixbufs. Existing
+clipboard offers, native drag snapshots/icons and preview widgets are not changed.
+
+```nim
+let patch = newPixbuf(8, 6, 0xff8800a0'u32)
+let result = base.overlaid(patch, 2, 3, opacity = 192)
+preview.pixbuf = result # Explicit app installation; not a compositing side effect.
+```
+
+`opacity` is a native overall-alpha integer in 0..255, applied in addition to the
+overlay's own alpha. Nonnegative gint x/y and the **whole overlay** must fit inside
+the base; there is no clipping, scaling, repeat, wrapping or inferred placement.
+Subtraction bounds avoid overflowing x+width/y+height. RGB8/RGBA8 source format,
+rowstride/actual sample spans and padded base-output allocation use the checked
+geometry helpers' conservative gint limits before copying. Invalid coordinates,
+opacity, empty handles, unsupported spans/format, geometry and pure-function use
+raise ValueError. NULL native allocation raises PixbufError with no fabricated
+GError (the composite API returns void, not GError or an acceptance result).
+
+The SDK allocates independent native base-format storage, copies base pixels through
+copy_area, then calls **actual native composite** with offsets x/y, unit scale,
+INTERP_NEAREST and the supplied overall alpha. Even zero opacity produces an independent
+result and calls the real compositor: no identity alias or special-case hand blend.
+Native RGB/RGBA blending, alpha interpretation and channel rounding are retained
+without normalization/repair; results can depend on the installed backend/version.
+Do not assume idealized floating-point equations, flattening to a chosen background,
+premultiplied application bytes or general color management. Metadata, row padding,
+rowstride and encoded-file identity are not part of this copied-pixel contract.
+
+Native base, overlay and output references stay pinned throughout the synchronous
+copy/composite and release on success/error on the UI thread. Completed results keep
+no source/overlay/backing/controller roots. Pins preserve lifetime, not immutable
+pixels against raw reentrant mutation; native hooks must not mutate aliases/pump
+events/tear down controllers. No parser, file IO, in-place operation, source/site
+installation, mutable borrowed pixel pointer, native state change or rounding repair
+is added. Native allocation/CPU/aggregate memory are not sandboxed. Ordinary aliases
+to the returned owning handle share its mutable result pixels; `.copy()` separates them.
+
+Desktop's explicit Overlay patch action blends a small generated patch into the
+current sample and explicitly installs the result for preview/future image drags.
+Existing offers/transfers remain unchanged. Hidden ARC/ORC tests cover exact opaque
+placement/outside pixels, all RGB/RGBA input combinations/opacity boundaries against
+an independent raw native reference, zero-opacity copies, identical/overlapping input
+storage, source/result mutation, external-backing lifetimes and failed-call/pure guards.
+`testMappedPixbufOverlays` requires isolated DISPLAY and GTK2_TEST_VIRTUAL_DISPLAY=1:
+real blended output rendering/GtkImage replacement/source disposal/retained snapshots,
+plus POSIX RGB/RGBA base **and** overlay guard pages with unpadded final samples and
+protected former source pages after disposal. Windows skips the POSIX fixture;
+Windows/macOS semantic checks do not claim native runtime coverage. Native composite
+prototype/interpolation enum/signed full-width and floating callback ABI/source guards
+cover the bridge. No installed native library/codecs are changed. Alpha conversion,
+broader scaling/options, persistence and private audits remain separate.
+
 ### Copied Pixbuf geometry transforms
 
 `image.cropped(x, y, width, height)`, `image.flipped(horizontal = true|false)` and
@@ -1121,8 +1179,9 @@ valid unpadded final RGB sample ends at inaccessible memory. All transforms pass
 after source disposal even its former readable page is protected, proving outputs do
 not alias it. Windows skips this POSIX fixture; cross-target semantic checks are not
 native Windows/macOS runtime claims. Three native prototypes, C-width rotation enum/
-values and signed/full-width/callback ABI plus source guards cover the bridge. Broader
-compositing/options/formats, transactions/persistence and private audits stay separate.
+values and signed/full-width/callback ABI plus source guards cover the bridge. Copied
+overlays are available separately; broader scaling/options/formats, transactions/
+persistence and private audits stay separate.
 
 ### Copied PNG byte encoding
 

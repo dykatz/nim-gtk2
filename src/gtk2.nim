@@ -452,6 +452,7 @@ include gtk2/dialogs
 include gtk2/text
 include gtk2/pixbufs
 include gtk2/pixbuftransforms
+include gtk2/pixbufoverlays
 include gtk2/rgbapixels
 include gtk2/pngfiles
 include gtk2/pngbytes

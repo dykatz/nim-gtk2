@@ -68,6 +68,24 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_pixbuf_overlays_copy_base_and_pin_all_native_inputs_outputs(self):
+        text = (ROOT / 'src/gtk2/pixbufoverlays.nim').read_text()
+        self.assertLess(text.index('requireOutsideModelFunction()'), text.index('checkedInt(x)'))
+        self.assertLess(text.index('opacity < 0 or opacity > 255'), text.index('base.raw'))
+        for name in ('background', 'foreground', 'output'):
+            self.assertIn('g.g_object_ref(' + name + ')', text)
+            self.assertIn('defer: g.g_object_unref(' + name + ')', text)
+        self.assertIn('f.w > b.w - dx or f.h > b.h - dy', text)
+        self.assertIn('checkTransformAllocation(b.w, b.h, b.channels)', text)
+        self.assertIn('transformInfo(background)', text)
+        self.assertIn('transformInfo(foreground)', text)
+        self.assertIn('rawPixbuf.copy_area(background, 0, 0', text)
+        self.assertIn('rawPixbuf.composite(foreground, output, dx, dy', text)
+        self.assertIn('float64(dx), float64(dy), 1.0, 1.0, rawPixbuf.INTERP_NEAREST, g.gint(opacity)', text)
+        for forbidden in ('new_subpixbuf(', 'get_pixels(', 'copyMem(', 'loadPixbuf(', 'savePng(',
+                          'realize(', 'main_iteration', 'if opacity == 0', 'if opacity == 255'):
+            self.assertNotIn(forbidden, text)
+
     def test_pixbuf_transforms_copy_pixels_and_never_use_unsafe_vertical_padding_copy(self):
         text = (ROOT / 'src/gtk2/pixbuftransforms.nim').read_text()
         for function in ('cropped*', 'flipped*', 'rotated*'):

@@ -81,7 +81,8 @@ proc main() =
   let flipVertical = newButton("Flip vertical")
   let rotateSample = newButton("Rotate clockwise")
   let resetSample = newButton("Reset sample")
-  for button in [cropSample, flipHorizontal, flipVertical, rotateSample, resetSample]:
+  let overlaySample = newButton("Overlay patch")
+  for button in [cropSample, flipHorizontal, flipVertical, rotateSample, overlaySample, resetSample]:
     transformRow.packStart(button, packShrink)
   proc installSample(value: Pixbuf) =
     # Explicit app installation; transforms themselves never mutate a source/site.
@@ -97,6 +98,12 @@ proc main() =
   flipHorizontal.onClicked(proc () = installSample(imageSample.flipped(horizontal = true)))
   flipVertical.onClicked(proc () = installSample(imageSample.flipped(horizontal = false)))
   rotateSample.onClicked(proc () = installSample(imageSample.rotated(rotateClockwise)))
+  overlaySample.onClicked(proc () =
+    let w = min(8, imageSample.width)
+    let h = min(8, imageSample.height)
+    let patch = newPixbuf(w, h, 0xff8800a0'u32)
+    installSample(imageSample.overlaid(patch, (imageSample.width-w) div 2,
+      (imageSample.height-h) div 2, opacity = 192))) # Explicit copied native blend, no resizing/clipping.
   resetSample.onClicked(proc () = installSample(originalImage))
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()

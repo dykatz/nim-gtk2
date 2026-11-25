@@ -3,6 +3,19 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_pixbuf_overlays_abi(void (*probe)(const GdkPixbuf *, GdkPixbuf *, int, int, int, int,
+    double, double, double, double, GdkInterpType, int)) {
+  typedef void (*Composite)(const GdkPixbuf *, GdkPixbuf *, int, int, int, int,
+    double, double, double, double, GdkInterpType, int);
+  typedef char composite_proto[__builtin_types_compatible_p(Composite, __typeof__(&gdk_pixbuf_composite)) ? 1 : -1];
+  typedef char interp_width[sizeof(GdkInterpType) == sizeof(int) ? 1 : -1];
+  (void)sizeof(composite_proto); (void)sizeof(interp_width);
+  /* ABI-only signed/full-width/floating arguments, not a real composite call. */
+  probe((GdkPixbuf *)(guintptr)0xf8, (GdkPixbuf *)(guintptr)0xf9,
+    -17, 23, 0x123456, 0x654321, -17.25, 23.75, 1.25, 0.5, GDK_INTERP_HYPER, 201);
+  return GDK_INTERP_NEAREST == 0 && GDK_INTERP_HYPER == 3;
+}
+
 gboolean nim_gtk2_pixbuf_transforms_abi(
     GdkPixbuf *(*rotate)(const GdkPixbuf *, GdkPixbufRotation),
     GdkPixbuf *(*flip)(const GdkPixbuf *, gboolean),

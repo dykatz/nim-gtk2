@@ -8,17 +8,42 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied Pixbuf overlays
+## Next proposed functionality batch: copied Pixbuf alpha conversion
 
-- [ ] Add checked native alpha compositing of an overlay into an independently copied
-      base Pixbuf, with explicit integer placement/opacity and no resizing or clipping.
-      Preserve actual native RGB/RGBA blending/rounding, not hand-normalized pixels.
-- [ ] Define bounds/channel/allocation validation, UI-thread source/base/output pins,
-      source-alias safety and pure guards. No in-place mutation, parser/file work,
-      automatic source installation or native state/rounding repair.
+- [ ] Add explicit native copied RGB-to-RGBA/optional color-key alpha and flattening
+      onto a caller-selected opaque RGB background, with independent output pixels.
+      Preserve native alpha/channel/blending/rounding semantics, not repaired colors.
+- [ ] Define checked formats/size/color values, early pure guards and UI-thread source/
+      output lifetime pins; no in-place conversion, implicit background or decoder/file/
+      automatic site changes. Existing native options/metadata are not preservation proof.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      actual pixel/rendering/lifetime regressions. Broader scaling/codec options,
-      async work/file transactions/persistence/private audits remain separate.
+      pixel/rendering/guard-page/lifetime regressions. Broader scaling/options, async
+      work/file transactions/persistence/private audits remain separate.
+
+## Completed functionality batch: copied Pixbuf overlays
+
+- [x] Added base.overlaid(overlay,x,y,opacity=255) with independent native base-format
+      pixels, actual copy_area then unit-scale/nearest composite, checked integer
+      placement/overall alpha and no clipping/resizing/in-place/zero-opacity alias.
+      Preserve actual native RGB/RGBA blending/rounding without hand normalization.
+- [x] Reuse checked public format/source span/aligned allocation helpers, subtraction
+      bounds and early pure/coordinate/opacity/empty-handle guards. Explicit native
+      base/overlay/output ref pins release on success/error on UI thread; no source/
+      backing/controller roots escape. Void native API has no fabricated GError.
+- [x] Hidden exact opaque/outside-rectangle, all RGB/RGBA/opacity boundaries vs direct
+      raw native reference, same/overlapping subpixbuf storage, source/result mutation,
+      external backing disposal/error/pure tests; isolated real blended rendering/
+      GtkImage replacement/source disposal/snapshots and both-input RGB/RGBA protected
+      final-row/former-source pages. No fake huge buffers or native pixel repairs.
+- [x] Native composite prototype/interpolation enum/signed full-width/floating callback
+      ABI and source guards; desktop explicit patch composition/result installation,
+      guides/readme/task registration. No native state/library/cache changes, parser/
+      file work, source/site auto-installation or persistence.
+- [x] Validated hidden/mapped ARC/ORC under fatal native warnings, full hidden/UI/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64
+      semantic checks, every example, generator/package/diff, every isolated mapped
+      task and missing-opt-in exit1 guard. Both-input POSIX guard pages ran natively;
+      native Windows/macOS rendering remains platform-specific. Installed GTK unchanged.
 
 ## Completed functionality batch: copied Pixbuf geometry transforms
 
@@ -827,7 +852,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Explicit Pixbuf PNG file encoding (functionality batch above).
 - [x] Copied PNG byte encoding (functionality batch above).
 - [x] Copied Pixbuf geometry transforms (functionality batch above).
-- [ ] Copied Pixbuf overlays (proposed next).
+- [x] Copied Pixbuf overlays (functionality batch above).
+- [ ] Copied Pixbuf alpha conversion (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -882,6 +908,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied checked Pixbuf overlays/native blending, alias-safe pixels/lifetimes,
+      actual blended rendering and both-input protected-page regressions (above).
 - [x] Copied checked Pixbuf geometry/native composition, independent pixels/lifetimes,
       actual rendering and protected final-row/source-page regressions (above).
 - [x] Bounded copied PNG byte encoding, pure owning values/native buffer/error cleanup,
