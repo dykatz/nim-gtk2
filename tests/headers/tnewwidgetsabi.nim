@@ -14,6 +14,19 @@ when (defined(illumos) or defined(solaris)) and sizeof(pointer) == 8:
 else:
   {.passC: staticExec("pkg-config --cflags gtk+-2.0").}
 {.compile: "new_widget_abi.c".}
+type
+  AddAlphaAbi = proc (src: pb.PPixbuf, substitute: g.gboolean, r, green, b: g.guchar): pb.PPixbuf {.cdecl.}
+  FillPixbufAbi = proc (dest: pb.PPixbuf, pixel: g.guint32) {.cdecl.}
+proc alphaAbi(add: AddAlphaAbi, fill: FillPixbufAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_alpha_abi".}
+var alphaCalls: int
+proc addAlphaProbe(src: pb.PPixbuf, substitute: g.gboolean, r, green, b: g.guchar): pb.PPixbuf {.cdecl.} =
+  doAssert cast[uint](src) == 0xfa and g.gint(substitute) == -11
+  doAssert r == 128 and green == 255 and b == 225
+  inc alphaCalls
+  cast[pb.PPixbuf](0xfc)
+proc fillPixbufProbe(dest: pb.PPixbuf, pixel: g.guint32) {.cdecl.} =
+  doAssert cast[uint](dest) == 0xfb and pixel == 0x80ffe1ff'u32
+  inc alphaCalls
 type CompositeAbi = proc (src, dest: pb.PPixbuf, x, y, w, h: g.gint,
   ox, oy, sx, sy: g.gdouble, interpolation: pb.TInterpType, opacity: g.gint) {.cdecl.}
 proc overlaysAbi(probe: CompositeAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_overlays_abi".}
@@ -424,6 +437,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "native add-alpha/fill prototypes/unsigned channels/32-bit color/signed gboolean ABI":
+    check g.toBool(alphaAbi(addAlphaProbe, fillPixbufProbe))
+    check alphaCalls == 2
   test "native Pixbuf composite prototype/interpolation enum/signed full-width/floating callback ABI":
     check g.toBool(overlaysAbi(compositeProbe))
     check overlayCalls == 1

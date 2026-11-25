@@ -1058,6 +1058,69 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Copied Pixbuf alpha conversion
+
+`image.withAlpha()` returns independently owned RGBA pixels: RGB gains alpha 255,
+while existing RGBA (including fractional alpha and transparent RGB) is copied without
+resetting alpha. `image.withAlpha(keyRgb)` uses native **exact RGB** color-key matching:
+matching pixels get alpha zero while their RGB samples remain unchanged. Nonmatching
+RGB pixels get alpha 255; nonmatching RGBA pixels retain their original alpha. There
+is no tolerance, alpha-based matching, palette inference or alpha reset.
+
+`image.flattened(backgroundRgb)` blends onto the **explicit opaque RGB background**
+and returns independent RGB8 pixels of the same dimensions. The background argument
+is mandatory. RGB input is still copied, not returned as an alias. Flattening discards
+alpha by actual native compositing, not by dropping the fourth channel or replacing
+transparent RGB in Nim.
+
+```nim
+let rgba = image.withAlpha()
+let keyed = rgba.withAlpha(keyRgb = 0x80ff01'u32)
+let opaque = keyed.flattened(backgroundRgb = 0x102030'u32)
+preview.pixbuf = opaque # Explicit app installation, not a conversion side effect.
+```
+
+Both RGB color arguments are **uint32 0xRRGGBB words in 0x000000..0xffffff** (not the
+0xRRGGBBAA word accepted by newPixbuf). Upper bits reject with ValueError before native
+allocation/handle access; all channels are native unsigned bytes, including values
+128..255. Zero is a valid black key/background, not a missing argument. Inputs remain
+RGB8/RGBA8; public format/source stride/span checks and padded destination allocations
+use the geometry helpers' conservative signed-gint bounds. Size/color/empty-handle/
+pure violations raise ValueError; native allocation NULL raises PixbufError without
+invented GError domain/code (these native APIs provide no GError).
+
+withAlpha calls native add_alpha, including its real independent copy for existing
+RGBA. Flatten allocates native RGB, fills the selected color, then invokes native
+composite at unit scale/nearest/overall alpha 255. Native per-pixel alpha blending and
+backend/version rounding are retained, never normalized or repaired. Output metadata,
+rowstride/padding, encoded-file identity and general color-management behavior are not
+preservation guarantees. Neither conversion mutates a source, existing offer/drag
+snapshot/icon or widget. Application aliases to the returned owning handle still
+share its mutable pixels; use `.copy()` for another independent image.
+
+Native source/output ownership stays pinned through synchronous UI-thread operations,
+with cleanup on success/error. Completed results retain no source/subpixbuf/backing/
+controller roots. Pins are not immutable snapshots against unsafe raw native hooks;
+do not mutate aliases/pump events/tear down controllers there. No GUI event loop,
+parser, file IO, inferred background, in-place conversion, automatic site installation
+or borrowed writable pixel pointer is added. Allocation/CPU/aggregate memory are not
+sandboxed. Desktop adds explicit copy/add alpha, top-left exact RGB key (from a bounded
+owned sample snapshot), and flatten-on-#102030 controls, then explicitly installs
+results for preview/future image drags. Active transfers and old offers stay unchanged.
+
+Hidden ARC/ORC tests cover RGB/RGBA/no-op copies/exact and near-key/high-bit/black
+colors, nonmatching alpha/transparent RGB/all-byte samples, explicit backgrounds,
+opaque/transparent pixels and fractional-alpha results against raw native compositing,
+subpixbuf/odd-stride/unpadded final rows, independence/backing disposal/pure and invalid
+arguments. `testMappedPixbufAlpha` requires isolated DISPLAY and
+GTK2_TEST_VIRTUAL_DISPLAY=1: real keyed/flattened rendering, source disposal/native
+GtkImage ownership/replacement/retained snapshots, plus RGB/RGBA final-sample guard
+pages and protected former source pages after disposal. Windows skips the POSIX fixture;
+cross-target semantic checks do not claim native Windows/macOS rendering. Add-alpha/
+fill native prototypes, unsigned channel/word/signed gboolean ABI, existing composite
+ABI and source guards cover the bridge. No installed library/codec changes. Aspect-fit
+scaling, broader codec options, file protocols/persistence and private audits stay separate.
+
 ### Copied Pixbuf overlays
 
 `base.overlaid(overlay, x, y, opacity = 255)` returns an owning independent copy of
@@ -1113,8 +1176,9 @@ plus POSIX RGB/RGBA base **and** overlay guard pages with unpadded final samples
 protected former source pages after disposal. Windows skips the POSIX fixture;
 Windows/macOS semantic checks do not claim native runtime coverage. Native composite
 prototype/interpolation enum/signed full-width and floating callback ABI/source guards
-cover the bridge. No installed native library/codecs are changed. Alpha conversion,
-broader scaling/options, persistence and private audits remain separate.
+cover the bridge. No installed native library/codecs are changed. Copied alpha
+conversion is available separately; broader scaling/options, persistence and private
+audits remain separate.
 
 ### Copied Pixbuf geometry transforms
 

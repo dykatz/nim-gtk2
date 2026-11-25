@@ -30,6 +30,34 @@ The warnings came from obsolete Nim syntax/types, not GTK runtime failures.
 | 32-bit `gsize` / `gssize` | Pointer-sized `uint` / `int`. |
 | `GType = gulong` | `GType = gsize`, including on 64-bit Windows where C `unsigned long` is only 32 bits. |
 
+### Copied Pixbuf alpha conversion
+
+Pixbuf.withAlpha() independently copies RGB to RGBA (alpha 255), or copies existing
+RGBA without resetting alpha. withAlpha(keyRgb) uses actual native exact RGB matching:
+matching alpha becomes zero with RGB retained; nonmatching RGBA alpha is preserved,
+while nonmatching RGB gets 255. Black key is explicit, not a default. flattened(
+backgroundRgb) requires an opaque RGB choice, allocates RGB, native-fills it then
+uses real unit-scale/nearest composite without repaired rounding or channel dropping.
+Even already-converted formats return independent pixels, not identity aliases.
+
+Color words are checked uint32 0xRRGGBB, not newPixbuf's 0xRRGGBBAA. Early pure/color/
+handle/format/span/allocation validation and UI-thread source/output ownership cover
+lifetimes/errors. No parser/file, implicit background, in-place change or source/site
+installation; metadata/rowstride/encoded identity and native memory/CPU sandboxing
+are not claimed. Native add-alpha/copy/blending semantics are retained, including
+partial alpha on non-keyed pixels. Native allocation failure uses PixbufError, not a
+fabricated GError for APIs without error parameters.
+
+Desktop adds explicit alpha/key/flatten controls and app installation. Hidden exact/
+near/high-bit/black keys, RGB/RGBA/all-byte/transparent/fractional samples, explicit
+backgrounds/raw composite references, subpixbuf/final-row/independence/lifetime/error/
+pure tests plus opted-in real keyed/flattened rendering/GtkImage ownership and POSIX
+source guard pages cover actual behavior. Add-alpha/fill prototypes/unsigned channels/
+word/signed gboolean ABI, composite ABI/source guards and ARC/ORC/cross-target checks
+cover the bridge. See [alpha guide](gtk2.md#copied-pixbuf-alpha-conversion). Native
+libraries/state/rounding remain unchanged. Aspect-fit scaling/broader codec/file
+protocols/persistence/private audits remain separate.
+
 ### Copied Pixbuf overlays
 
 base.overlaid(overlay,x,y,opacity=255) allocates independent base-format pixels, copies
@@ -52,8 +80,9 @@ rendering/GtkImage replacement plus both-input RGB/RGBA protected-final-row/sour
 page tests cover copied storage. Composite prototype/interpolation enum/full-width
 signed/floating callback ABI/source guards and ARC/ORC/cross-target checks cover the
 bridge. See [overlay guide](gtk2.md#copied-pixbuf-overlays). Native state/rounding and
-installed libraries are never repaired. Alpha conversion/broader scaling/options,
-file protocols/persistence and private audits remain separate.
+installed libraries are never repaired. Copied alpha conversion is available
+separately; broader scaling/options, file protocols/persistence and private audits
+remain separate.
 
 ### Copied Pixbuf geometry transforms
 

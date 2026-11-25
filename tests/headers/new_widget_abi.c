@@ -3,6 +3,19 @@
 #include <gtk/gtk.h>
 #include <stddef.h>
 
+gboolean nim_gtk2_pixbuf_alpha_abi(
+    GdkPixbuf *(*add)(const GdkPixbuf *, gboolean, guchar, guchar, guchar),
+    void (*fill)(GdkPixbuf *, guint32)) {
+  typedef GdkPixbuf *(*Add)(const GdkPixbuf *, gboolean, guchar, guchar, guchar);
+  typedef void (*Fill)(GdkPixbuf *, guint32);
+  typedef char add_proto[__builtin_types_compatible_p(Add, __typeof__(&gdk_pixbuf_add_alpha)) ? 1 : -1];
+  typedef char fill_proto[__builtin_types_compatible_p(Fill, __typeof__(&gdk_pixbuf_fill)) ? 1 : -1];
+  (void)sizeof(add_proto); (void)sizeof(fill_proto);
+  /* ABI-only unsigned-channel/word and signed gboolean arguments, not SDK operations. */
+  fill((GdkPixbuf *)(guintptr)0xfb, (guint32)0x80ffe1ff);
+  return add((GdkPixbuf *)(guintptr)0xfa, -11, 0x80, 0xff, 0xe1) == (GdkPixbuf *)(guintptr)0xfc;
+}
+
 gboolean nim_gtk2_pixbuf_overlays_abi(void (*probe)(const GdkPixbuf *, GdkPixbuf *, int, int, int, int,
     double, double, double, double, GdkInterpType, int)) {
   typedef void (*Composite)(const GdkPixbuf *, GdkPixbuf *, int, int, int, int,

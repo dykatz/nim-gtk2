@@ -126,6 +126,11 @@ or MOVE deletion. See the [URI pad guide](docs/gtk2.md#uri-copy-only-dragdrop-pa
 and [desktop example](examples/desktop.nim). `testMappedUriDrag` requires an
 isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 
+Copied Pixbuf alpha conversion now adds/preserves alpha, applies exact RGB keys and
+flattens onto an explicit RGB background without changing source pixels. See the
+[alpha guide](docs/gtk2.md#copied-pixbuf-alpha-conversion), desktop controls and
+`testMappedPixbufAlpha` native rendering/protected-row regressions.
+
 Copied Pixbuf overlays now blend into independent base-format pixels with checked
 placement/opacity, native rounding and pinned input/output lifetimes. See the
 [overlay guide](docs/gtk2.md#copied-pixbuf-overlays) and desktop's explicit patch action.

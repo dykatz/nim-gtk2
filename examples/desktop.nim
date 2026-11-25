@@ -105,6 +105,18 @@ proc main() =
     installSample(imageSample.overlaid(patch, (imageSample.width-w) div 2,
       (imageSample.height-h) div 2, opacity = 192))) # Explicit copied native blend, no resizing/clipping.
   resetSample.onClicked(proc () = installSample(originalImage))
+  let alphaRow = newHBox(spacing = 8)
+  layout.packStart(alphaRow, packShrink)
+  let addAlpha = newButton("Copy/add alpha")
+  let keyAlpha = newButton("Key top-left RGB")
+  let flattenAlpha = newButton("Flatten on #102030")
+  for button in [addAlpha, keyAlpha, flattenAlpha]: alphaRow.packStart(button, packShrink)
+  addAlpha.onClicked(proc () = installSample(imageSample.withAlpha()))
+  keyAlpha.onClicked(proc () =
+    let bytes = imageSample.rgbaPixels(maxBytes = 4096).bytes # Sample stays at most 24×24; owned snapshot.
+    let key = (uint32(bytes[0]) shl 16) or (uint32(bytes[1]) shl 8) or uint32(bytes[2])
+    installSample(imageSample.withAlpha(keyRgb = key))) # Exact RGB only, not an alpha reset or tolerance.
+  flattenAlpha.onClicked(proc () = installSample(imageSample.flattened(backgroundRgb = 0x102030'u32)))
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()
   copyImage.onClicked(proc () =

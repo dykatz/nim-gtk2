@@ -8,17 +8,45 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
-## Next proposed functionality batch: copied Pixbuf alpha conversion
+## Next proposed functionality batch: copied aspect-fit Pixbuf scaling
 
-- [ ] Add explicit native copied RGB-to-RGBA/optional color-key alpha and flattening
-      onto a caller-selected opaque RGB background, with independent output pixels.
-      Preserve native alpha/channel/blending/rounding semantics, not repaired colors.
-- [ ] Define checked formats/size/color values, early pure guards and UI-thread source/
-      output lifetime pins; no in-place conversion, implicit background or decoder/file/
-      automatic site changes. Existing native options/metadata are not preservation proof.
+- [ ] Add explicit checked aspect-fit scaling into positive bounded dimensions with
+      independent pixels, documented integer rounding/one-pixel minimum, optional
+      upscaling and selected native interpolation; unchanged fits must not alias.
+- [ ] Validate dimensions/format/enum/overflow before native allocation and preserve
+      UI-thread source/result lifetime and pure guards. No implicit widget resize,
+      parser/file work, background padding or source/site installation.
 - [ ] Extend existing examples/docs and hidden ARC/ORC/ABI/cross-target plus isolated
-      pixel/rendering/guard-page/lifetime regressions. Broader scaling/options, async
-      work/file transactions/persistence/private audits remain separate.
+      pixel/rendering/guard-page/lifetime regressions, replacing duplicated manual
+      preview-fit calculations where appropriate. Broader options/file protocols/
+      persistence/private audits remain separate.
+
+## Completed functionality batch: copied Pixbuf alpha conversion
+
+- [x] Added withAlpha() and withAlpha(keyRgb) independent native RGB/RGBA conversion,
+      preserving existing alpha unless RGB exactly matches explicit key (then zero,
+      RGB retained). No alpha reset/tolerance/identity alias. Actual native add_alpha
+      semantics inspected in current 2.42.12 and legacy 2.24.1 public source paths.
+- [x] Added flattened(backgroundRgb), explicit checked opaque 24-bit RGB choice,
+      independent native RGB allocation/fill then unit-scale nearest composite with
+      actual native alpha/rounding, not channel dropping or hand-normalized pixels.
+- [x] Early pure/color/handle/public format/source span/padded output allocation
+      guards and UI-thread source/output ownership pins with normal error cleanup.
+      Native NULL raises PixbufError without fabricated GError. No source/subpixbuf/
+      backing/controller roots escape; no parser/file/implicit background/auto site/
+      state/cache/rounding repair or installed library changes.
+- [x] Hidden exact/near/black/high-bit color keys, RGB/RGBA/all-byte/transparent RGB/
+      fractional alpha/native-reference backgrounds, subpixbuf/unpadded-row/mutation/
+      backing disposal/error/pure regressions; real keyed/flattened rendering/native
+      GtkImage replacement/source disposal/snapshots and protected RGB/RGBA final-
+      sample/former-source pages. Add-alpha/fill native prototypes/unsigned channels/
+      word/signed gboolean ABI, composite ABI/source guards; desktop explicit alpha/
+      top-left key/opaque-background controls and guides/tasks updated.
+- [x] Validated hidden/mapped ARC/ORC with fatal native warnings, full hidden/UI/
+      calculator/bindings/raw/layout/ABI suites, Windows amd64/i386/macOS amd64
+      semantic checks, every example, generator/package/diff, every isolated mapped
+      task and missing-opt-in exit1 guard. RGB/RGBA protected source pages ran natively;
+      Windows/macOS runtime rendering remains platform-specific. Installed GTK unchanged.
 
 ## Completed functionality batch: copied Pixbuf overlays
 
@@ -853,7 +881,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied PNG byte encoding (functionality batch above).
 - [x] Copied Pixbuf geometry transforms (functionality batch above).
 - [x] Copied Pixbuf overlays (functionality batch above).
-- [ ] Copied Pixbuf alpha conversion (proposed next).
+- [x] Copied Pixbuf alpha conversion (functionality batch above).
+- [ ] Copied aspect-fit Pixbuf scaling (proposed next).
 - [ ] Clipboard-manager persistence.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
@@ -908,6 +937,8 @@ Current printing support configures choices only; it does not render or submit j
 
 ## Recently completed
 
+- [x] Copied Pixbuf alpha/key/explicit-background conversion/native blending, independent
+      pixels/lifetimes, actual keyed rendering and protected source-page tests (above).
 - [x] Copied checked Pixbuf overlays/native blending, alias-safe pixels/lifetimes,
       actual blended rendering and both-input protected-page regressions (above).
 - [x] Copied checked Pixbuf geometry/native composition, independent pixels/lifetimes,

@@ -68,6 +68,29 @@ class HeaderLayout(unittest.TestCase):
             with self.subTest(fragment=fragment.name):
                 self.assertNotRegex(fragment.read_text(), r'(?i)\.(?:btree|TextBuffer_?flag0|segments|view_id|tag_root|toggle_count)\b')
 
+    def test_pixbuf_alpha_copies_use_native_key_and_explicit_rgb_flattening(self):
+        text = (ROOT / 'src/gtk2/pixbufalpha.nim').read_text()
+        self.assertIn("rgb > 0xffffff'u32", text)
+        for function in ('copiedPixbufAlpha', 'flattened*'):
+            body = text.split('proc ' + function, 1)[1].split('\nproc ', 1)[0]
+            self.assertLess(body.index('requireOutsideModelFunction()'), body.index('checkPixbufRgb('))
+            self.assertLess(body.index('checkPixbufRgb('), body.index('image.raw'))
+            self.assertIn('transformInfo(source)', body)
+            self.assertIn('checkTransformAllocation(', body)
+            self.assertIn('g.g_object_ref(source)', body)
+            self.assertIn('defer: g.g_object_unref(source)', body)
+        self.assertIn('rawPixbuf.add_alpha(source, g.gbool(substitute)', text)
+        self.assertIn('copiedPixbufAlpha(image, false, 0)', text)
+        self.assertIn('copiedPixbufAlpha(image, true, keyRgb)', text)
+        self.assertIn('rawPixbuf.fill(output, (backgroundRgb shl 8)', text)
+        self.assertIn('rawPixbuf.composite(source, output', text)
+        self.assertIn('0.0, 0.0, 1.0, 1.0, rawPixbuf.INTERP_NEAREST, 255)', text)
+        self.assertIn('defer: g.g_object_unref(output)', text)
+        self.assertIn('flattened*(image: Pixbuf, backgroundRgb: uint32)', text)
+        for forbidden in ('get_pixels(', 'copyMem(', 'new_subpixbuf(', 'loadPixbuf(', 'savePng(',
+                          'realize(', 'main_iteration', 'if info.alpha', 'if not info.alpha'):
+            self.assertNotIn(forbidden, text)
+
     def test_pixbuf_overlays_copy_base_and_pin_all_native_inputs_outputs(self):
         text = (ROOT / 'src/gtk2/pixbufoverlays.nim').read_text()
         self.assertLess(text.index('requireOutsideModelFunction()'), text.index('checkedInt(x)'))
