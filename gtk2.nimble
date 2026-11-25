@@ -47,6 +47,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufoverlays.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufalpha.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbuffit.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufeffects.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2clipboardpersistence.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modeldrag.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2cellrenderers.nim"
@@ -128,6 +129,9 @@ task testMappedModelDrag, "Test model row MOVE and local COPY (isolated X11 DISP
 
 task testMappedClipboardPersistence, "Test real X11 clipboard manager handoff (isolated DISPLAY/opt-in, GTK2 headers/X11)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedclipboardpersistence.nim"
+
+task testMappedPixbufEffects, "Test native Pixbuf saturation/pixelation (isolated DISPLAY/opt-in)":
+  exec "nim r --path:src --warningAsError:Deprecated tests/tmappedpixbufeffects.nim"
 
 task testMappedPixbufFit, "Test native aspect fit/rendering/interpolation/guard pages (isolated DISPLAY, GTK2_TEST_VIRTUAL_DISPLAY=1)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tmappedpixbuffit.nim"

@@ -10,8 +10,19 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Rich/custom-owner clipboard persistence is complete below.
-Optional Pixbuf effects are backlog.
+No next batch selected. Copied Pixbuf saturation/pixelation is complete below.
+
+## Completed functionality batch: copied Pixbuf saturation/pixelation
+
+- [x] `Pixbuf.saturated` with finite normalized factor checked before float32
+      conversion and optional native checkerboard. Copy real samples to a private
+      output first; apply the native effect only there. Keep same format, dimensions,
+      alpha and native rounding. No-op is independent; no codecs or site changes.
+- [x] Native ABI probe, source guards, unrealized RGB/RGBA/native-reference tests,
+      subpixbufs, invalid/pure calls, isolated pixels/lifetimes and guard pages.
+      Updated desktop example and guide. ARC/ORC with fatal warnings, full UI/
+      calculator, raw/binding/ABI suites, related mapped tests, cross-target semantic
+      checks and package/generator validation passed.
 
 ## Completed functionality batch: rich/custom-owner clipboard persistence
 
@@ -991,7 +1002,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied Pixbuf overlays (functionality batch above).
 - [x] Copied Pixbuf alpha conversion (functionality batch above).
 - [x] Copied aspect-fit Pixbuf scaling (functionality batch above).
-- [ ] Optional copied Pixbuf saturation/pixelation (deferred; no longer proposed next).
+- [x] Copied Pixbuf saturation/pixelation (batch above).
 - [x] Explicit copied text/URI/binary/image clipboard-manager persistence (batch above).
 - [x] Rich snapshot and lazy custom-owner clipboard persistence (batch above).
 - [ ] Advanced manager policy/history (outside the GTK2 clipboard API).

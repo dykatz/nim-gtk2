@@ -141,6 +141,9 @@ desktop's opt-in Store action and `testMappedClipboardPersistence` real X11 mana
 A native GTK2 timeout-cleanup critical is documented with a diagnostic and optional
 source-only patch; installed libraries are not changed.
 
+[Copied Pixbuf effects](docs/gtk2.md#copied-pixbuf-saturation-and-pixelation)
+provide grayscale, intermediate saturation and native checkerboard pixelation.
+
 Copied aspect-fit Pixbuf scaling now provides checked bounding boxes, optional
 upscaling, native interpolation and independent unchanged-size copies. See the
 [fit guide](docs/gtk2.md#copied-aspect-fit-pixbuf-scaling), desktop/icons previews and

@@ -1165,6 +1165,27 @@ constructor/accessor prototypes, colorspace width and unsigned-row/signed callba
 plus source guards accompany ARC/ORC/cross-target checks. No simulated native rendering,
 borrowed writable pixel API, parser or automatic untrusted decoding is added.
 
+### Copied Pixbuf saturation and pixelation
+
+`image.saturated(saturation = 1.0, pixelate = false)` returns independent pixels
+of the same dimensions and RGB8/RGBA8 format. Saturation is a finite factor in
+`0..1`, checked before conversion to native `gfloat` (float32). `0` gives grayscale
+when pixelation is off; `1` with pixelation off gives an unfiltered copy, also when
+the factor rounds to `1` in float32.
+
+`pixelate = true` applies GdkPixbuf's light/dark checkerboard from the top-left
+of this image, not block resizing or blur. Native luminance, rounding and channel
+math are preserved; alpha samples stay unchanged. The SDK copies actual samples
+into native-owned storage, then applies the effect there, so padded sources,
+subpixbufs and unpadded final rows do not need matching source/output strides.
+No source pixels, installed image, drag site or clipboard offer changes implicitly.
+The operation is UI-thread only, like other Pixbuf transforms.
+
+[The desktop example](../examples/desktop.nim) shows grayscale and half saturation
+with checkerboard. `nimble testMappedPixbufEffects` exercises actual rendering,
+independent lifetimes and protected final samples on isolated DISPLAY with
+`GTK2_TEST_VIRTUAL_DISPLAY=1`.
+
 ### Copied aspect-fit Pixbuf scaling
 
 `image.fitted(maxWidth, maxHeight, allowUpscale = false,

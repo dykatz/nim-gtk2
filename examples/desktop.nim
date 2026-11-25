@@ -119,6 +119,14 @@ proc main() =
     installSample(imageSample.withAlpha(keyRgb = key))) # Exact RGB only, not an alpha reset or tolerance.
   flattenAlpha.onClicked(proc () = installSample(imageSample.flattened(backgroundRgb = 0x102030'u32)))
   fitSample.onClicked(proc () = installSample(imageSample.fitted(24, 16, allowUpscale = true)))
+  let effectsRow = newHBox(spacing = 8)
+  layout.packStart(effectsRow, packShrink)
+  let grayscale = newButton("Grayscale")
+  let checkerboard = newButton("Half saturation + checkerboard")
+  effectsRow.packStart(grayscale, packShrink)
+  effectsRow.packStart(checkerboard, packShrink)
+  grayscale.onClicked(proc () = installSample(imageSample.saturated(0)))
+  checkerboard.onClicked(proc () = installSample(imageSample.saturated(0.5, pixelate = true)))
   var imageOffer: ImageClipboardOffer
   defer: imageOffer.clear()
   copyImage.onClicked(proc () =

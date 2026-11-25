@@ -62,6 +62,13 @@ gboolean nim_gtk2_clipboard_persistence_abi(void) {
   return TRUE;
 }
 
+gboolean nim_gtk2_pixbuf_effects_abi(void (*effect)(const GdkPixbuf *, GdkPixbuf *, gfloat, gboolean)) {
+  typedef char prototype[__builtin_types_compatible_p(__typeof__(effect), __typeof__(&gdk_pixbuf_saturate_and_pixelate)) ? 1 : -1];
+  (void)sizeof(prototype);
+  effect((const GdkPixbuf *)0x1120, (GdkPixbuf *)0x2240, 0.375f, (gboolean)-19); /* ABI-only callback, not GTK. */
+  return TRUE;
+}
+
 gboolean nim_gtk2_pixbuf_fit_abi(GdkPixbuf *(*scale)(const GdkPixbuf *, int, int, GdkInterpType)) {
   typedef GdkPixbuf *(*Scale)(const GdkPixbuf *, int, int, GdkInterpType);
   typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);

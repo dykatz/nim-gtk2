@@ -95,6 +95,15 @@ provided, not applied/rebuild-validated. Normal handoff tests do not claim this 
 failure fixed. The real manager also tests rich-byte retention after source exit and
 custom exact-subset retention over INCR at native shutdown.
 
+### Copied Pixbuf saturation and pixelation
+
+`Pixbuf.saturated` validates a finite normalized factor before float32 conversion,
+then copies real RGB8/RGBA8 samples into native-owned pixels. The public native
+effect runs on that private copy with matching source and destination stride.
+The optional checkerboard preserves native channel math and alpha. A no-effect
+result is still an independent copy; no codec or transfer site is touched.
+See the [effect guide](gtk2.md#copied-pixbuf-saturation-and-pixelation).
+
 ### Copied aspect-fit Pixbuf scaling
 
 Pixbuf.fitted(maxWidth,maxHeight,allowUpscale=false,interpolation=interpolateBilinear)

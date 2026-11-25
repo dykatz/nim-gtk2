@@ -17,6 +17,15 @@ else:
 proc cellRendererAbi(slot: g.guint): csize_t {.cdecl, importc: "nim_gtk2_cell_renderer_abi".}
 proc modelDragAbi(): g.gboolean {.cdecl, importc: "nim_gtk2_model_drag_abi".}
 proc persistenceAbi(): g.gboolean {.cdecl, importc: "nim_gtk2_clipboard_persistence_abi".}
+type EffectsAbi = proc (src, dest: pb.PPixbuf, saturation: g.gfloat, pixelate: g.gboolean) {.cdecl.}
+proc effectsAbi(effect: EffectsAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_effects_abi".}
+var effectCalls: int
+proc effectsProbe(src, dest: pb.PPixbuf, saturation: g.gfloat, pixelate: g.gboolean) {.cdecl.} =
+  doAssert cast[uint](src) == 0x1120 and cast[uint](dest) == 0x2240
+  doAssert saturation == 0.375'f32 and g.gint(pixelate) == -19
+  inc effectCalls
+static: doAssert pb.saturate_and_pixelate is EffectsAbi
+
 type FitScaleAbi = proc (src: pb.PPixbuf, w, h: g.gint, interpolation: pb.TInterpType): pb.PPixbuf {.cdecl.}
 proc fitAbi(scale: FitScaleAbi): g.gboolean {.cdecl, importc: "nim_gtk2_pixbuf_fit_abi".}
 var fitCalls: int
@@ -448,6 +457,9 @@ proc invokeFilter(fn: gtk.RecentFilterFunc, data: pointer): g.gboolean
   {.cdecl, importc: "nim_gtk2_invoke_filter".}
 
 suite "new raw binding native header ABI":
+  test "Pixbuf saturation native pointer/float32/signed gboolean ABI":
+    check g.toBool(effectsAbi(effectsProbe))
+    check effectCalls == 1
   test "cell renderer class slots and GType/GParamSpec registration ABI":
     let sizes = [sizeof(gtk.TCellRendererClass), offsetOf(gtk.TCellRendererClass, get_size),
       offsetOf(gtk.TCellRendererClass, render), offsetOf(gtk.TCellRendererClass, editing_canceled),

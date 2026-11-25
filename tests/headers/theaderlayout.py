@@ -128,6 +128,16 @@ class HeaderLayout(unittest.TestCase):
                           'gtk_clipboard_get_selection', 'selection_owner_set'):
             self.assertNotIn(forbidden, text)
 
+    def test_pixbuf_effects_use_private_native_pixels(self):
+        text = (ROOT / 'src/gtk2/pixbufeffects.nim').read_text()
+        for required in ('requireOutsideModelFunction()', 'saturation >= 0.0 and saturation <= 1.0',
+                         'g.gfloat(saturation)', 'transformInfo(p)', 'checkTransformAllocation',
+                         'rawPixbuf.copy_area(p, 0, 0, w, h, dst',
+                         'rawPixbuf.saturate_and_pixelate(dst, dst, factor', 'defer: g.g_object_unref(p)'):
+            self.assertIn(required, text)
+        for forbidden in ('get_pixels', 'get_rowstride', 'copyMem', 'saturate_and_pixelate(p,'):
+            self.assertNotIn(forbidden, text)
+
     def test_pixbuf_fit_uses_checked_integer_geometry_and_independent_native_pixels(self):
         text = (ROOT / 'src/gtk2/pixbuffit.nim').read_text()
         self.assertLess(text.index('requireOutsideModelFunction()'), text.index('pixbufDimension(maxWidth)'))
