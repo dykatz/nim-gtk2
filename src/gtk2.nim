@@ -490,6 +490,7 @@ include gtk2/clipboardhistory
 include gtk2/customclipboard
 include gtk2/dragiconconfig
 include gtk2/textdrag
+include gtk2/dropdecisions
 include gtk2/uridrag
 include gtk2/binarydrag
 include gtk2/imagedrag

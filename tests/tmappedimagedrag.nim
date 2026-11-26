@@ -303,8 +303,12 @@ when defined(posix) and not defined(macosx):
         var state = CancelState(widget: dest, destroy: mode == 2)
         var freed, policyFreed, calls, policies = 0
         var seen: seq[ImageDrop]
+        var decision: DropDecision
         if mode == 0:
-          state.site = dest.onImageDrop(true, proc (value: ImageDrop) = seen.add(value), maxPixels = 6)
+          let decide: DeferredDropHandler[ImageDropInfo] = proc (info: ImageDropInfo, token: DropDecision) =
+            check info.width == 2 and info.height == 3
+            decision = token
+          state.site = dest.onDeferredImageDrop(true, decide, proc (value: ImageDrop) = seen.add(value), maxPixels = 6)
         else:
           discard g.g_signal_connect_data(dest.raw, "drag-drop", cast[g.TGCallback](beforeDrop), addr state, nil, g.TGConnectFlags(0))
           state.site = dest.watch(addr freed, addr policyFreed, addr calls, addr policies)
@@ -320,6 +324,9 @@ when defined(posix) and not defined(macosx):
         startDrag(display, (cint(parseInt(ready[1])), cint(parseInt(ready[2]))))
         releaseAt(display, point(dest))
         if mode == 0:
+          require awaitUi(proc (): bool = decision.pending)
+          check seen.len == 0
+          check decision.accept()
           require awaitUi(proc (): bool = seen.len == 1)
           check pixels(seen[0].image) == @[0xabcdef80'u32, 0xabcdef80'u32, 0xabcdef80'u32,
             0xabcdef80'u32, 0xabcdef80'u32, 0xabcdef80'u32]

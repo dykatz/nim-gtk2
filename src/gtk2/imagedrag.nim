@@ -33,6 +33,9 @@ type
     wires: seq[ImageWire]
     queue: RecentBinding[ImageDrop]
     accept: ImageDropPredicate
+    deferred: DeferredDropHandler[ImageDropInfo]
+    decision: DropDecision
+    timeoutMs: int
     cleanupIdle: g.guint
     cleanupWidget: rawGtk.PWidget
   ImageDragSource* = object
@@ -88,6 +91,8 @@ proc disconnectImageSite(s: ImageSiteState) =
     releaseRecentBinding[ImageDrop](cast[pointer](s.queue), nil)
     s.queue = nil
   # Native replies cannot be canceled. Inactive sites reserve until actual receipt/timeout.
+  s.deferred = nil
+  s.decision.reject()
   if s.wires.len == 0:
     if s.receiving != 0: queueImageCleanup(s)
     else: cleanupImageSite(s)
@@ -171,6 +176,9 @@ proc imageDestDrop(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint
     try:
       for wire in s.wires:
         if wire.context == context: return g.gbool(true)
+      if s.decision.state != nil:
+        return g.gbool(s.decision.state.context == context)
+      if s.deferred != nil and s.wires.len != 0: return g.gbool(false)
       if rawGdk.drag_context_get_selected_action(context) != rawGdk.ACTION_COPY: return g.gbool(false)
       let target = rawGtk.drag_dest_find_target(s.widget, context, nil)
       if target == rawGdk.TAtom(0): return g.gbool(false)
@@ -235,10 +243,7 @@ proc imageDestData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint
       except Exception as error:
         valid = false
         reportSignalError(error)
-      if not wire.finished:
-        wire.finished = true
-        rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false), g.guint32(wire.time))
-      if valid and s.active: queueRecent(cast[pointer](s.queue), value)
+      finishPadDrop(s, wire, valid, value, value.info)
       return
 proc imageTargetTable(writable: bool): tuple[table: rawGtk.PTargetEntry, count: g.gint] =
   let list = rawGtk.list_new(nil, 0)
@@ -290,3 +295,12 @@ proc onImageDrop*(w: Widget, trusted: bool, fn: proc (value: ImageDrop) {.closur
   rawGtk.drag_dest_set(s.widget, rawGtk.TDestDefaults(rawGtk.DEST_DEFAULT_MOTION or rawGtk.DEST_DEFAULT_HIGHLIGHT),
     targets.table, targets.count, rawGdk.ACTION_COPY)
   ImageDropSite(state: s)
+
+proc onDeferredImageDrop*(w: Widget, trusted: bool, decide: DeferredDropHandler[ImageDropInfo],
+    fn: proc (value: ImageDrop) {.closure.}, timeoutMs = 3000, maxPixels = 4 * 1024 * 1024): ImageDropSite {.discardable.} =
+  requireOutsideModelFunction()
+  checkDropDecisionTimeout(timeoutMs)
+  if decide == nil: raise newException(ValueError, "drop decision callback cannot be nil")
+  result = w.onImageDrop(trusted, fn, maxPixels = maxPixels)
+  result.state.deferred = decide
+  result.state.timeoutMs = timeoutMs

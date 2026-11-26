@@ -352,10 +352,21 @@ proc main() =
       if not (uri.startsWith("urn:example:") or uri.startsWith("https://example.invalid/")):
         return false
     true # A demo namespace policy, not a file permission or full URI parser.
-  let uriDrop = uriDest.onUriDrop(proc (value: UriDrop) =
-    # Accepted native transfer is already finished. Only the observer may update UI.
-    status.text = "Accepted URI COPY at " & $value.x & "," & $value.y & ":\n" & value.uris.join("\n"),
-    accept = acceptInspection)
+  let confirmUri = newButton("Accept pending URI drop (within 5 seconds)")
+  layout.packStart(confirmUri, packShrink)
+  var pendingUri: DropDecision
+  confirmUri.onClicked(proc () =
+    if not pendingUri.accept(): status.text = "No live URI decision to accept.")
+  let decideInspection: DeferredDropHandler[UriDrop] = proc (value: UriDrop, decision: DropDecision) =
+    if not acceptInspection(value):
+      decision.reject()
+      status.text = "URI namespace rejected."
+    else:
+      pendingUri = decision
+      status.text = "Accept within 5 seconds to inspect these URIs:\n" & value.uris.join("\n")
+  let inspectAccepted = proc (value: UriDrop) =
+    status.text = "Accepted URI COPY at " & $value.x & "," & $value.y & ":\n" & value.uris.join("\n")
+  let uriDrop = uriDest.onDeferredUriDrop(decideInspection, inspectAccepted, timeoutMs = 5000)
   defer:
     uriDrag.disconnect()
     uriDrop.disconnect() # A pending native request drains without delivering to this observer.

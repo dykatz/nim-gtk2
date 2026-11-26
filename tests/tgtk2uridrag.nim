@@ -21,6 +21,26 @@ proc watchPolicy(w: Widget, observerFreed, policyFreed: ptr int, calls: ptr int)
     true
   w.onUriDrop(observe, accept = accept)
 gtk2.init()
+suite "deferred drop configuration without native input":
+  test "invalid policies/timeouts do not claim sites; trust remains mandatory":
+    let pad = newEventBox()
+    defer: pad.destroy()
+    let decide: DeferredDropHandler[UriDrop] = proc (v: UriDrop, d: DropDecision) = doAssert false
+    let observer = proc (v: UriDrop) = doAssert false
+    for ms in [-1, 0, 5001, high(int)]:
+      expect ValueError: discard pad.onDeferredUriDrop(decide, observer, timeoutMs = ms)
+    expect ValueError: discard pad.onDeferredUriDrop(nil, observer)
+    expect ValueError:
+      discard pad.onDeferredImageDrop(false, proc (v: ImageDropInfo, d: DropDecision) = discard,
+        proc (v: ImageDrop) = discard)
+    let site = pad.onDeferredUriDrop(decide, observer, timeoutMs = 1)
+    check site.connected
+    site.disconnect()
+    check not site.connected and not site.draining
+    let noDecision = default(DropDecision)
+    noDecision.reject()
+    check not noDecision.pending and not noDecision.accept()
+
 suite "URI pad configuration, no native transfers":
   test "copied values, atomic invalid replacement and independent source/destination":
     let pad = newEventBox()

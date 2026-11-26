@@ -287,14 +287,23 @@ class HeaderLayout(unittest.TestCase):
         for forbidden in ('pixbuf_new_from_data(', 'loadPixbuf(', 'request_', 'realize(', 'show(', 'sink = true'):
             self.assertNotIn(forbidden, text)
 
+    def test_deferred_drop_has_single_shot_copy_finish_and_independent_pins(self):
+        text = (ROOT / 'src/gtk2/dropdecisions.nim').read_text()
+        self.assertLess(text.index('s.context = nil'), text.index('rawGtk.drag_finish('))
+        for required in ('g.g_object_ref(context)', 'g.g_object_ref(pad)', 'monotonicDropTime() < s.deadline',
+                         'g.gbool(result), g.gbool(false)', 'g.gbool(valid), g.gbool(false)',
+                         'packet.finished = true', 'g.g_source_remove(timer)', 'let notify = move(s.notify)'):
+            self.assertIn(required, text)
+        for forbidden in ('drag_get_data', 'main_iteration', 'ACTION_MOVE'):
+            self.assertNotIn(forbidden, text)
+
     def test_image_drag_has_trust_envelope_metadata_only_policy_and_single_finish(self):
         text = (ROOT / 'src/gtk2/imagedrag.nim').read_text()
         self.assertIn('if not trusted: raise', text)
         self.assertIn('ImageDropPredicate* = proc (value: ImageDropInfo)', text)
         metadata = text.split('ImageDropInfo* = object', 1)[1].split('ImageDrop* = object', 1)[0]
         self.assertNotIn('Pixbuf', metadata)
-        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
-        self.assertIn('g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('finishPadDrop(s, wire, valid, value, value.info)', text)
         self.assertIn('selection_data_get_data_type(selection) == wire.target', text)
         self.assertIn('selection_data_get_format(selection) == 8', text)
         self.assertIn('copyClipboardImage(decoded, s.maxPixels)', text)
@@ -304,7 +313,7 @@ class HeaderLayout(unittest.TestCase):
         self.assertIn('s.accept = nil', text)
         self.assertIn('receiver: Window', text)
         self.assertIn('target_table_free(targets.table, targets.count)', text)
-        self.assertLess(text.index('valid = acceptImageDrop(s, value.info)'), text.index('rawGtk.drag_finish('))
+        self.assertLess(text.index('valid = acceptImageDrop(s, value.info)'), text.index('finishPadDrop('))
         for forbidden in ('DEST_DEFAULT_DROP', 'set_text(', 'set_uris(', 'realize(', 'show(',
                           '"gtk-drag-dest"', 'loadPixbuf(', 'set_can_store'):
             self.assertNotIn(forbidden, text)
@@ -345,8 +354,7 @@ class HeaderLayout(unittest.TestCase):
 
     def test_binary_drag_keeps_copy_finish_receiver_and_pure_scope_explicit(self):
         text = (ROOT / 'src/gtk2/binarydrag.nim').read_text()
-        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
-        self.assertIn('g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('finishPadDrop(s, wire, valid, value, value)', text)
         self.assertIn('readSelectionBytes(selection, s.atom, s.mime, s.maxBytes)', text)
         self.assertIn('finally: dec modelFunctionDepth', text)
         self.assertIn('s.accept = nil', text)
@@ -354,7 +362,7 @@ class HeaderLayout(unittest.TestCase):
         self.assertIn('rawGtk.set_screen(receiver.raw, rawGtk.get_screen(s.widget))', text)
         self.assertIn('s.wires.len != 0', text)
         self.assertIn('queueBinaryCleanup(s)', text)
-        self.assertLess(text.index('valid = acceptBinaryDrop(s, value)'), text.index('rawGtk.drag_finish('))
+        self.assertLess(text.index('valid = acceptBinaryDrop(s, value)'), text.index('finishPadDrop('))
         for forbidden in ('DEST_DEFAULT_DROP', 'set_text(', 'set_uris(', 'get_pixbuf(',
                           'realize(', 'show(', 'map(', '"gtk-drag-dest"'):
             self.assertNotIn(forbidden, text)
@@ -402,12 +410,11 @@ class HeaderLayout(unittest.TestCase):
 
     def test_uri_drag_keeps_native_finish_and_receiver_scope_explicit(self):
         text = (ROOT / 'src/gtk2/uridrag.nim').read_text()
-        self.assertEqual(text.count('rawGtk.drag_finish('), 1)
-        self.assertIn('rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false)', text)
+        self.assertIn('finishPadDrop(s, wire, valid, value, value)', text)
         self.assertIn('readSelectionUris(selection)', text)
         self.assertIn('finally: dec modelFunctionDepth', text)
         self.assertIn('s.accept = nil', text)
-        self.assertLess(text.index('valid = acceptUriDrop(s, value)'), text.index('rawGtk.drag_finish('))
+        self.assertLess(text.index('valid = acceptUriDrop(s, value)'), text.index('finishPadDrop('))
         clipboard = (ROOT / 'src/gtk2/clipboard.nim').read_text().split('proc getClipboard*', 1)[1].split('proc setText*', 1)[0]
         self.assertLess(clipboard.index('requireOutsideModelFunction()'), clipboard.index('rawGdk.atom_intern('))
         self.assertNotRegex(text, r'rawGtk\.(?:realize|show|show_all|map|drag_(?:source|dest)_add_text_targets)\s*\(')

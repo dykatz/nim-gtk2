@@ -8,6 +8,18 @@ All audited, non-deprecated concrete core GTK2 widgets currently have an ergonom
 entry point. Remaining work primarily deepens functionality. The public API is
 `import gtk2`; raw bindings remain available under `headers/`.
 
+## Completed functionality batch: deferred drop acceptance
+
+- [x] URI/binary/trusted image COPY sites optionally hand validated data (image
+      metadata only) to an idle one-shot decision. Monotonic deadline, single
+      outstanding decision, accept/reject/no DELETE, post-finish idle observer.
+- [x] Timer/idle/context/pad lifetimes independent of native receipt. Disconnect
+      drains outstanding receipt but rejects an already received pending decision.
+      Deadline or exception never acknowledges success. Desktop confirmation and
+      real XTEST/foreign INCR/image regressions; existing text/model contracts unchanged.
+      ARC/ORC with fatal native warnings, UI/calculator/bindings/layout/ABI suites,
+      cross-target semantic checks, example and generator/package validation passed.
+
 ## Next functionality batch
 
 No next batch selected. Drag icons and context observations are complete below.
@@ -1051,7 +1063,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied drag-source Pixbuf icons (functionality batch above).
 - [x] Custom drag widgets/hotspots and read-only source context snapshots (above).
 - [x] Copied synchronous application URI drop acceptance (batch above).
-- [ ] Broader application-controlled drop acceptance and asynchronous protocols.
+- [x] Deferred application-controlled URI/binary/trusted-image COPY acceptance (above).
 
 ### Printing
 

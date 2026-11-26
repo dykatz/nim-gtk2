@@ -3451,8 +3451,8 @@ owners, malformed/empty/unavailable results, cancellation, replacement, dropped
 tokens, owner destruction and reentrant/throwing callbacks. Native header probes
 check both public signatures and `char**`/full signed `gboolean` callback ABI.
 URI COPY-only pads/copied acceptance and image/binary offers are described below.
-Trusted image requests are described below; MOVE and asynchronous acceptance remain separate
-functionality batches. Raw TextLayout audits are deferred, not continued or certified
+Trusted image requests and deferred COPY acceptance are described below. Model MOVE
+has a separate contract. Raw TextLayout audits are deferred, not continued or certified
 by these features.
 
 ## Copied binary clipboard offers
@@ -3742,8 +3742,8 @@ MOVE/source-cancel, no DELETE, retained/reentrant observers, queued cancel and d
 disconnect/destroy/drain/replacement. Icon cursor/popup tests include this fourth source
 family. Seven image-target/codec plus shared seven DnD native prototypes/four signed/
 full-width signal ABI probes and source guards pin scope. Other platforms get semantic
-checks, not simulated drags. Untrusted decoding, model/editor sources, MOVE, async
-acceptance, persistence and private audits remain separate.
+checks, not simulated drags. Image pads remain COPY-only; see deferred acceptance
+below. Untrusted decoding is not supported.
 
 ## Explicitly trusted copied image clipboard requests
 
@@ -3995,7 +3995,7 @@ independent receivers and blocked replacement. Seven public native prototypes/fo
 callback signatures probe signed coordinates/gboolean and full unsigned info/time;
 source guards pin finish, copy validation and scope. Other platforms receive semantic
 checks, not simulated native drags. Trusted image requests are described above;
-trusted image pads are also available; async acceptance stays separate.
+trusted image pads are also available, including optional deferred acceptance.
 
 ## URI COPY-only drag/drop pads
 
@@ -4396,8 +4396,39 @@ TextDrop copies text, local destination x/y and unsigned 32-bit time. It queues
 observation, **not an acceptance/veto/commit callback**. User exceptions do not turn
 an already completed copy into a protocol failure. Observers may disconnect their
 site or destroy widgets safely. MOVE/deletion, URI lists, arbitrary binary targets,
-custom drag icons, model DnD and asynchronous application acceptance remain raw.
+custom plain-text acceptance and editor-specific DnD remain raw; URI, binary and
+trusted image pads have separate deferred acceptance APIs.
 No raw context/selection pointers escape this API.
+
+### Deferred application drop acceptance
+
+Use `onDeferredUriDrop`, `onDeferredBinaryDrop`, or `onDeferredImageDrop` instead
+of the synchronous site API. They validate and copy the same COPY payloads before
+scheduling `decide(value, decision)` on UI idle. The image variant still requires
+explicit trust **before** decoding and gives the decision handler metadata only.
+No new native decoder, transfer format, or authorization rule is introduced.
+
+Save the `DropDecision` to respond from a later event (for example, a confirmation
+button). `pending` reports local unresolved state; `accept()` returns true only
+if it chose to request native success, not if a source acknowledged it. `reject()`
+requests failure. Both are one-shot, UI-thread operations; stale/default tokens
+are harmless. The accepted payload reaches the ordinary observer at idle after
+native finish. Rejecting, throwing before resolution, letting the deadline pass,
+or disconnecting/destroying the pad skips that observation. An exception after
+acceptance cannot undo it. SDK drops still finish with `delete = false`.
+
+`timeoutMs` defaults to 3000 and accepts 1–5000. The monotonic deadline starts
+**after** receipt/validation, not on hover or while native transfer is draining.
+The idle callback itself can be skipped if it cannot be dispatched in time.
+This is a budget for the SDK decision, not a guarantee about a foreign source's
+lifetime or timeout. A deferred site handles at most one request/decision at once.
+Disconnect during native receipt still drains the wire; disconnect after receipt
+rejects the pending decision immediately. Do not block the UI, run a nested event
+loop, or call raw finish. Worker results must be marshalled back to the UI thread.
+
+The desktop example confirms allowed URI drops with a button. Isolated URI, binary
+and image mapped tests use real X11/XTEST, including foreign INCR and image receipt.
+Plain text/editor and model drag-and-drop keep their existing contracts.
 
 ### Transfer validation
 

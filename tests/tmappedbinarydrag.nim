@@ -289,8 +289,12 @@ when defined(posix) and not defined(macosx):
         var state = CancelState(widget: dest, destroy: mode == 2)
         var freed, policyFreed, calls, policies = 0
         var seen: seq[BinaryDrop]
+        var decision: DropDecision
         if mode == 0:
-          state.site = dest.onBinaryDrop(mime, proc (value: BinaryDrop) = seen.add(value), maxBytes = 600_013)
+          let decide: DeferredDropHandler[BinaryDrop] = proc (value: BinaryDrop, token: DropDecision) =
+            check value.bytes == largeBytes()
+            decision = token
+          state.site = dest.onDeferredBinaryDrop(mime, decide, proc (value: BinaryDrop) = seen.add(value), maxBytes = 600_013)
         else:
           discard g.g_signal_connect_data(dest.raw, "drag-drop", cast[g.TGCallback](beforeDrop), addr state, nil, g.TGConnectFlags(0))
           state.site = dest.watch(addr freed, addr policyFreed, addr calls, addr policies)
@@ -306,6 +310,9 @@ when defined(posix) and not defined(macosx):
         startDrag(display, (cint(parseInt(ready[1])), cint(parseInt(ready[2]))))
         releaseAt(display, point(dest))
         if mode == 0:
+          require awaitUi(proc (): bool = decision.pending)
+          check seen.len == 0
+          check decision.accept()
           require awaitUi(proc (): bool = seen.len == 1)
           check seen[0].mime == mime and seen[0].bytes == largeBytes()
           state.site.disconnect()

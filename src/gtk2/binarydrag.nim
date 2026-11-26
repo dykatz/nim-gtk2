@@ -31,6 +31,9 @@ type
     wires: seq[BinaryWire]
     queue: RecentBinding[BinaryDrop]
     accept: BinaryDropPredicate
+    deferred: DeferredDropHandler[BinaryDrop]
+    decision: DropDecision
+    timeoutMs: int
     cleanupIdle: g.guint
     cleanupWidget: rawGtk.PWidget
   BinaryDragSource* = object
@@ -86,6 +89,8 @@ proc disconnectBinarySite(s: BinarySiteState) =
     s.queue = nil
   s.value = BinaryData()
   # Never finish before actual reply/timeout. Keep the native site reserved while draining.
+  s.deferred = nil
+  s.decision.reject()
   if s.wires.len == 0:
     if s.receiving != 0: queueBinaryCleanup(s)
     else: cleanupBinarySite(s)
@@ -169,6 +174,9 @@ proc binaryDestDrop(instance: pointer, context: rawGdk.PDragContext, x, y: g.gin
     try:
       for wire in s.wires:
         if wire.context == context: return g.gbool(true)
+      if s.decision.state != nil:
+        return g.gbool(s.decision.state.context == context)
+      if s.deferred != nil and s.wires.len != 0: return g.gbool(false)
       if rawGdk.drag_context_get_selected_action(context) != rawGdk.ACTION_COPY: return g.gbool(false)
       let target = rawGtk.drag_dest_find_target(s.widget, context, nil)
       if target != s.atom: return g.gbool(false)
@@ -216,10 +224,7 @@ proc binaryDestData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gin
       except Exception as error:
         valid = false
         reportSignalError(error)
-      if not wire.finished:
-        wire.finished = true
-        rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false), g.guint32(wire.time))
-      if valid and s.active: queueRecent(cast[pointer](s.queue), value)
+      finishPadDrop(s, wire, valid, value, value)
       return
 proc installBinarySite(w: Widget, source: bool, mime: string): BinarySiteState =
   let p = checkTransferPad(w)
@@ -264,3 +269,12 @@ proc onBinaryDrop*(w: Widget, mime: string, fn: proc (value: BinaryDrop) {.closu
   rawGtk.drag_dest_set(s.widget, rawGtk.TDestDefaults(rawGtk.DEST_DEFAULT_MOTION or rawGtk.DEST_DEFAULT_HIGHLIGHT),
     addr target, 1, rawGdk.ACTION_COPY)
   BinaryDropSite(state: s)
+
+proc onDeferredBinaryDrop*(w: Widget, mime: string, decide: DeferredDropHandler[BinaryDrop],
+    fn: proc (value: BinaryDrop) {.closure.}, timeoutMs = 3000, maxBytes = 16 * 1024 * 1024): BinaryDropSite {.discardable.} =
+  requireOutsideModelFunction()
+  checkDropDecisionTimeout(timeoutMs)
+  if decide == nil: raise newException(ValueError, "drop decision callback cannot be nil")
+  result = w.onBinaryDrop(mime, fn, maxBytes = maxBytes)
+  result.state.deferred = decide
+  result.state.timeoutMs = timeoutMs

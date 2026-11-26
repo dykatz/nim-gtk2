@@ -27,6 +27,9 @@ type
     wires: seq[UriWire]
     queue: RecentBinding[UriDrop]
     accept: UriDropPredicate
+    deferred: DeferredDropHandler[UriDrop]
+    decision: DropDecision
+    timeoutMs: int
     cleanupIdle: g.guint
     cleanupWidget: rawGtk.PWidget
   UriDragSource* = object
@@ -81,6 +84,8 @@ proc disconnectUriSite(s: UriSiteState) =
     releaseRecentBinding[UriDrop](cast[pointer](s.queue), nil)
     s.queue = nil
   s.value = UriList()
+  s.deferred = nil
+  s.decision.reject()
   # Do not finish a pending selection early: that can retire the source before
   # it answers. The actual reply/timeout completes disconnected requests as failure.
   # Keep the destination's native URI target list and receiver until every actual
@@ -167,6 +172,9 @@ proc uriDestDrop(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
     try:
       for wire in s.wires:
         if wire.context == context: return g.gbool(true)
+      if s.decision.state != nil:
+        return g.gbool(s.decision.state.context == context)
+      if s.deferred != nil and s.wires.len != 0: return g.gbool(false)
       if rawGdk.drag_context_get_selected_action(context) != rawGdk.ACTION_COPY: return g.gbool(false)
       let target = rawGtk.drag_dest_find_target(s.widget, context, nil)
       if target != transferAtom("text/uri-list"): return g.gbool(false)
@@ -212,10 +220,7 @@ proc uriDestData(instance: pointer, context: rawGdk.PDragContext, x, y: g.gint,
             valid = acceptUriDrop(s, value)
       except ValueError: discard
       except Exception as error: reportSignalError(error)
-      if not wire.finished:
-        wire.finished = true
-        rawGtk.drag_finish(context, g.gbool(valid), g.gbool(false), g.guint32(wire.time))
-      if valid and s.active: queueRecent(cast[pointer](s.queue), value)
+      finishPadDrop(s, wire, valid, value, value)
       return
 proc installUriSite(w: Widget, source: bool): UriSiteState =
   let p = checkTransferPad(w)
@@ -255,3 +260,12 @@ proc onUriDrop*(w: Widget, fn: proc (value: UriDrop) {.closure.},
   rawGtk.drag_dest_set(s.widget, rawGtk.TDestDefaults(rawGtk.DEST_DEFAULT_MOTION or rawGtk.DEST_DEFAULT_HIGHLIGHT),
     addr target, 1, rawGdk.ACTION_COPY)
   UriDropSite(state: s)
+
+proc onDeferredUriDrop*(w: Widget, decide: DeferredDropHandler[UriDrop],
+    fn: proc (value: UriDrop) {.closure.}, timeoutMs = 3000): UriDropSite {.discardable.} =
+  requireOutsideModelFunction()
+  checkDropDecisionTimeout(timeoutMs)
+  if decide == nil: raise newException(ValueError, "drop decision callback cannot be nil")
+  result = w.onUriDrop(fn)
+  result.state.deferred = decide
+  result.state.timeoutMs = timeoutMs

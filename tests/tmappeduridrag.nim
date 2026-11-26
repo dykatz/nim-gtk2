@@ -192,6 +192,52 @@ when defined(posix) and not defined(macosx):
       require awaitUi(proc (): bool = stats.ends == 2 and seen.len == 2)
       check seen[1].uris.len == 0 and stats.deletes == 0 and stats.failed == 0
       check not site.connected and not site.draining and dest.isDestroyed
+    test "deferred COPY waits for a later decision and rejects on timeout, exception or teardown":
+      let host = newWindow("Deferred URI pads", 420, 140)
+      defer: host.destroy()
+      let row = newHBox(spacing = 30)
+      host.add(row)
+      let source = newEventBox()
+      let dest = newEventBox()
+      for pad in [source, dest]:
+        pad.setSizeRequest(150, 100)
+        row.packStart(pad)
+      discard source.enableUriDrag(["urn:example:deferred"])
+      var stats: Stats
+      observe(source, addr stats)
+      var mode, calls, observations = 0
+      var pendingDecision: DropDecision
+      let decide: DeferredDropHandler[UriDrop] = proc (v: UriDrop, decision: DropDecision) =
+        inc calls
+        check decision.pending and observations == (if mode == 0: 0 else: 1)
+        var changed = v.uris
+        changed[0] = "urn:modified"
+        pendingDecision = decision
+        if mode == 2: raise newException(ValueError, "expected deferred policy rejection")
+      let observed = proc (value: UriDrop) =
+        check value.uris == @["urn:example:deferred"]
+        inc observations
+      let site = dest.onDeferredUriDrop(decide, observed, timeoutMs = 900)
+      host.showAll()
+      settle()
+      for step in 0..4:
+        mode = step
+        startDrag(display, point(source))
+        releaseAt(display, point(dest))
+        require awaitUi(proc (): bool = calls == step+1)
+        case step
+        of 0:
+          check pendingDecision.pending and observations == 0 and stats.ends == 0
+          check pendingDecision.accept()
+          check not pendingDecision.accept()
+          check observations == 0
+        of 1: pendingDecision.reject()
+        of 4: dest.destroy()
+        else: discard # Exception and timeout each reject without an application finish.
+        require awaitUi(proc (): bool = stats.ends == step+1)
+        check not pendingDecision.pending and not pendingDecision.accept()
+        check stats.deletes == 0 and stats.wireAccepted == 1
+      check stats.wireRejected == 4 and observations == 1 and not site.connected
     test "fixed acceptance sees independent copies before observation; false/errors reject":
       for mode in 0..4:
         let host = newWindow("URI acceptance", 420, 140)

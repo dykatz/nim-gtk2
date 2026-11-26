@@ -195,6 +195,9 @@ codecs run; cancellation/limits do not sandbox decoding or native memory. See th
 and the desktop's initially-off trust/preview controls. Isolated regressions decode
 only trusted tiny fixtures.
 
+URI, binary and trusted image COPY pads support [deferred drop decisions](docs/gtk2.md#deferred-application-drop-acceptance)
+with a deadline and a one-shot accept/reject token.
+
 Drag-source icons support explicit hotspots, per-drag widget popups, and copied
 read-only source context snapshots. On text/URI/binary/image pads, setIcon copies
 pixels, clearIcon restores actual native defaults on later drags, and active contexts

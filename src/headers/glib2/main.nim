@@ -1,4 +1,5 @@
 # Included by headers/glib2.nim; do not import directly.
+proc g_get_monotonic_time*(): gint64 {.cdecl, dynlib: gliblib, importc: "g_get_monotonic_time".}
 proc g_timeout_add*(interval: guint, function, data: gpointer): guint {.
   cdecl, dynlib: gliblib, importc: "g_timeout_add".}
 

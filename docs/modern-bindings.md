@@ -40,6 +40,14 @@ layout mirror. Normal tests measure without realizing; isolated offscreen pixels
 verify drawing, clipping, row updates, and scope expiry. See the
 [renderer guide](gtk2.md#native-and-custom-treeview-cell-renderers).
 
+### Deferred drop decisions
+
+URI, binary and trusted image COPY pads can dispatch a validated payload to an idle
+policy with a one-shot `DropDecision`. Only accepted drops reach the ordinary idle
+observer. Deadline, exception and teardown resolve as native failure without source
+deletion; outstanding native reads still drain. Image decisions see metadata only and
+do not bypass decode trust. See the [drop guide](gtk2.md#deferred-application-drop-acceptance).
+
 ### Model drag-and-drop
 
 `enableRowDragReorder` opts into native, same-widget MOVE before realization for
@@ -413,8 +421,8 @@ Desktop adds explicit count-only sample pads. Hidden configuration/lifetime/puri
 and actual XTEST local/foreign/snapshot/all-byte INCR/bounds/type/format/policy/error/
 source cancellation/queued cancel/destroy/drain tests accompany seven native public
 prototype/four callback signed/full-unsigned ABI probes and source scope guards.
-See [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads). Broader custom icons,
-asynchronous acceptance, persistence and private layout audits remain separate.
+See the [binary pad guide](gtk2.md#binary-copy-only-dragdrop-pads) and
+[deferred acceptance](gtk2.md#deferred-application-drop-acceptance).
 
 ### Bounded copied binary clipboard requests
 

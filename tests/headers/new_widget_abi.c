@@ -43,6 +43,9 @@ gboolean nim_gtk2_model_drag_abi(void) {
 }
 
 gboolean nim_gtk2_clipboard_persistence_abi(void) {
+  typedef gint64 (*Monotonic)(void);
+  typedef char clock_abi[__builtin_types_compatible_p(Monotonic, __typeof__(&g_get_monotonic_time)) ? 1 : -1];
+  (void)sizeof(clock_abi);
   typedef void (*Hint)(GtkClipboard *, const GtkTargetEntry *, gint);
   typedef gboolean (*OwnerSet)(GtkClipboard *, const GtkTargetEntry *, guint, GtkClipboardGetFunc, GtkClipboardClearFunc, GObject *);
   typedef GObject *(*OwnerGet)(GtkClipboard *);
