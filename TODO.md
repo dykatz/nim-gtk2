@@ -929,7 +929,7 @@ remain separate, as do undo/redo and richer text-buffer insertion/transfer work.
 
 Native parser safety still limits this to explicitly trusted document transfers;
 owner identity is not authenticated and multi-target requests are not atomic.
-Live rich-text insertion, richer clipboard protocols/custom codecs, undo/redo and
+Custom rich-text codecs, undo/redo and
 model drag-and-drop remain separate batches.
 
 ## Completed batch: native rich-text serialization
@@ -1028,7 +1028,10 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
       envelope and post-decode preview policy. No trust bypass or downgrade on
       rejection. Updated text example, hidden and isolated ARC/ORC regressions,
       native manager target hints, UI/calculator/ABI, and cross-target checks.
-- [ ] Live rich-text insertion with a safe native reentrancy/commit contract.
+- [x] Fixed-schema live rich insertion: detached decoding, exact shared tag table,
+      native user-action grouping, guarded commit with coalesced idle SDK observers.
+      Explicit clipboard fragment insertion in the text example; no rollback, tag
+      merging, selection replacement, or undo.
 - [ ] Custom ergonomic codecs and any explicit widget save/load representation.
 - [ ] Undo/redo support with an explicit application-facing history contract.
 

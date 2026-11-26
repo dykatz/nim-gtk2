@@ -16,6 +16,41 @@ proc awaitUi(fn: proc (): bool): bool =
     sleep(10)
 gtk2.init()
 suite "native restored rich text layout":
+  test "live insertion updates both mapped views and leaves the original child anchor attached":
+    let host = newWindow("Live rich insertion", 600, 200)
+    defer: host.destroy()
+    let target = newTextBuffer("[]")
+    let first = newTextView(target)
+    let second = newTextView(target)
+    let row = newHBox()
+    row.packStart(first)
+    row.packStart(second)
+    host.add(row)
+    let anchor = target.createChildAnchor(1)
+    let child = newLabel("original anchor")
+    first.addChildAtAnchor(child, anchor)
+    let tag = target.createTag("strong")
+    tag.bold = true
+    let source = newTextBuffer("λ🙂")
+    let sourceTag = source.createTag("strong")
+    source.applyTag(sourceTag, 0, 2)
+    source.insertImage(2, newPixbuf(24, 18, 0x2878c0ff'u32))
+    let fmt = newTextFormat("mapped-insert")
+    let bytes = source.serialize(fmt)
+    host.showAll()
+    require awaitUi(proc (): bool = second.allocation.width > 100)
+    check target.insertRichText(1, fmt, bytes) == (1, 4)
+    require awaitUi(proc (): bool =
+      for view in [first, second]:
+        if view.buffer.raw != target.raw: return false
+        var iter: n.TTextIter
+        var rect: gd.TRectangle
+        n.get_iter_at_offset(target.raw, addr iter, 3)
+        n.get_iter_location(view.raw, addr iter, addr rect)
+        if rect.width < 24 or rect.height < 18: return false
+      true)
+    check target.text == "[λ🙂]" and target.hasTag(tag, 1)
+    check not anchor.deleted and anchor.offset == 4 and anchor.widgets.len == 1
   test "explicit successful import replaces shared views only after decoding":
     let host = newWindow("Rich-text round trip", 700, 300)
     defer: host.destroy()

@@ -332,6 +332,8 @@ Rich clipboard document transfer offers immutable snapshots, ordered native tags
 negotiation, optional envelope/preview admission policies, and cancellable
 requests with explicit native-parser trust and text fallback. Imports remain
 detached until the application commits them; plain copy/paste is unchanged.
+[Live rich insertion](docs/gtk2.md#live-rich-text-insertion) commits a staged
+fragment against the destination's existing tag schema without replacing its buffer.
 See the [rich clipboard guide](docs/gtk2.md#rich-clipboard-negotiation) and expanded
 [examples/text.nim](examples/text.nim). `testMappedRichClipboard` requires an
 explicitly opted-in isolated display.

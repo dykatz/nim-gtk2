@@ -111,18 +111,22 @@ proc disconnectSignals*(b: TextBuffer) =
   disconnectObjectSignals(b)
 
 proc onChanged*(b: TextBuffer, fn: proc () {.closure.}): Connection {.discardable.} =
-  connect(b, "changed", fn, after = true)
+  connect(b, "changed", fn, after = true, deferForRichCommit = true)
 proc onModifiedChanged*(b: TextBuffer, fn: proc () {.closure.}): Connection {.discardable.} =
-  connect(b, "modified-changed", fn)
+  connect(b, "modified-changed", fn, deferForRichCommit = true)
 proc textCursorThunk(instance, paramSpec, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
-    let fn = cast[Callback](data).fn
+    let callback = cast[Callback](data)
+    if richCommitActive or callback.idle != 0:
+      deferCallback(callback, g.G_PRIORITY_HIGH_IDLE)
+      return
+    let fn = callback.fn
     try: fn()
     except Exception as error: reportSignalError(error)
 proc onCursorMoved*(b: TextBuffer, fn: proc () {.closure.}): Connection {.discardable.} =
   let p = b.raw
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
-  let callback = Callback(fn: fn)
+  let callback = Callback(fn: fn, coalesce: true)
   GC_ref(callback)
   let id = g.g_signal_connect_data(p, "notify::cursor-position", cast[g.TGCallback](textCursorThunk),
     cast[pointer](callback), releaseCallback, g.TGConnectFlags(0))

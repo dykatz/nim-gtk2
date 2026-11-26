@@ -168,6 +168,30 @@ suite "rich clipboard negotiation on isolated display":
     let plain = c.requestRichText([first, second], false, report, inspect = inspect, accept = denyPlain)
     require awaitUi(proc (): bool = not plain.pending)
     check value.kind == richRejected and value.mime == "" and inspected == 0
+  test "accepted rich fragment inserts into the same live buffer; competing request is canceled":
+    let c = getClipboard()
+    defer: c.clear()
+    discard c.offerRichText(archived(), "no fallback")
+    let target = newTextBuffer("[]")
+    let view = newTextView(target)
+    defer: view.destroy()
+    let otherView = newTextView(target)
+    defer: otherView.destroy()
+    let tag = target.createTag("strong")
+    tag.italic = true
+    var delivered, competing = 0
+    let fixed = newTextFormat("clipboard-v1")
+    let insertAccepted = proc (reply: RichClipboardResult) =
+      doAssert reply.kind == richDocument
+      doAssert target.insertRichText(1, reply.document) == (1, 12)
+      inc delivered
+    let request = c.requestRichText(view, [fixed], true, insertAccepted, tagsFrom = target)
+    let queued = c.requestRichText(otherView, [fixed], true,
+      proc (reply: RichClipboardResult) = inc(competing), tagsFrom = target)
+    require awaitUi(proc (): bool = not request.pending and not queued.pending)
+    check delivered == 1 and competing == 0
+    check view.buffer.raw == otherView.buffer.raw and view.buffer.raw == target.raw
+    check target.text == "[foreign λ🙂]" and target.hasTag(tag, 1) and tag.italic
   test "fixed schema controls rich tag policy independently of the sender":
     let c = getClipboard()
     defer: c.clear()

@@ -42,7 +42,7 @@ type
     id: g.gulong
   Callback = ref object
     fn: proc () {.closure.}
-    deferForEntryPolicy, coalesce, cancelled: bool
+    deferForEntryPolicy, deferForRichCommit, coalesce, cancelled: bool
     pending: int
     idle: g.guint
 
@@ -53,12 +53,15 @@ const objectStateKey = "nim-gtk2-owned-object-state"
 # Synchronous model functions consume copied data, not live GUI handles. Native
 # traversals continue after they return, so last-handle releases wait for UI idle.
 var modelFunctionDepth {.threadvar.}: int
+var richCommitActive {.threadvar.}: bool
 type DeferredModelRelease = object
   p: pointer
   handlers: seq[g.gulong]
 var deferredModelReleases {.threadvar.}: seq[DeferredModelRelease]
 var deferredModelReleaseIdle {.threadvar.}: g.guint
 proc requireOutsideModelFunction() =
+  if richCommitActive:
+    raise newException(ValueError, "GTK handle access is forbidden during native rich-text insertion")
   if modelFunctionDepth != 0:
     raise newException(ValueError, "GTK handle access is forbidden inside a synchronous model function; use copied row values")
 proc flushModelReleases(data: pointer): g.gboolean {.cdecl, gcsafe.} =
@@ -347,6 +350,7 @@ proc releaseCallbackIdle(data: pointer) {.cdecl, gcsafe.} =
 proc dispatchCallbackIdle(data: pointer): g.gboolean {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
     let callback = cast[Callback](data)
+    if modelFunctionDepth != 0: return g.gbool(true)
     callback.idle = 0
     let count = callback.pending
     callback.pending = 0
@@ -356,21 +360,27 @@ proc dispatchCallbackIdle(data: pointer): g.gboolean {.cdecl, gcsafe.} =
       try: fn()
       except Exception as error: reportSignalError(error)
     g.gbool(false)
+proc deferCallback(callback: Callback, priority: g.gint) =
+  if callback.coalesce: callback.pending = 1
+  else: inc callback.pending
+  if callback.idle == 0:
+    GC_ref(callback)
+    callback.idle = g.g_idle_add_full(priority, cast[pointer](dispatchCallbackIdle),
+      cast[pointer](callback), cast[pointer](releaseCallbackIdle))
+
 proc signalThunk(instance, data: pointer) {.cdecl, gcsafe.} =
   # GTK callbacks execute only on the UI thread. The legacy raw binding marks
   # callbacks gcsafe, though user closures may access UI-thread-local state.
   {.cast(gcsafe).}:
     # Copy the closure before calling: the callback may disconnect itself.
     let callback = cast[Callback](data)
+    if callback.deferForRichCommit and (richCommitActive or callback.idle != 0):
+      deferCallback(callback, g.G_PRIORITY_HIGH_IDLE)
+      return
     if callback.deferForEntryPolicy and (callback.idle != 0 or
         g.get_data(cast[g.PGObject](instance), completionDeferredKey) != nil or
         g.get_data(cast[g.PGObject](instance), entryPolicyDeferredKey) != nil):
-      if callback.coalesce: callback.pending = 1
-      else: inc callback.pending
-      if callback.idle == 0:
-        GC_ref(callback)
-        callback.idle = g.g_idle_add_full(g.G_PRIORITY_DEFAULT_IDLE, cast[pointer](dispatchCallbackIdle),
-          cast[pointer](callback), cast[pointer](releaseCallbackIdle))
+      deferCallback(callback, g.G_PRIORITY_DEFAULT_IDLE)
       return
     let fn = callback.fn
     try:
@@ -379,12 +389,14 @@ proc signalThunk(instance, data: pointer) {.cdecl, gcsafe.} =
       # Never unwind a Nim exception through the GTK C stack.
       reportSignalError(error)
 
-proc connect(w: ObjectHandle, name: cstring, fn: proc () {.closure.}, after = false): Connection =
+proc connect(w: ObjectHandle, name: cstring, fn: proc () {.closure.}, after = false,
+             deferForRichCommit = false): Connection =
   let p = nativePointer(w)
   if fn == nil: raise newException(ValueError, "signal callback cannot be nil")
   let isEntry = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.entry_get_type())
   let isCombo = g.G_TYPE_CHECK_INSTANCE_TYPE(p, rawGtk.combo_box_get_type())
-  let callback = Callback(fn: fn, coalesce: $name == "changed",
+  let callback = Callback(fn: fn, coalesce: $name == "changed" or deferForRichCommit,
+    deferForRichCommit: deferForRichCommit,
     deferForEntryPolicy: (isEntry and $name in ["changed", "activate"]) or
       (isCombo and $name == "changed"))
   GC_ref(callback)
@@ -515,3 +527,4 @@ include gtk2/iconselection
 include gtk2/textanchors
 include gtk2/textserialization
 include gtk2/richclipboard
+include gtk2/richinsertion

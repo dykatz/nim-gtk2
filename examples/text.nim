@@ -86,10 +86,12 @@ proc main() =
   let richCopy = newButton("Copy document (includes hidden text)")
   let permitRich = newButton("Allow retention of copied document")
   let richImport = newButton("Import clipboard as document")
+  let richInsert = newButton("Insert rich at cursor")
   let trustRich = newCheckButton("Trust native rich owner")
   richTools.packStart(richCopy, packShrink)
   richTools.packStart(permitRich, packShrink)
   richTools.packStart(richImport, packShrink)
+  richTools.packStart(richInsert, packShrink)
   richTools.packStart(trustRich, packShrink)
   layout.packStart(richTools, packShrink)
   let clipboard = getClipboard() # Does not overwrite its contents.
@@ -203,6 +205,26 @@ proc main() =
           status.text = "Imported plain text as a new document"
         of richRejected: status.text = "Rich clipboard rejected: " & value.error
         of richUnavailable: status.text = "Clipboard has no compatible document/text",
+      maxBytes = 4 * 1024 * 1024, accept = acceptImport))
+  let fixedRich = newTextFormat("nim-gtk2-text-example")
+  let fixedStandard = newTextFormat()
+  richInsert.onClicked(proc () =
+    richRequest.cancel()
+    if not trustRich.active:
+      status.text = "Enable native rich owner trust before inserting."
+      return
+    let destination = buffer
+    let insertAccepted = proc (value: RichClipboardResult) =
+      case value.kind
+      of richDocument:
+        # The request decoded against the existing table. Do not replace the
+        # selection; use the current cursor at delivery and native mark gravity.
+        let inserted = destination.insertRichText(destination.cursorOffset, value.document)
+        status.text = "Inserted " & $(inserted.last - inserted.first) & " rich characters"
+      of richRejected: status.text = "Rich clipboard rejected: " & value.error
+      else: status.text = "Clipboard has no compatible rich fragment."
+    richRequest = clipboard.requestRichText(editor, [fixedRich, fixedStandard], true,
+      insertAccepted, tagsFrom = destination, fallbackToText = false,
       maxBytes = 4 * 1024 * 1024, accept = acceptImport))
   saveRich.onClicked(proc () =
     try:

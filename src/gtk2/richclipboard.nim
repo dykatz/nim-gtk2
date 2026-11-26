@@ -33,7 +33,7 @@ type
     index, maxBytes: int
     inspect: RichEnvelopePolicy
     accept: RichPreviewPolicy
-    advance: bool
+    advance, ownerEdited: bool
     schema: TextBuffer
     owner: TextView
     buffer: TextBuffer
@@ -141,7 +141,8 @@ proc cancel*(request: RichTextRequest) =
   requireOutsideModelFunction()
   if request.state != nil: releaseRichRequest(request.state)
 proc richOwnerCurrent(s: RichRequestState): bool =
-  s.owner.state == nil or (not s.owner.isDestroyed and s.owner.buffer.raw == s.buffer.raw)
+  not s.ownerEdited and (s.owner.state == nil or
+    (not s.owner.isDestroyed and s.owner.buffer.raw == s.buffer.raw))
 proc releaseRichIdle(data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}: GC_unref(cast[RichRequestState](data))
 proc requestRichPlain(s: RichRequestState)
@@ -290,7 +291,13 @@ proc startRichRequest(clipboard: Clipboard, owner: TextView, formats: openArray[
     s.buffer = owner.buffer
     let request = result
     s.connections.add(owner.onDestroy(proc () = request.cancel()))
-    s.connections.add(s.buffer.onChanged(proc () = request.cancel()))
+    # Internal invalidation is synchronous even during rich insertion. Do not
+    # run application code or release owner/schema pins on the native stack.
+    s.connections.add(connect(s.buffer, "changed", proc () =
+      if richCommitActive:
+        s.ownerEdited = true
+        queueRichRequest(s)
+      else: request.cancel(), after = true))
   if trusted: requestNextRich(s)
   else: requestRichPlain(s) # No native rich bytes requested or decoded without opt-in.
 proc requestRichText*(clipboard: Clipboard, format: TextFormat, trusted: bool,

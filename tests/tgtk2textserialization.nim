@@ -18,8 +18,90 @@ proc archived(finalized: ptr int): SerializedText =
   buffer.applyTag(tag, 0, 2)
   g.weak_ref(cast[g.PGObject](buffer.raw), gone, finalized)
   buffer.serialize(newTextFormat(canCreateTags = true))
+type InsertProbe = object
+  buffer: ui.TextBuffer
+  begins, ends, blocked, beforeCount, afterCount: int
+proc noteBegin(instance, data: pointer) {.cdecl, gcsafe.} =
+  {.cast(gcsafe).}:
+    let p = cast[ptr InsertProbe](data)
+    inc p.begins
+    p.beforeCount = n.get_char_count(cast[n.PTextBuffer](instance)).int
+    try: p.buffer.appendText("reentrant")
+    except ValueError: inc p.blocked
+proc noteEnd(instance, data: pointer) {.cdecl.} =
+  let p = cast[ptr InsertProbe](data)
+  inc p.ends
+  p.afterCount = n.get_char_count(cast[n.PTextBuffer](instance)).int
+proc drain() =
+  for i in 0..<128:
+    if n.events_pending() == 0: break
+    discard n.main_iteration_do(g.gbool(false))
 ui.init()
 suite "native rich-text serialization (unmapped)":
+  test "live insertion stages parsing and emits one native user action, then coalesced SDK observers":
+    let sender = newTextBuffer("λ🙂\n")
+    let senderTag = sender.createTag("emphasis")
+    senderTag.bold = true
+    sender.applyTag(senderTag, 0, 2)
+    sender.insertImage(2, newPixbuf(3, 2, 0x123456ff'u32))
+    let fixed = newTextFormat("insert")
+    let payload = sender.serialize(fixed)
+    let dest = newTextBuffer("ab")
+    let view = newTextView(dest)
+    defer: view.destroy()
+    let tag = dest.createTag("emphasis")
+    tag.italic = true
+    let left = dest.createMark(1)
+    let right = dest.createMark(1, leftGravity = false)
+    dest.cursorOffset = 1
+    var probe = InsertProbe(buffer: dest)
+    let raw = dest.raw
+    let beginId = g.g_signal_connect_data(raw, "begin-user-action", cast[g.TGCallback](noteBegin), addr probe, nil, g.TGConnectFlags(0))
+    let endId = g.g_signal_connect_data(raw, "end-user-action", cast[g.TGCallback](noteEnd), addr probe, nil, g.TGConnectFlags(0))
+    defer:
+      g.g_signal_handler_disconnect(raw, beginId)
+      g.g_signal_handler_disconnect(raw, endId)
+    var changes, dirty, cursor, canceled: int
+    let changed = dest.onChanged(proc () =
+      inc changes
+      check dest.text == "aλ🙂\nb"
+      check dest.hasTag(tag, 1) and imageAt(dest, 3))
+    discard dest.onModifiedChanged(proc () = inc dirty)
+    discard dest.onCursorMoved(proc () = inc cursor)
+    let notDelivered = dest.onChanged(proc () = inc canceled)
+    expect ValueError: discard dest.insertRichText(0, newTextFormat("insert", canCreateTags = true), payload)
+    expect ValueError: discard dest.insertRichText(0, newTextBuffer("other table"))
+    expect ValueError: discard dest.insertRichText(0, dest)
+    expect ValueError: discard dest.insertRichText(3, fixed, payload)
+    let unknown = newTextBuffer("untouched")
+    expect TextSerializationError: discard unknown.insertRichText(0, fixed, payload)
+    check unknown.text == "untouched" and not unknown.modified
+    check dest.text == "ab" and not dest.modified and probe.begins == 0
+    check dest.insertRichText(1, fixed, payload) == (1, 5)
+    check probe.begins == 1 and probe.ends == 1 and probe.blocked == 1
+    check probe.beforeCount == 2 and probe.afterCount == 6
+    check view.buffer.raw == raw and dest.modified
+    check tag.italic and not tag.bold and left.offset == 1 and right.offset == 5
+    check changes == 0 and dirty == 0 and cursor == 0
+    notDelivered.disconnect()
+    drain()
+    check changes == 1 and dirty == 1 and cursor == 1 and canceled == 0
+    changed.disconnect()
+    let empty = fixed.deserialize(newTextBuffer().serialize(fixed), tagsFrom = dest)
+    check dest.insertRichText(0, empty) == (0, 0) and probe.begins == 1
+    discard empty.createChildAnchor(0)
+    expect ValueError: discard dest.insertRichText(0, empty)
+    check dest.text == "aλ🙂\nb" and probe.begins == 1
+    var reentered = false
+    let editableObserver = dest.onChanged(proc () =
+      if not reentered:
+        reentered = true
+        dest.appendText("!"))
+    check dest.insertRichText(0, fixed, payload) == (0, 4)
+    check not reentered
+    drain()
+    check reentered and dest.text == "λ🙂\naλ🙂\nb!"
+    editableObserver.disconnect()
   test "raw native registration, policy, transferred format arrays and unregister":
     let buffer = n.text_buffer_new(nil)
     defer: g.g_object_unref(buffer)

@@ -844,6 +844,12 @@ gboolean nim_gtk2_rich_clipboard_abi(GtkClipboardGetFunc get, GtkClipboardClearF
 typedef gboolean (*NimTextDeserialize)(GtkTextBuffer *, GtkTextBuffer *, GdkAtom,
   GtkTextIter *, const guint8 *, gsize, GError **);
 gboolean nim_gtk2_text_serialization_abi(GtkTextBufferSerializeFunc serialize, NimTextDeserialize deserialize) {
+  typedef void (*InsertRange)(GtkTextBuffer *, GtkTextIter *, const GtkTextIter *, const GtkTextIter *);
+  typedef void (*UserAction)(GtkTextBuffer *);
+  typedef char insert_range_abi[__builtin_types_compatible_p(InsertRange, __typeof__(&gtk_text_buffer_insert_range)) ? 1 : -1];
+  typedef char begin_action_abi[__builtin_types_compatible_p(UserAction, __typeof__(&gtk_text_buffer_begin_user_action)) ? 1 : -1];
+  typedef char end_action_abi[__builtin_types_compatible_p(UserAction, __typeof__(&gtk_text_buffer_end_user_action)) ? 1 : -1];
+  (void)sizeof(insert_range_abi); (void)sizeof(begin_action_abi); (void)sizeof(end_action_abi);
   typedef char signature[__builtin_types_compatible_p(NimTextDeserialize,
     __typeof__(&gtk_text_buffer_deserialize)) ? 1 : -1];
   gsize length = 0, wide = sizeof(gsize) == 8 ? (gsize)0x100000033ULL : 0x33;

@@ -599,7 +599,9 @@ native data, not a sandbox. The opt-in tests/headers/text_serialization.c diagno
 and patches/gtk2-text-serialization.patch document native progress/error/cleanup
 defects; installed libraries and native warnings are unchanged. See docs/gtk2.md
 for policy, object limits and the expanded text example. Explicit rich clipboard
-document transfer is covered above; live insertion, custom ergonomic codecs and
+document transfer is covered above. Fixed-schema `insertRichText` stages in a
+separate buffer, then commits a native user action with SDK observations deferred.
+See [live insertion](gtk2.md#live-rich-text-insertion). Custom ergonomic codecs and
 undo remain separate work.
 
 ### Text child anchors and embedded widgets

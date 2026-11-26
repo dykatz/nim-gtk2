@@ -6354,8 +6354,43 @@ C probes cover native callbacks, pointer-sized atoms/gsize, gboolean and GError*
 testMappedTextSerialization checks restored tag/image layout and explicit two-view
 buffer replacement; like other mapped suites it requires an opted-in isolated
 display and GTK2_TEST_VIRTUAL_DISPLAY=1. Calls and final releases remain UI-thread
-ARC/ORC operations. Rich clipboard negotiation is covered below. Live insertion, custom codecs,
+ARC/ORC operations. Rich clipboard negotiation and fixed-schema insertion are covered below. Custom codecs,
 widget serialization and undo/redo remain separate work.
+
+## Live rich-text insertion
+
+`destination.insertRichText(offset, format, snapshot)` first decodes trusted
+native bytes into a detached buffer using the destination's tag table. The
+format must have `canCreateTags = false`; unknown tags fail during staging.
+An error before commit leaves the destination text, tags, marks and modified
+flag untouched. To insert from the clipboard, use `requestRichText(...,
+tagsFrom = destination)` and explicitly commit an accepted `richDocument`:
+
+```nim
+let inserted = destination.insertRichText(destination.cursorOffset, reply.document)
+```
+
+The buffer overload requires a distinct fragment with the **same native tag
+table**, not merely matching tag names. Insertion preserves the live buffer,
+shared views, marks and existing child anchors. It copies the fragment's text
+and applied tags using native `gtk_text_buffer_insert_range`; inline Pixbufs
+are referenced, not cloned. Destination tag properties and priorities, native
+surrounding-tag inheritance, and mark gravity still apply. Fragments containing
+child anchors are rejected. The result is a half-open Unicode offset range at
+commit. An empty fragment is a no-op. Insertion is programmatic: it bypasses
+editability policy, does not replace the selection or explicitly move the cursor,
+and does not create an undo record.
+
+The nonempty commit is grouped as one native user action. GTK emits its native
+signals synchronously, so raw observers can see intermediate state. SDK
+`onChanged`, `onModifiedChanged` and `onCursorMoved` notifications that fire during
+commit are coalesced per connection and delivered at UI idle afterward. Later
+edits before that idle can coalesce with a pending observation; disconnecting
+cancels it. An outstanding owner-bound rich clipboard request is invalidated
+by the insertion before it can deliver a stale result. SDK handle access is guarded and final native releases are deferred
+during commit. Raw handlers must not mutate either buffer or its tag table,
+suppress default handlers, destroy involved objects, or iterate the main loop
+during insertion. This is neither a raw-FFI sandbox nor a rollback transaction.
 
 ## Rich clipboard negotiation
 
@@ -6639,7 +6674,7 @@ Other gaps include standalone popup positioning and arbitrary/custom cell render
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
 custom rich clipboard codecs, untrusted image decoding, other asynchronous protocols
 acceptance and MOVE/model drag-and-drop,
-undo and live rich-text insertion, actual print jobs,
+undo, tag-table merging, actual print jobs,
 arbitrary GObject properties,
 widget subclass virtual methods, or gtkmm's broader GDK/Pango abstractions.
 Use the raw API for those while this layer grows. No gtkmm C++ runtime is needed.
