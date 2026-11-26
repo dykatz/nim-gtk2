@@ -98,6 +98,13 @@ class HeaderLayout(unittest.TestCase):
                           'ACTION_MOVE', 'removeRow(', 'drag-data-received'):
             self.assertNotIn(forbidden, local)
 
+    def test_clipboard_history_has_no_native_capture_or_manager_hooks(self):
+        text = (ROOT / 'src/gtk2/clipboardhistory.nim').read_text()
+        self.assertIn('if not retain: return historyDenied', text)
+        self.assertIn('clipboard.offerText(history.text(index))', text)
+        for forbidden in ('rawGtk.', 'rawGdk.', 'allowPersistence(', 'writeFile(', 'requestText('):
+            self.assertNotIn(forbidden, text)
+
     def test_custom_clipboard_uses_unique_native_owner_and_explicit_subset(self):
         text = (ROOT / 'src/gtk2/customclipboard.nim').read_text()
         for required in ('g.g_object_new(g.G_TYPE_OBJECT, nil)', 'rawGtk.set_with_owner',

@@ -54,9 +54,12 @@ suite "explicit clipboard persistence pre-native contracts":
       try: default(RichClipboardOffer).store()
       except ValueError as error:
         if error.msg == guard: inc denied
+      try: discard default(ClipboardHistory).restoreText(-1, c)
+      except ValueError as error:
+        if error.msg == guard: inc denied
       try: c.setText("not published")
       except ValueError as error:
         if error.msg == guard: inc denied
       true)
     completion.refilter()
-    check calls > 0 and denied == calls*6
+    check calls > 0 and denied == calls*7

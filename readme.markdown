@@ -133,6 +133,9 @@ can bind an existing native renderer or draw custom cells with scoped Cairo.
 row moves (including TreeStore subtrees) and same-application row copies between
 TreeView and IconView, with application-controlled placement.
 
+[Application clipboard history](docs/gtk2.md#explicit-application-clipboard-history)
+keeps user-selected text in bounded RAM, independently of any desktop manager.
+
 Explicit clipboard-manager persistence supports copied text/URI/binary/image/rich
 and lazy custom-owner offers with exact-target authorization and native handoff, without invented success
 or durability guarantees. SDK setText no longer implicitly authorizes storage.

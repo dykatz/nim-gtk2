@@ -305,6 +305,35 @@ proc main() =
     if not status.isDestroyed: status.text = report
     if not storeOffer.isDestroyed and not permitPersistence.isDestroyed:
       storeOffer.sensitive = permitPersistence.active)
+  let historyRow = newHBox(spacing = 8)
+  layout.packStart(historyRow, packShrink)
+  let rememberText = newButton("Remember current text in this window")
+  let restoreText = newButton("Restore newest history entry")
+  let forgetText = newButton("Forget local history")
+  for button in [rememberText, restoreText, forgetText]: historyRow.packStart(button, packShrink)
+  restoreText.sensitive = false
+  var history = newClipboardHistory(maxEntries = 8, maxBytes = 4096)
+  var historyRequest: TextRequest
+  defer: historyRequest.cancel()
+  rememberText.onClicked(proc () =
+    historyRequest.cancel()
+    historyRequest = getClipboard().requestText(window, proc (reply: ClipboardText) =
+      case history.remember(reply, retain = true)
+      of historyRecorded, historyRefreshed:
+        status.text = $history.len & " local text entries (RAM only)."
+      of historyUnavailable: status.text = "No clipboard text to remember."
+      of historyTooLarge: status.text = "Text exceeds the local history budget."
+      of historyDenied: discard
+      restoreText.sensitive = history.len != 0))
+  restoreText.onClicked(proc () =
+    if history.len > 0:
+      textOffer = history.restoreText(0, getClipboard())
+      status.text = "Restored local text without authorizing manager retention.")
+  forgetText.onClicked(proc () =
+    historyRequest.cancel()
+    history.clear()
+    restoreText.sensitive = false
+    status.text = "Local history forgotten; desktop clipboard unchanged.")
   let uriPads = newHBox(spacing = 16)
   layout.packStart(uriPads, packShrink)
   let uriSource = newEventBox()

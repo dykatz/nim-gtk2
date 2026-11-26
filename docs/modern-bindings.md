@@ -53,6 +53,14 @@ and trees examples show cross-view projection and native subtree reparenting.
 Isolated XTEST checks both modes, rejection, snapshot timing and receiver teardown.
 See the [model guide](gtk2.md#model-drag-and-drop).
 
+### Application clipboard history
+
+`ClipboardHistory` stores only explicitly admitted UTF-8 text in an application-owned
+bounded RAM value. It deduplicates exact text, evicts oldest entries, and restores
+through a fresh non-storable text offer. It never monitors owners, writes history,
+or reads or changes an external manager's settings. See the
+[history guide](gtk2.md#explicit-application-clipboard-history).
+
 ### Explicit clipboard-manager persistence
 
 Copied text/URI/binary/image offers now expose allowPersistence() (exact offered target

@@ -4116,7 +4116,8 @@ URI validity or image trust. For a rich offer, authorization covers the serializ
 format **and** all offered plain fallback targets. That snapshot may contain hidden
 text, tags and embedded images. Retention never authorizes decoding: recipients
 still need explicit trust. Raw owners, custom displays/selections, manager policy,
-daemon implementation and clipboard-history management remain outside the SDK.
+daemon implementation and external manager history remain outside the SDK. The
+application-owned text history below is independent of those managers.
 
 `clipboard.offerCustom(targets, provider, maxBytes = 16 * 1024 * 1024)` publishes
 1–256 distinct application MIME targets under a fresh native GObject owner. For
@@ -4212,6 +4213,34 @@ not native Windows/macOS manager coverage. Header prototypes/source guards verif
 bridge. Native unresponsive-manager timeout cleanup was separately reproduced under
 fatal warnings (known exit1 defect above), not repaired or counted as passing.
 Installed GTK/libraries/manager configuration are never changed.
+
+### Explicit application clipboard history
+
+`newClipboardHistory(maxEntries = 32, maxBytes = 256 * 1024)` creates a local,
+in-memory value. It does not read the clipboard, watch owner changes, claim
+`CLIPBOARD_MANAGER`, or share state with another application. Use
+`history.remember(text, retain = allowed)` for an application-provided string, or
+pass the `ClipboardText` from an explicit `requestText` with the same retention
+choice. Decide permission at delivery if it may change while the request is
+pending; cancel pending requests when the user asks to forget history. The history
+itself never requests or decodes data.
+
+Entries are copied UTF-8 text, newest first. Duplicate text moves to the front
+without adding a second entry. New text evicts the oldest entries as needed to
+meet both limits. The byte budget counts UTF-8 payload, not heap overhead; it
+cannot bound the earlier native clipboard conversion. Denied, unavailable, or
+oversized input leaves history unchanged. Available empty text is a valid entry.
+In-budget invalid UTF-8 or embedded NUL raises `ValueError`.
+
+Use `len`, `byteCount`, `text(index)`, `forget(index)`, and `clear()` to inspect or
+remove local entries. These value operations do not require GTK initialization.
+`history.restoreText(index, clipboard)` explicitly offers a copied entry using
+`offerText`, returns a `TextClipboardOffer`, and does not reorder history or authorize
+manager persistence. Forgetting history does not securely erase bytes, withdraw
+current ownership, cancel caller-owned requests, or delete copies held elsewhere.
+There is no disk history or rich/image/binary capture. The desktop example exposes
+separate Remember, Restore, and Forget actions. Isolated
+`testMappedClipboardPersistence` verifies restoration without `SAVE_TARGETS`.
 
 ### Nonblocking clipboard requests
 

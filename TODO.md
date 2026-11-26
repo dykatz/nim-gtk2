@@ -10,7 +10,18 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Copied Pixbuf saturation/pixelation is complete below.
+No next batch selected. Explicit application clipboard history is complete below.
+
+## Completed functionality batch: application clipboard history
+
+- [x] Bounded RAM-only UTF-8 history with explicit per-capture admission, exact
+      duplicate promotion, oldest eviction, selective forget and clear. Pure value
+      operations do not initialize GTK or observe the clipboard.
+- [x] Explicit restoration creates a fresh non-storable text offer; forgetting
+      does not change clipboard ownership. Desktop Remember/Restore/Forget actions,
+      docs and pure plus isolated desktop regressions.
+- [x] Documented the boundary: GTK2 clipboard-manager handoff does not expose
+      manager history/configuration. No daemon, manager replacement or private IPC.
 
 ## Completed functionality batch: copied Pixbuf saturation/pixelation
 
@@ -1005,7 +1016,8 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied Pixbuf saturation/pixelation (batch above).
 - [x] Explicit copied text/URI/binary/image clipboard-manager persistence (batch above).
 - [x] Rich snapshot and lazy custom-owner clipboard persistence (batch above).
-- [ ] Advanced manager policy/history (outside the GTK2 clipboard API).
+- [x] Application-owned clipboard history and retention policy (batch above).
+- External manager policy/history control is outside the GTK2 clipboard API.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).

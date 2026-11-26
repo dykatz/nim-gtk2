@@ -145,6 +145,29 @@ suite "native clipboard manager persistence":
     expect ValueError: offer.allowPersistence()
     expect ValueError: offer.store()
     check replacement.active
+  test "explicit history capture/forget/restore does not authorize manager retention":
+    let c = getClipboard()
+    defer: c.clear()
+    let original = c.offerText("remember λ")
+    original.allowPersistence()
+    check c.hasSaveTargets()
+    var history = newClipboardHistory()
+    var done = false
+    discard c.requestText(proc (v: ClipboardText) =
+      check history.remember(v, retain = true) == historyRecorded
+      done = true)
+    require awaitUi(proc (): bool = done)
+    let other = c.offerText("unrecorded replacement")
+    check history.len == 1 and history.text(0) == "remember λ"
+    let restored = history.restoreText(0, c)
+    check not other.active and restored.active and not c.hasSaveTargets()
+    history.clear()
+    check restored.active and history.len == 0
+    done = false
+    discard c.requestText(proc (v: ClipboardText) =
+      check v.available and v.text == "remember λ"
+      done = true)
+    require awaitUi(proc (): bool = done)
   test "unique native custom owners, guarded lazy replies, subset validation and stale tokens":
     let c = getClipboard()
     defer: c.clear()

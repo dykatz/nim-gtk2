@@ -49,6 +49,7 @@ task testUi, "Test the ergonomic API using hidden widgets (requires a display)":
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbuffit.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2pixbufeffects.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2clipboardpersistence.nim"
+  exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2clipboardhistory.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2modeldrag.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2cellrenderers.nim"
   exec "nim r --path:src --warningAsError:Deprecated tests/tgtk2selectors.nim"
