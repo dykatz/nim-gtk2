@@ -3848,8 +3848,9 @@ old disconnected tokens cannot change icons on replacement sites. There is no ic
 getter, alias to the caller's pixels, automatic decoding or clipboard publication.
 
 During the SDK's **actual native drag-begin** handler, a nonempty copied icon is
-applied through public `gtk_drag_set_icon_pixbuf` with GTK's source-site hotspot
-`(-2,-2)`. A temporary native pixel pin spans reentrancy until GTK retains its own
+applied through public `gtk_drag_set_icon_pixbuf`. `setIcon(image)` retains GTK's
+source-site hotspot (`-2,-2`); `setIcon(image, hotspotX, hotspotY)` requires a point
+inside the image and passes those explicit pixel offsets. A temporary native pixel pin spans reentrancy until GTK retains its own
 reference. GTK owns actual context rendering/lifetime, choosing a composited RGBA
 cursor or a native DND popup according to backend capabilities and size. No arbitrary
 SDK icon size limit, private cursor/layout fields, cache reset or rendering simulation
@@ -3868,8 +3869,25 @@ Payload snapshots, MIME/targets, COPY validation, destination policies, exactly-
 native finish/delete=false, draining receivers and idle observations are unchanged.
 Checked set/clear reject inside synchronous pure functions before pixel copying or
 state changes. GTK calls, callbacks and final releases stay on the UI thread.
-Custom widget icons, named/stock icons, custom hotspots, live context mutation and
-model/editor drag sources remain separate; this is only copied source-pad icons.
+`source.setIconWidget(factory, hotspotX = 0, hotspotY = 0)` replaces the future
+icon configuration. At native begin the synchronous factory receives a copied
+`DragContextInfo` and returns fresh, unparented, unrealized, non-toplevel content.
+The SDK parents it in a same-screen drag popup using `gtk_drag_set_icon_widget`.
+The nonnegative gint offsets are relative to the popup origin; choose coordinates
+appropriate for the content's eventual layout. This is live GTK widget content,
+not a pixel snapshot. GTK decides when to map/hide the popup; the SDK destroys it
+and its content when the native context is finalized, including after disconnect.
+Do not reuse, reparent, destroy or attach drag sites to content once handed off.
+The factory may build content but must not run a nested event loop or close the
+display. Invalid content or a raised exception leaves native icon selection in place.
+
+`source.dragContexts()` copies source-side observations from current SDK-tracked
+flights: native action bits (`actions`, `suggestedAction`, `selectedAction`), native
+`protocol` value and `hasDestination`. Values can be unset at begin; a destination
+window or selected action is not acceptance. Snapshots remain plain data after
+end, and a disconnected source returns an empty list. No context, window or
+selection pointer escapes; no status, finish or action mutation is exposed.
+These APIs are for text/URI/binary/image source pads, not raw or model/editor sites.
 
 `examples/controls.nim` uses a copied text source icon. `examples/desktop.nim` provides
 copied sample/default controls for URI/binary pads. Hidden `tests/tgtk2dragicons.nim`
@@ -3878,7 +3896,9 @@ performs configuration/lifetime/purity only, with no realization or selections.
 **X11/XTEST/XFixes and GTK2 development headers**. Genuine drags for all source types
 observe current cursor pixels via public XFixes and oversized native popup pixels via
 public GTK toplevel/GDK drawable capture. Tests cover mutation/release, failed updates,
-active/future update/reset and disconnect without simulated signals or private state.
+active/future update/reset, explicit offsets measured from pointer to native popup,
+widget factory validation/destruction, copied context state and disconnect without
+simulated signals or private state.
 The native cursor compositor rounds opaque channels down by one on this GTK backend;
 the observation probe allows that one-unit visual tolerance, without changing pixels,
 caches or outcomes. Two native copy/context-icon prototypes and pointer/signed-hotspot

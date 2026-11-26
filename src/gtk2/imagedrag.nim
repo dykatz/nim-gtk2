@@ -27,7 +27,8 @@ type
     receiving: int
     handlers: seq[g.gulong]
     maxPixels: int
-    value, icon: Pixbuf # Private immutable copies; no getters exposing mutable storage.
+    value: Pixbuf # Private immutable copy.
+    icon: DragIconConfig
     flights: seq[ImageSourceFlight]
     wires: seq[ImageWire]
     queue: RecentBinding[ImageDrop]
@@ -80,7 +81,7 @@ proc disconnectImageSite(s: ImageSiteState) =
   requireOutsideModelFunction()
   if s == nil or not s.active: return
   s.active = false
-  s.icon = Pixbuf()
+  s.icon = DragIconConfig()
   s.value = Pixbuf()
   s.accept = nil
   if s.queue != nil:
@@ -118,7 +119,7 @@ proc imageSourceBegin(instance: pointer, context: rawGdk.PDragContext, data: poi
         for flight in s.flights:
           if flight.context == context: return
         s.flights.add(ImageSourceFlight(context: cast[rawGdk.PDragContext](g.g_object_ref(context)), image: s.value))
-        applySourceIcon(context, s.icon)
+        applySourceIcon(context, cast[rawGtk.PWidget](instance), s.icon)
     except Exception as error: reportSignalError(error)
 proc imageSourceEnd(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:

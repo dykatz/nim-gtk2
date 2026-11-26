@@ -32,6 +32,26 @@ suite "copied drag-source Pixbuf icon configuration":
     expect ValueError: text.setIcon(default(Pixbuf))
     expect ValueError: uri.setIcon(default(Pixbuf))
     expect ValueError: binary.setIcon(default(Pixbuf))
+    var factoryCalls = 0
+    let factory: DragIconFactory = proc (info: DragContextInfo): gtk2.Widget =
+      inc factoryCalls
+      newLabel("not built until a drag begins")
+    let imagePad = newEventBox()
+    defer: imagePad.destroy()
+    let imageDrag = imagePad.enableImageDrag(newPixbuf(2, 3))
+    imageDrag.setIconWidget(factory)
+    check imageDrag.dragContexts.len == 0
+    check not g.toBool(n.get_realized(imagePad.raw))
+    let pix = newPixbuf(2, 3)
+    for hotspot in [(-1, 0), (0, -1), (2, 0), (0, 3), (high(int), 0)]:
+      expect ValueError: text.setIcon(pix, hotspot[0], hotspot[1])
+    text.setIcon(pix, 1, 2)
+    expect ValueError: text.setIconWidget(nil)
+    expect ValueError: text.setIconWidget(factory, -1)
+    text.setIconWidget(factory, 5, 8)
+    uri.setIconWidget(factory)
+    binary.setIconWidget(factory)
+    check factoryCalls == 0 and text.dragContexts.len == 0 and uri.dragContexts.len == 0
     text.clearIcon()
     uri.clearIcon()
     binary.clearIcon()
@@ -100,10 +120,13 @@ suite "copied drag-source Pixbuf icon configuration":
       deny: text.clearIcon()
       deny: uri.clearIcon()
       deny: binary.clearIcon()
+      deny: discard text.dragContexts()
+      deny: text.setIcon(image, 1, 1)
+      deny: text.setIconWidget(nil)
       deny: text.disconnect() # Source teardown must not bypass the icon purity guard.
       true)
     completion.refilter()
-    check calls > 0 and denied == calls * 7
+    check calls > 0 and denied == calls * 10
     text.setIcon(image) # Guard restored.
     uri.setIcon(image)
     binary.setIcon(image)

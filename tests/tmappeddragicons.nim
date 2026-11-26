@@ -46,6 +46,7 @@ when defined(posix) and not defined(macosx):
   {.passL: "-lX11".}
   {.compile: "headers/drag_icon_pixels.c".}
   proc pixels(rgba: uint32, windowOnly: cint = 0): cint {.cdecl, importc: "nim_drag_icon_pixels".}
+  proc popupOffset(x, y: cint): cint {.cdecl, importc: "nim_drag_icon_popup_offset".}
   proc fallbackWidth(): cint {.cdecl, importc: "nim_drag_icon_fallback_width".}
   type XDisplay {.pure, final, incompleteStruct.} = object
   const xlib = "libX11.so(.6|)"
@@ -195,6 +196,71 @@ when defined(posix) and not defined(macosx):
         check observations == 5 and stats.deletes == 0
         sourcePad.destroy()
         expect ValueError: clear()
+    test "explicit pixbuf and widget hotspots, scoped snapshots and popup cleanup":
+      let host = newWindow("Custom drag popup", 420, 140)
+      defer: host.destroy()
+      let row = newHBox(spacing = 30)
+      host.add(row)
+      let sourcePad = newEventBox()
+      let destPad = newEventBox()
+      for pad in [sourcePad, destPad]:
+        pad.setSizeRequest(150, 100)
+        row.packStart(pad)
+      let source = sourcePad.enableTextDrag("widget icon")
+      var drops = 0
+      discard destPad.onTextDrop(proc (value: TextDrop) = inc drops)
+      host.showAll()
+      settle()
+      const orange = 0xe48024ff'u32
+      source.setIcon(newPixbuf(fallbackWidth().int, 48, orange), 8, 11)
+      startDrag(display, point(sourcePad))
+      require awaitUi(proc (): bool = pixels(orange, 1) > 50 and popupOffset(8, 11) == 1)
+      releaseAt(display, point(destPad))
+      require awaitUi(proc (): bool = drops == 1 and source.dragContexts.len == 0)
+      var calls, freed = 0
+      var content: gtk2.Image
+      var infoAtBegin, observedAtBegin: DragContextInfo
+      source.setIconWidget(proc (info: DragContextInfo): gtk2.Widget =
+        inc calls
+        infoAtBegin = info
+        observedAtBegin = source.dragContexts()[0]
+        source.clearIcon() # Future-only; the current callback and offsets are pinned.
+        content = newImage(newPixbuf(48, 36, orange))
+        g.weak_ref(cast[g.PGObject](content.raw), finalized, addr freed)
+        content, hotspotX = 6, hotspotY = 9)
+      check calls == 0
+      startDrag(display, point(sourcePad))
+      require awaitUi(proc (): bool = pixels(orange, 1) > 50 and popupOffset(6, 9) == 1)
+      require calls == 1 and source.dragContexts.len == 1
+      let copied = source.dragContexts()[0]
+      check infoAtBegin == observedAtBegin
+      motion(display, point(destPad))
+      require awaitUi(proc (): bool = source.dragContexts.len == 1 and
+        source.dragContexts()[0].selectedAction == gd.ACTION_COPY.uint32 and source.dragContexts()[0].hasDestination)
+      releaseAt(display, point(destPad))
+      require awaitUi(proc (): bool = drops == 2 and content.isDestroyed and source.dragContexts.len == 0)
+      check (copied.actions and gd.ACTION_COPY.uint32) != 0
+      content = gtk2.Image()
+      check freed == 1
+      startDrag(display, point(sourcePad))
+      check calls == 1 and pixels(orange, 1) == 0
+      releaseAt(display, point(destPad))
+      require awaitUi(proc (): bool = drops == 3)
+      source.setIconWidget(proc (info: DragContextInfo): gtk2.Widget = sourcePad)
+      startDrag(display, point(sourcePad))
+      check not sourcePad.isDestroyed and pixels(orange, 1) == 0
+      releaseAt(display, point(destPad))
+      require awaitUi(proc (): bool = drops == 4)
+      source.setIconWidget(proc (info: DragContextInfo): gtk2.Widget =
+        content = newImage(newPixbuf(48, 36, orange))
+        content)
+      startDrag(display, point(sourcePad))
+      require awaitUi(proc (): bool = pixels(orange, 1) > 50)
+      source.disconnect()
+      check source.dragContexts.len == 0 and not content.isDestroyed
+      releaseAt(display, point(destPad))
+      require awaitUi(proc (): bool = content.isDestroyed)
+      check drops == 4
   discard XCloseDisplay(display)
 else:
   echo "Native drag icon pixel regressions require X11/XTEST/XFixes, no synthetic fallback."

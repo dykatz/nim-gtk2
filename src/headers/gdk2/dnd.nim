@@ -7,6 +7,12 @@ proc drag_context_get_source_window*(context: PDragContext): PWindow {.cdecl,
     dynlib: lib, importc: "gdk_drag_context_get_source_window".}
 proc drag_context_get_actions*(context: PDragContext): TDragAction {.cdecl,
     dynlib: lib, importc: "gdk_drag_context_get_actions".}
+proc drag_context_get_suggested_action*(context: PDragContext): TDragAction {.cdecl,
+    dynlib: lib, importc: "gdk_drag_context_get_suggested_action".}
+proc drag_context_get_dest_window*(context: PDragContext): PWindow {.cdecl,
+    dynlib: lib, importc: "gdk_drag_context_get_dest_window".}
+proc drag_context_get_protocol*(context: PDragContext): TDragProtocol {.cdecl,
+    dynlib: lib, importc: "gdk_drag_context_get_protocol".}
 const
   ACTION_DEFAULT* = 1 shl 0
 const

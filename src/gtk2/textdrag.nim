@@ -14,7 +14,7 @@ type
     source, active: bool
     handlers: seq[g.gulong]
     text: string
-    icon: Pixbuf # Private immutable copy; native contexts retain their own reference.
+    icon: DragIconConfig
     flights: seq[DragFlight]
     queue: RecentBinding[TextDrop]
   TextDragSource* = object
@@ -30,7 +30,7 @@ proc disconnectTextSite(s: TextSiteState) =
   if s == nil or not s.active: return
   let p = s.widget
   s.active = false
-  s.icon = Pixbuf()
+  s.icon = DragIconConfig()
   s.widget = nil
   discard g.g_object_ref(p)
   defer: g.g_object_unref(p)
@@ -75,12 +75,6 @@ proc checkTransferPad(w: Widget): rawGtk.PWidget =
   let kind = g.G_OBJECT_TYPE(result)
   if kind != rawGtk.drawing_area_get_type() and kind != rawGtk.event_box_get_type():
     raise newException(ValueError, "SDK DnD requires an ordinary DrawingArea or EventBox pad")
-proc applySourceIcon(context: rawGdk.PDragContext, image: Pixbuf) =
-  if image.isEmpty: return # Leave GTK's actual default/global icon selection alone.
-  let p = image.raw
-  discard g.g_object_ref(p) # Protect against native reentrancy before GTK retains it.
-  defer: g.g_object_unref(p)
-  rawGtk.drag_set_icon_pixbuf(context, p, -2, -2) # GTK source-site's native hotspot.
 proc sourceBegin(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:
     let s = cast[TextSiteState](data)
@@ -91,7 +85,7 @@ proc sourceBegin(instance: pointer, context: rawGdk.PDragContext, data: pointer)
         for flight in s.flights:
           if flight.context == context: return
         s.flights.add(DragFlight(context: cast[rawGdk.PDragContext](g.g_object_ref(context)), text: s.text))
-        applySourceIcon(context, s.icon)
+        applySourceIcon(context, cast[rawGtk.PWidget](instance), s.icon)
     except Exception as error: reportSignalError(error)
 proc sourceEnd(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:

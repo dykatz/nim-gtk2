@@ -9,6 +9,8 @@ proc set_can_focus*(w: PWidget, value: gboolean) {.cdecl, dynlib: lib,
     importc: "gtk_widget_set_can_focus".}
 proc get_window*(w: PWidget): gdk2.PWindow {.cdecl, dynlib: lib,
     importc: "gtk_widget_get_window".}
+proc is_toplevel*(w: PWidget): gboolean {.cdecl, dynlib: lib,
+    importc: "gtk_widget_is_toplevel".}
 proc get_realized*(w: PWidget): gboolean {.cdecl, dynlib: lib,
                                            importc: "gtk_widget_get_realized".}
 

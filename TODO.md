@@ -10,7 +10,19 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Explicit local row MOVE is complete below.
+No next batch selected. Drag icons and context observations are complete below.
+
+## Completed functionality batch: drag widgets, hotspots and context observations
+
+- [x] Checked explicit copied Pixbuf hotspots and fresh per-begin widget factories
+      for all four transfer pad source families. Native popup on source screen,
+      context-owned disposal, future-only changes and actual native defaults.
+- [x] Read-only copied public GDK source context snapshots, without protocol mutation,
+      pointer escape or inferred success. Existing COPY contracts unchanged.
+- [x] Desktop example and docs; hidden validation, real popup offsets and pixels,
+      factory/context/cleanup and disconnect tests, native ABI and source guards.
+      ARC/ORC with fatal native warnings, full UI/calculator/binding/ABI, related
+      isolated transfers and Windows/macOS semantic checks passed.
 
 ## Completed functionality batch: model MOVE and source ownership
 
@@ -1037,7 +1049,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] COPY-only binary drag/drop pads (functionality batch above).
 - [x] Opt-in local model MOVE with explicit commit and source-deletion rules (above).
 - [x] Copied drag-source Pixbuf icons (functionality batch above).
-- [ ] Broader custom drag icons/widgets/hotspots and public context affordances.
+- [x] Custom drag widgets/hotspots and read-only source context snapshots (above).
 - [x] Copied synchronous application URI drop acceptance (batch above).
 - [ ] Broader application-controlled drop acceptance and asynchronous protocols.
 

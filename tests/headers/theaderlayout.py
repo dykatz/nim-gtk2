@@ -325,16 +325,20 @@ class HeaderLayout(unittest.TestCase):
         api = (ROOT / 'src/gtk2/dragicons.nim').read_text()
         self.assertIn('TextDragSource | UriDragSource | BinaryDragSource', api)
         self.assertIn('let snapshot = image.copy()', api)
-        self.assertEqual(api.count('requireOutsideModelFunction()'), 2)
-        self.assertIn('source.state.icon = Pixbuf()', api)
+        self.assertEqual(api.count('requireOutsideModelFunction()'), 5)
+        self.assertIn('source.state.icon = DragIconConfig()', api)
+        self.assertIn('setCopiedIcon(source, image, -2, -2)', api)
         self.assertNotIn('rawGtk.', api)
-        for name in ('textdrag', 'uridrag', 'binarydrag'):
+        for name in ('textdrag', 'uridrag', 'binarydrag', 'imagedrag'):
             text = (ROOT / ('src/gtk2/' + name + '.nim')).read_text()
-            self.assertIn('applySourceIcon(context, s.icon)', text)
-            self.assertIn('s.icon = Pixbuf()', text)
+            self.assertIn('applySourceIcon(context, cast[rawGtk.PWidget](instance), s.icon)', text)
+            self.assertIn('s.icon = DragIconConfig()', text)
             self.assertNotIn('drag_source_set_icon', text)
-        text = (ROOT / 'src/gtk2/textdrag.nim').read_text()
-        self.assertIn('rawGtk.drag_set_icon_pixbuf(context, p, -2, -2)', text)
+        text = (ROOT / 'src/gtk2/dragiconconfig.nim').read_text()
+        self.assertIn('rawGtk.drag_set_icon_pixbuf(context, p, config.x, config.y)', text)
+        self.assertIn('rawGtk.drag_set_icon_widget(context, popup, x, y)', text)
+        self.assertIn('dragIconPopupKey, popup, destroyDragIconPopup', text)
+        self.assertNotIn('show_all(popup)', text)
         for forbidden in ('drag_set_icon_stock', 'gtk-site-data', 'GtkDragSourceInfo',
                           'get_cursor(', 'drag_set_icon_default', 'realize('):
             self.assertNotIn(forbidden, text + api)

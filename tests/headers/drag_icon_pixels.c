@@ -4,6 +4,23 @@
 #include <gdk/gdkx.h>
 #include <X11/extensions/Xfixes.h>
 
+int nim_drag_icon_popup_offset(int dx, int dy) {
+  GdkScreen *screen;
+  gint px, py, x, y;
+  GList *windows = gtk_window_list_toplevels(), *item;
+  int count = 0;
+  gdk_display_get_pointer(gdk_display_get_default(), &screen, &px, &py, NULL);
+  for (item = windows; item; item = item->next) {
+    GtkWidget *w = item->data;
+    if (gtk_window_get_type_hint(GTK_WINDOW(w)) != GDK_WINDOW_TYPE_HINT_DND ||
+        !gtk_widget_get_mapped(w)) continue;
+    gdk_window_get_origin(gtk_widget_get_window(w), &x, &y);
+    if (px - x == dx && py - y == dy) ++count;
+  }
+  g_list_free(windows);
+  return count;
+}
+
 int nim_drag_icon_fallback_width(void) {
   guint width, height;
   gdk_display_get_maximal_cursor_size(gdk_display_get_default(), &width, &height);

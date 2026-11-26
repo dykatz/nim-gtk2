@@ -22,7 +22,7 @@ type
     receiving: int
     handlers: seq[g.gulong]
     value: UriList
-    icon: Pixbuf # Immutable copied source configuration, not a native-state mirror.
+    icon: DragIconConfig
     flights: seq[UriSourceFlight]
     wires: seq[UriWire]
     queue: RecentBinding[UriDrop]
@@ -75,7 +75,7 @@ proc disconnectUriSite(s: UriSiteState) =
   requireOutsideModelFunction()
   if s == nil or not s.active: return
   s.active = false
-  s.icon = Pixbuf()
+  s.icon = DragIconConfig()
   s.accept = nil # Wire pins must not retain application policy captures after cancel.
   if s.queue != nil:
     releaseRecentBinding[UriDrop](cast[pointer](s.queue), nil)
@@ -121,7 +121,7 @@ proc uriSourceBegin(instance: pointer, context: rawGdk.PDragContext, data: point
         for flight in s.flights:
           if flight.context == context: return
         s.flights.add(UriSourceFlight(context: cast[rawGdk.PDragContext](g.g_object_ref(context)), value: s.value))
-        applySourceIcon(context, s.icon)
+        applySourceIcon(context, cast[rawGtk.PWidget](instance), s.icon)
     except Exception as error: reportSignalError(error)
 proc uriSourceEnd(instance: pointer, context: rawGdk.PDragContext, data: pointer) {.cdecl, gcsafe.} =
   {.cast(gcsafe).}:

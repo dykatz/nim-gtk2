@@ -366,11 +366,17 @@ proc main() =
   layout.packStart(iconRow, packShrink)
   let sampleIcons = newButton("Copied sample drag icons")
   let nativeIcons = newButton("Native default drag icons")
+  let widgetIcon = newButton("URI drag label")
+  iconRow.packStart(widgetIcon, packShrink)
+  widgetIcon.onClicked(proc () =
+    uriDrag.setIconWidget(proc (info: DragContextInfo): Widget = newLabel("Copy URI list"),
+      hotspotX = 6, hotspotY = 6)
+    status.text = "The next URI drag builds a label in a transient drag popup.")
   iconRow.packStart(sampleIcons, packShrink)
   iconRow.packStart(nativeIcons, packShrink)
   sampleIcons.onClicked(proc () =
-    binaryDrag.setIcon(imageSample)
-    uriDrag.setIcon(imageSample)
+    binaryDrag.setIcon(imageSample, 0, 0)
+    uriDrag.setIcon(imageSample, imageSample.width div 2, imageSample.height div 2)
     status.text = "Copied icons apply to future drags; active contexts are unchanged.")
   nativeIcons.onClicked(proc () =
     binaryDrag.clearIcon()

@@ -207,6 +207,17 @@ gboolean nim_gtk2_drag_icon_abi(void (*apply)(GdkDragContext *, GdkPixbuf *, gin
   typedef GdkPixbuf *(*Copy)(const GdkPixbuf *);
   typedef char icon_proto[__builtin_types_compatible_p(Icon, __typeof__(&gtk_drag_set_icon_pixbuf)) ? 1 : -1];
   typedef char copy_proto[__builtin_types_compatible_p(Copy, __typeof__(&gdk_pixbuf_copy)) ? 1 : -1];
+  typedef void (*WidgetIcon)(GdkDragContext *, GtkWidget *, gint, gint);
+  typedef GdkDragAction (*Action)(GdkDragContext *);
+  typedef GdkWindow *(*Destination)(GdkDragContext *);
+  typedef GdkDragProtocol (*Protocol)(GdkDragContext *);
+#define CONTEXT_ABI(T, F) { typedef char checked[__builtin_types_compatible_p(T, __typeof__(&F)) ? 1 : -1]; (void)sizeof(checked); }
+  CONTEXT_ABI(WidgetIcon, gtk_drag_set_icon_widget);
+  CONTEXT_ABI(Action, gdk_drag_context_get_suggested_action);
+  CONTEXT_ABI(Action, gdk_drag_context_get_selected_action);
+  CONTEXT_ABI(Destination, gdk_drag_context_get_dest_window);
+  CONTEXT_ABI(Protocol, gdk_drag_context_get_protocol);
+#undef CONTEXT_ABI
   (void)sizeof(icon_proto); (void)sizeof(copy_proto);
   apply((GdkDragContext *)(guintptr)0xd1, (GdkPixbuf *)(guintptr)0xd2, -2, 129);
   return TRUE;

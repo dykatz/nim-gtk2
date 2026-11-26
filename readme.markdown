@@ -195,7 +195,8 @@ codecs run; cancellation/limits do not sandbox decoding or native memory. See th
 and the desktop's initially-off trust/preview controls. Isolated regressions decode
 only trusted tiny fixtures.
 
-Copied drag-source Pixbuf icons now support text/URI/binary/image pads: setIcon copies
+Drag-source icons support explicit hotspots, per-drag widget popups, and copied
+read-only source context snapshots. On text/URI/binary/image pads, setIcon copies
 pixels, clearIcon restores actual native defaults on later drags, and active contexts
 retain their own icons. See the [icon guide](docs/gtk2.md#copied-drag-source-pixbuf-icons).
 `testMappedDragIcons` adds genuine XTEST cursor/popup pixel checks (isolated opt-in

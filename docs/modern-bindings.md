@@ -384,7 +384,9 @@ source guards accompany actual XTEST cursor/popup pixel tests for all source typ
 The optional pixel task requires XFixes and GTK2 headers as well as X11/XTEST and
 isolated-display opt-in; observation tolerates one-unit native compositor rounding,
 without native data/cache repair. See the [icon guide](gtk2.md#copied-drag-source-pixbuf-icons).
-Custom widget/context/hotspot APIs, untrusted image decoding, persistence and private
+Explicit hotspots, fresh widget factories in native drag popups, and copied read-only
+source context snapshots are available for all four transfer pad sources. No active
+context mutators or raw context ownership are exposed. Untrusted image decoding and private
 audits remain separate.
 
 ### COPY-only binary drag/drop pads
