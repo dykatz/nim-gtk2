@@ -817,19 +817,41 @@ and snapshots its path and cells then. It does not transfer a selection or a sub
 Strings and scalar values are copied; Pixbuf cells retain owning handles to the same
 pixels (call `copy()` if you need independent pixels). Source paths in snapshots are
 historical, not live references. The GTK same-application target and active GTK
-source widget/window identify the local flight. There is no row selection payload,
-external exchange, selection conversion, automatic source deletion, or cross-view
-MOVE. This is not a security boundary against hostile clients on the same X server.
+source widget/window identify the local flight. COPY sends no row selection payload
+and never requests source deletion. These protocols do not support external exchange
+and are not a security boundary against hostile clients on the same X server.
 
 The handler runs **synchronously at drop**, once per matched flight. Return true
 only after committing; false and exceptions reject the native drop. There is no
 rollback if a handler already edited a model before rejecting. Don’t spin a nested
 main loop, replace native drag sites, or close the display from the handler. The two
 modes are exclusive per view, with no runtime toggle; a destroyed view releases its
-configuration. No application-placement callback runs on hover. Normal tests only
-inspect unrealized configuration; `nimble testMappedModelDrag` exercises moves,
-cross-view copies, policy rejection and teardown on isolated X11 DISPLAY with XTEST
-and `GTK2_TEST_VIRTUAL_DISPLAY=1`.
+configuration. No application-placement callback runs on hover.
+
+To transfer ownership of a row, explicitly pass `action = rowDragMove` at **both**
+ends; `ModelRowDrop.action` reports the mode. MOVE only supports different direct
+stores and leaf rows; COPY and MOVE sites do not negotiate a fallback, and same-view
+subtree reordering still uses GTK's native mode above. The receiver must insert or
+otherwise take ownership of the wanted data before returning true. It must not delete
+the source. Pixbuf handles still share pixels unless the receiver makes a copy.
+
+The SDK checks the source's stable row reference, attached model, leaf status and
+cell values before the receiver runs and again afterward. Cell comparison uses
+scalar values (bit patterns for floats) and Pixbuf object identity, not pixel contents
+or edit history. Only then does it authorize GTK's native DELETE request for that
+flight. The source consumes that authorization once, revalidates, and removes the
+referenced row on `drag-data-delete`. Row shifts do not redirect deletion. Rejection,
+exceptions, missing DELETE, and invalidated or changed rows never cause a substitute
+row to be deleted. If the receiver committed but the source subsequently could not
+be deleted, the destination stays committed and the source may remain. This is not an
+atomic transaction; `drag-end` or native success does not prove source deletion. Use
+source model deletion signals to observe actual removal. Clipboard and desktop
+transfer pads retain their COPY-only contracts.
+
+Run [the models example](../examples/models.nim) with `--move` to move full rows.
+`nimble testMappedModelDrag` checks native moves, cross-view COPY/MOVE, rejection,
+commit-before-DELETE and teardown on isolated X11 DISPLAY with XTEST and
+`GTK2_TEST_VIRTUAL_DISPLAY=1`. Normal tests only inspect unrealized configuration.
 
 ### Model signals and ownership
 

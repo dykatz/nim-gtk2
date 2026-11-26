@@ -1,5 +1,6 @@
 ## A typed flat model shared by TreeView and model-backed ComboBox.
 ## Build: nim c --path:src examples/models.nim
+import std/os
 import gtk2
 
 proc main() =
@@ -9,7 +10,10 @@ proc main() =
   window.borderWidth = 10
   let layout = newVBox(spacing = 8)
   window.add(layout)
-  let store = newListStore([cellString, cellString, cellInt, cellBool, cellFloat])
+  const columns = [cellString, cellString, cellInt, cellBool, cellFloat]
+  let moveRows = paramCount() == 1 and paramStr(1) == "--move"
+  let action = if moveRows: rowDragMove else: rowDragCopy
+  let store = newListStore(columns)
   discard store.appendRow([cell("Nim"), cell("Compiled"), cell(2008), cell(true), cell(9.5)])
   discard store.appendRow([cell("Python"), cell("Interpreted"), cell(1991), cell(true), cell(8.5)])
   discard store.appendRow([cell("C"), cell("Compiled"), cell(1972), cell(true), cell(9.0)])
@@ -18,19 +22,26 @@ proc main() =
   let comboStatus = newLabel()
   layout.packStart(comboStatus, packShrink)
   let view = newTreeView(store)
-  view.configureModelRowDrag()
-  let shortlist = newListStore([cellString])
+  view.configureModelRowDrag(action = action)
+  let shortlist = if moveRows: newListStore(columns) else: newListStore([cellString])
   let review = newTreeView(shortlist)
   discard review.appendTextColumn("Shortlist (drop here)", 0)
-  review.configureModelRowDrag(source = false, receive = proc (drop: ModelRowDrop): bool =
+  let receive: ModelRowDropHandler = proc (drop: ModelRowDrop): bool =
     if drop.row.values.len == 0 or drop.row.values[0].kind != cellString: return false
     let name = drop.row.values[0].stringValue
     if name.len == 0: return false
     for i in 0..<shortlist.rowCount:
       if shortlist.value(i, 0).stringValue == name: return false
     let at = if drop.hit.isRoot: shortlist.rowCount else: drop.hit.indices[0]
-    shortlist.insertRow(at, [cell(name)])
-    true)
+    if drop.action == rowDragMove:
+      if drop.row.values.len != columns.len: return false
+      for i, kind in columns:
+        if drop.row.values[i].kind != kind: return false
+      shortlist.insertRow(at, drop.row.values) # Commit every field; GTK requests source deletion.
+    else:
+      shortlist.insertRow(at, [cell(name)])
+    true
+  review.configureModelRowDrag(source = false, receive = receive, action = action)
   let nameColumn = view.appendTextColumn("Language", 0)
   nameColumn.resizable = true
   nameColumn.editable = true
@@ -52,7 +63,8 @@ proc main() =
       store.setValue(row, edit.column, cell(not store.value(row, edit.column).boolValue)))
   let multiple = newCheckButton("Multiple selection (mode changes clear selection)")
   layout.packStart(multiple, packShrink)
-  layout.packStart(newLabel("Drag a language to the shortlist to copy its name. Duplicates are rejected."), packShrink)
+  layout.packStart(newLabel(if moveRows: "Drag to move a full row after insertion. Duplicates are rejected."
+    else: "Drag to copy a name. Restart with --move to move full rows."), packShrink)
   view.rulesHint = true
   let scroll = newScrolledWindow()
   scroll.add(view)

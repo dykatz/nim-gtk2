@@ -10,7 +10,21 @@ entry point. Remaining work primarily deepens functionality. The public API is
 
 ## Next functionality batch
 
-No next batch selected. Explicit application clipboard history is complete below.
+No next batch selected. Explicit local row MOVE is complete below.
+
+## Completed functionality batch: model MOVE and source ownership
+
+- [x] Opt-in same-application MOVE on both ends, distinct target from COPY, direct
+      separate stores and leaf rows only. Receiver commits before native DELETE;
+      one source authorization tied to the drag and stable row, with cell/leaf/model
+      revalidation before drop, after commit, and on DELETE. No atomicity claim,
+      substitute deletion, clipboard or desktop-pad MOVE.
+- [x] Updated models example (`--move`), docs, hidden and isolated XTEST regressions:
+      rejection/exception, pre- and post-commit edits, nonleaf/shared-store rejection,
+      stable source after index shifts, destruction during commit and actual
+      commit-before-delete ordering. ARC/ORC under fatal native warnings, full UI,
+      calculator and binding/ABI suites, related isolated tasks, cross-target
+      semantic checks, example and generator/package validation passed.
 
 ## Completed functionality batch: application clipboard history
 
@@ -1021,7 +1035,7 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 - [x] Copied outgoing binary clipboard offers (functionality batch above).
 - [x] Copied binary clipboard requests (functionality batch above).
 - [x] COPY-only binary drag/drop pads (functionality batch above).
-- [ ] MOVE semantics with explicit source-deletion/ownership rules.
+- [x] Opt-in local model MOVE with explicit commit and source-deletion rules (above).
 - [x] Copied drag-source Pixbuf icons (functionality batch above).
 - [ ] Broader custom drag icons/widgets/hotspots and public context affordances.
 - [x] Copied synchronous application URI drop acceptance (batch above).

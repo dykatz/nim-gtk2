@@ -88,3 +88,13 @@ suite "unrealized native model drag configuration":
     expect ValueError: native.configureModelRowDrag()
     destination.destroy()
     check calls == 0
+  test "MOVE configuration is opt-in, distinct from COPY and excludes proxy receivers":
+    let m = newListStore([cellString, cellBool])
+    let source = newTreeView(m)
+    expect ValueError: source.configureModelRowDrag(action = cast[ModelRowDragAction](7))
+    source.configureModelRowDrag(action = rowDragMove)
+    let receive: ModelRowDropHandler = proc (value: ModelRowDrop): bool = false
+    let proxy = newTreeView(newTreeModelFilter(m, 1))
+    expect ValueError: proxy.configureModelRowDrag(source = false, receive = receive, action = rowDragMove)
+    check not source.rowDragReorderEnabled
+    check not g.toBool(n.get_realized(cast[n.PWidget](source.raw)))

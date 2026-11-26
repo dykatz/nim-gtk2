@@ -52,14 +52,17 @@ proc enableRowDragReorder*(w: IconView) =
     defer: g.g_object_unref(widget)
     rawGtk.icon_view_set_reorderable(p, g.gbool(true))
 
-# Local COPY uses GTK's native drag and source-widget identity, not the native
+# Local COPY/MOVE uses GTK's native drag and source-widget identity, not the native
 # GTK_TREE_MODEL_ROW pointer payload or any application selection data.
 type
+  ModelRowDragAction* = enum
+    rowDragCopy, rowDragMove
   ModelRowDrop* = object
     row*: ModelRow        ## Source path and cell values at drag begin.
     hit*: TreePath       ## Row under the pointer, or the virtual root over empty space.
     x*, y*: int          ## Destination widget coordinates.
     time*: uint32        ## Native drop timestamp.
+    action*: ModelRowDragAction
   ModelRowDropHandler* = proc (value: ModelRowDrop): bool {.closure.}
     ## Runs synchronously at drop. Return true only after commit; false does not roll back edits.
   ModelRowSite = ref object
@@ -67,13 +70,16 @@ type
     flight: rawGdk.PDragContext # Borrowed until drag-end; never dereferenced later.
     sourceWindow: rawGdk.PWindow # Borrowed from that context; used only for identity.
     target: rawGdk.TAtom
-    pressed: TreeRowReference
+    action: ModelRowDragAction
+    pressed, moving: TreeRowReference
+    deleteAuthorized: bool
     snapshot: ModelRow
     receive: ModelRowDropHandler
 
 const
   modelRowSiteKey = "nim-gtk2-local-model-drag"
   modelRowTarget = "application/x-nim-gtk2-local-model-row"
+  modelMoveTarget = "application/x-nim-gtk2-local-model-row-move"
 var modelDropBusy {.threadvar.}: bool
 
 proc rowSite(w: rawGtk.PWidget): ModelRowSite =
@@ -104,6 +110,8 @@ proc resetRowFlight(s: ModelRowSite) =
   s.flight = nil
   s.sourceWindow = nil
   s.snapshot = ModelRow()
+  s.moving = TreeRowReference()
+  s.deleteAuthorized = false
 
 proc rowSiteRelease(data: pointer) {.cdecl.} = GC_unref(cast[ModelRowSite](data))
 
@@ -146,7 +154,9 @@ proc rowDragBegin(w: rawGtk.PWidget, context: rawGdk.PDragContext, data: pointer
     var iter = pathIter(m, path)
     let sourceWindow = rawGdk.drag_context_get_source_window(context)
     if sourceWindow == nil: return
+    if s.action == rowDragMove and rawGtk.iter_n_children(m.raw, addr iter) != 0: return
     s.snapshot = copyModelRow(m.raw, addr iter)
+    if s.action == rowDragMove: s.moving = pressed
     s.flight = context
     s.sourceWindow = sourceWindow
     s.available = true
@@ -156,30 +166,74 @@ proc rowDragEnd(w: rawGtk.PWidget, context: rawGdk.PDragContext, data: pointer) 
   let s = cast[ModelRowSite](data)
   if s.flight == context: s.resetRowFlight()
 
+proc nativeRowAction(s: ModelRowSite): rawGdk.TDragAction =
+  if s.action == rowDragMove: rawGdk.ACTION_MOVE else: rawGdk.ACTION_COPY
+
+proc sameCell(a, b: CellValue): bool =
+  if a.kind != b.kind: return false
+  case a.kind
+  of cellString: a.stringValue == b.stringValue
+  of cellInt: a.intValue == b.intValue
+  of cellBool: a.boolValue == b.boolValue
+  of cellFloat: cast[uint64](a.floatValue) == cast[uint64](b.floatValue)
+  of cellPixbuf: a.pixbufValue.state == b.pixbufValue.state or
+    (not a.pixbufValue.isEmpty and not b.pixbufValue.isEmpty and a.pixbufValue.raw == b.pixbufValue.raw)
+
+proc currentMoveRow(w: rawGtk.PWidget, s: ModelRowSite,
+                    iter: var rawGtk.TTreeIter): rawGtk.PTreeModel =
+  if not s.live or not s.moving.valid: return
+  let m = s.moving.model
+  let p = m.raw
+  if p != rowSiteModel(w, s.icon) or m.columnCount != s.snapshot.values.len: return
+  iter = pathIter(m, s.moving.path)
+  if rawGtk.iter_n_children(p, addr iter) != 0: return
+  for i, value in s.snapshot.values:
+    if not sameCell(value, iterValue(m, iter, i)): return
+  p
+
+proc rowDragDelete(w: rawGtk.PWidget, context: rawGdk.PDragContext, data: pointer) {.cdecl.} =
+  let s = cast[ModelRowSite](data)
+  if context != s.flight or not s.deleteAuthorized: return
+  # Consume before deletion emits observers. No unsolicited/repeated DELETE.
+  s.deleteAuthorized = false
+  try:
+    var iter: rawGtk.TTreeIter
+    let model = currentMoveRow(w, s, iter)
+    if model == nil: return
+    discard g.g_object_ref(model)
+    defer: g.g_object_unref(model)
+    if g.G_OBJECT_TYPE(model) == rawGtk.list_store_get_type():
+      discard rawGtk.remove(cast[rawGtk.PListStore](model), addr iter)
+    else:
+      discard rawGtk.remove(cast[rawGtk.PTreeStore](model), addr iter)
+  except Exception as e: reportSignalError(e)
+
 proc matchingRowSource(w: rawGtk.PWidget, context: rawGdk.PDragContext,
                        s: ModelRowSite): ModelRowSite =
   if not s.live or s.receive == nil or modelDropBusy or modelFunctionDepth != 0: return
-  if (rawGdk.drag_context_get_actions(context) and rawGdk.ACTION_COPY) == 0: return
+  if (rawGdk.drag_context_get_actions(context) and s.nativeRowAction) == 0: return
   if rawGtk.drag_dest_find_target(w, context, nil) != s.target: return
   let source = rawGtk.drag_get_source_widget(context)
   if source == nil: return
   let origin = rowSite(source)
   if origin != nil and origin.live and origin.available and
-      origin.sourceWindow == rawGdk.drag_context_get_source_window(context):
+      origin.action == s.action and origin.sourceWindow == rawGdk.drag_context_get_source_window(context):
+    if s.action == rowDragMove and (source == w or
+        rowSiteModel(source, origin.icon) == rowSiteModel(w, s.icon)): return
     result = origin
 
 proc rowDragMotion(w: rawGtk.PWidget, context: rawGdk.PDragContext,
                    x, y: g.gint, time: g.guint, data: pointer): g.gboolean {.cdecl.} =
   let s = cast[ModelRowSite](data)
   if matchingRowSource(w, context, s) == nil: return g.gbool(false)
-  rawGdk.status(context, rawGdk.ACTION_COPY, g.guint32(time))
+  rawGdk.status(context, s.nativeRowAction, g.guint32(time))
   g.gbool(true)
 
 proc dispatchRowDrop(w: rawGtk.PWidget, context: rawGdk.PDragContext,
                      x, y: g.gint, time: g.guint, data: pointer): g.gboolean =
   let s = cast[ModelRowSite](data)
   let origin = matchingRowSource(w, context, s)
-  if origin == nil or rawGdk.drag_context_get_selected_action(context) != rawGdk.ACTION_COPY:
+  if origin == nil or rawGdk.drag_context_get_selected_action(context) != s.nativeRowAction:
     return g.gbool(false)
   # No selection request: the authenticated local source already owns the row.
   # Hold everything needed across the application commit, which can destroy either view.
@@ -187,19 +241,31 @@ proc dispatchRowDrop(w: rawGtk.PWidget, context: rawGdk.PDragContext,
   defer: g.g_object_unref(context)
   discard g.g_object_ref(w)
   defer: g.g_object_unref(w)
-  let snapshot = move(origin.snapshot)
+  let source = rawGtk.drag_get_source_widget(context)
+  discard g.g_object_ref(source)
+  defer: g.g_object_unref(source)
+  let flight = origin.flight
+  let snapshot = origin.snapshot
   origin.available = false
   let receive = s.receive
   modelDropBusy = true
   var accepted = false
   try:
-    let hit = modelHit(w, s.icon, x, y, true)
-    accepted = receive(ModelRowDrop(row: snapshot, hit: hit, x: x.int, y: y.int, time: time.uint32))
-  except CatchableError as e:
-    try: stderr.writeLine("gtk2 model drop callback: ", e.msg)
-    except IOError: discard
+    var iter: rawGtk.TTreeIter
+    if s.action == rowDragCopy or currentMoveRow(source, origin, iter) != nil:
+      let hit = modelHit(w, s.icon, x, y, true)
+      accepted = receive(ModelRowDrop(row: snapshot, hit: hit, x: x.int, y: y.int,
+                                    time: time.uint32, action: s.action))
+  except Exception as e: reportSignalError(e)
   finally:
-    rawGtk.drag_finish(context, g.gbool(accepted), g.gbool(false), g.guint32(time))
+    var requestDelete = false
+    if accepted and s.action == rowDragMove and origin.live and origin.flight == flight:
+      try:
+        var iter: rawGtk.TTreeIter
+        requestDelete = currentMoveRow(source, origin, iter) != nil
+      except Exception as e: reportSignalError(e)
+    if requestDelete: origin.deleteAuthorized = true
+    rawGtk.drag_finish(context, g.gbool(accepted), g.gbool(requestDelete), g.guint32(time))
     modelDropBusy = false
   g.gbool(true)
 
@@ -208,7 +274,10 @@ proc rowDragDrop(w: rawGtk.PWidget, context: rawGdk.PDragContext,
   {.cast(gcsafe).}:
     dispatchRowDrop(w, context, x, y, time, data)
 
-proc configureRowSite(w: rawGtk.PWidget, icon, source: bool, receive: ModelRowDropHandler) =
+proc configureRowSite(w: rawGtk.PWidget, icon, source: bool, receive: ModelRowDropHandler,
+                      action: ModelRowDragAction) =
+  if ord(action) < ord(low(ModelRowDragAction)) or ord(action) > ord(high(ModelRowDragAction)):
+    raise newException(ValueError, "invalid model row drag action")
   if not source and receive == nil:
     raise newException(ValueError, "a model row site needs a source or receiver")
   if g.toBool(rawGtk.get_realized(w)) or modelDropBusy:
@@ -216,38 +285,42 @@ proc configureRowSite(w: rawGtk.PWidget, icon, source: bool, receive: ModelRowDr
   if g.G_OBJECT_TYPE(w) != (if icon: rawGtk.icon_view_get_type() else: rawGtk.tree_view_get_type()):
     raise newException(ValueError, "model row transfer requires an ordinary TreeView or IconView")
   let m = rowSiteModel(w, icon)
-  if m == nil or (source and g.G_OBJECT_TYPE(m) != rawGtk.list_store_get_type() and
+  if m == nil or ((source or action == rowDragMove) and g.G_OBJECT_TYPE(m) != rawGtk.list_store_get_type() and
       (icon or g.G_OBJECT_TYPE(m) != rawGtk.tree_store_get_type())):
-    raise newException(ValueError, "model row source requires a direct ListStore or TreeStore (ListStore only for IconView)")
+    raise newException(ValueError, "row sources and MOVE receivers require direct ListStore or TreeStore (ListStore only for IconView)")
   if rowSite(w) != nil or rawGtk.drag_source_get_target_list(w) != nil or
       rawGtk.drag_dest_get_target_list(w) != nil:
     raise newException(ValueError, "view already has a native drag/drop site")
-  let s = ModelRowSite(icon: icon, live: true, receive: receive,
-    target: rawGdk.atom_intern(modelRowTarget, g.gbool(false)))
+  let targetName = if action == rowDragMove: modelMoveTarget else: modelRowTarget
+  let s = ModelRowSite(icon: icon, live: true, receive: receive, action: action,
+    target: rawGdk.atom_intern(targetName.cstring, g.gbool(false)))
   GC_ref(s)
   g.set_data_full(cast[g.PGObject](w), modelRowSiteKey, cast[pointer](s), rowSiteRelease)
   template attach(signal, handler: untyped) =
     discard g.g_signal_connect_data(w, signal, cast[g.TGCallback](handler), cast[pointer](s), nil, g.TGConnectFlags(0))
   attach("destroy", rowSiteDestroyed)
-  var target = rawGtk.TTargetEntry(target: modelRowTarget, flags: rawGtk.TARGET_SAME_APP)
+  var target = rawGtk.TTargetEntry(target: targetName.cstring, flags: rawGtk.TARGET_SAME_APP)
   if source:
     attach("button-press-event", rowPress)
     attach("button-release-event", rowRelease)
     attach("drag-begin", rowDragBegin)
     attach("drag-end", rowDragEnd)
-    rawGtk.drag_source_set(w, rawGdk.TModifierType(rawGdk.BUTTON1_MASK), addr target, 1, rawGdk.ACTION_COPY)
+    if action == rowDragMove: attach("drag-data-delete", rowDragDelete)
+    rawGtk.drag_source_set(w, rawGdk.TModifierType(rawGdk.BUTTON1_MASK), addr target, 1, s.nativeRowAction)
   if receive != nil:
     attach("drag-motion", rowDragMotion)
     attach("drag-drop", rowDragDrop)
-    rawGtk.drag_dest_set(w, rawGtk.TDestDefaults(0), addr target, 1, rawGdk.ACTION_COPY)
+    rawGtk.drag_dest_set(w, rawGtk.TDestDefaults(0), addr target, 1, s.nativeRowAction)
 
-proc configureModelRowDrag*(view: TreeView, source = true, receive: ModelRowDropHandler = nil) =
-  ## Install same-application row COPY for the view's lifetime, before realization.
+proc configureModelRowDrag*(view: TreeView, source = true, receive: ModelRowDropHandler = nil,
+                            action = rowDragCopy) =
+  ## Install same-application row COPY or opt-in MOVE before realization.
   ## A receiver returns true only after it has committed its application-defined placement.
   if view.rowDragReorderEnabled: raise newException(ValueError, "view already uses native row MOVE")
-  configureRowSite(cast[rawGtk.PWidget](view.raw), false, source, receive)
+  configureRowSite(cast[rawGtk.PWidget](view.raw), false, source, receive, action)
 
-proc configureModelRowDrag*(view: IconView, source = true, receive: ModelRowDropHandler = nil) =
-  ## Install same-application item COPY for the view's lifetime, before realization.
+proc configureModelRowDrag*(view: IconView, source = true, receive: ModelRowDropHandler = nil,
+                            action = rowDragCopy) =
+  ## Install same-application item COPY or opt-in MOVE before realization.
   if view.rowDragReorderEnabled: raise newException(ValueError, "view already uses native row MOVE")
-  configureRowSite(cast[rawGtk.PWidget](view.raw), true, source, receive)
+  configureRowSite(cast[rawGtk.PWidget](view.raw), true, source, receive, action)

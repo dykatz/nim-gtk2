@@ -130,8 +130,8 @@ isolated display, `GTK2_TEST_VIRTUAL_DISPLAY=1` and X11/XTEST for real input.
 can bind an existing native renderer or draw custom cells with scoped Cairo.
 
 [Model drag-and-drop](docs/gtk2.md#model-drag-and-drop) supports native same-view
-row moves (including TreeStore subtrees) and same-application row copies between
-TreeView and IconView, with application-controlled placement.
+row moves (including TreeStore subtrees) and same-application row COPY or opt-in
+leaf MOVE between TreeView and IconView, with application-controlled placement.
 
 [Application clipboard history](docs/gtk2.md#explicit-application-clipboard-history)
 keeps user-selected text in bounded RAM, independently of any desktop manager.

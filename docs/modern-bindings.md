@@ -48,7 +48,10 @@ GTK inserts a copy and deletes the source, so original row references do not fol
 moves. `configureModelRowDrag` provides mutually exclusive local COPY sites with a
 pressed-row snapshot at drag begin and a synchronous receiver that validates and
 commits its own placement. GTK identifies the local flight; no pointer or serialized
-row payload crosses a selection, and COPY never requests source deletion. The models
+row payload crosses a selection, and COPY never requests source deletion. Opt-in
+local MOVE between distinct direct stores authorizes one native DELETE only after
+receiver commit and revalidation of the source leaf. The source handles DELETE using
+its stable reference; native success doesn't prove removal. The models
 and trees examples show cross-view projection and native subtree reparenting.
 Isolated XTEST checks both modes, rejection, snapshot timing and receiver teardown.
 See the [model guide](gtk2.md#model-drag-and-drop).

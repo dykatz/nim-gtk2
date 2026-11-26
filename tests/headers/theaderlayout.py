@@ -92,10 +92,12 @@ class HeaderLayout(unittest.TestCase):
             self.assertNotIn(forbidden, text)
         for required in ('rawGtk.TARGET_SAME_APP', 'rawGtk.drag_get_source_widget(context)',
                          'origin.sourceWindow == rawGdk.drag_context_get_source_window(context)',
-                         'origin.available = false', 'rawGtk.drag_finish(context, g.gbool(accepted), g.gbool(false)'):
+                         'origin.available = false', 'rawGtk.drag_finish(context, g.gbool(accepted), g.gbool(requestDelete)',
+                         'context != s.flight or not s.deleteAuthorized', 's.deleteAuthorized = false',
+                         'currentMoveRow(w, s, iter)', 'attach("drag-data-delete", rowDragDelete)' ):
             self.assertIn(required, local)
         for forbidden in ('drag_get_data', 'tree_get_row_drag_data', 'tree_set_row_drag_data',
-                          'ACTION_MOVE', 'removeRow(', 'drag-data-received'):
+                          'removeRow(', 'drag-data-received'):
             self.assertNotIn(forbidden, local)
 
     def test_clipboard_history_has_no_native_capture_or_manager_hooks(self):

@@ -251,6 +251,74 @@ when defined(posix) and not defined(macosx):
       settle()
       drag(a.point([0]), b.point([0]))
       check b.isDestroyed and calls == 1 and dst.rowCount == 2 and src.rowCount == 1
+    test "MOVE deletes only the stable unchanged leaf after a committed drop":
+      let host = newWindow("Local row MOVE", 650, 190)
+      defer: host.destroy()
+      let box = newHBox(spacing = 12)
+      host.add(box)
+      let m = newTreeStore([cellString])
+      discard m.appendRow([cell("Original")])
+      discard m.appendRow([cell("Parent")])
+      discard m.appendRow([cell("Child")], treePath(1))
+      let dst = newListStore([cellString])
+      discard dst.appendRow([cell("Target")])
+      let a = newTreeView(m)
+      let b = newTreeView(dst)
+      let shared = newTreeView(m)
+      for view in [a, b, shared]:
+        discard view.appendTextColumn("Row", 0)
+        box.packStart(view)
+      var calls, wrong, deletes: int
+      var mode = 0
+      var order: seq[string]
+      var original = newTreeRowReference(m, treePath(0))
+      a.configureModelRowDrag(action = rowDragMove)
+      shared.configureModelRowDrag(source = false, action = rowDragMove,
+        receive = proc (value: ModelRowDrop): bool = (inc wrong; false))
+      b.configureModelRowDrag(source = false, action = rowDragMove,
+        receive = proc (value: ModelRowDrop): bool =
+          inc calls
+          check value.action == rowDragMove and value.row.values[0].stringValue == "Original"
+          check original.valid
+          if mode == 0: return false
+          if mode == 1: raise newException(ValueError, "expected MOVE rejection")
+          discard dst.appendRow(value.row.values)
+          order.add("commit")
+          if mode == 2: m.setValue(original.path, 0, cell("Edited"))
+          if mode == 4: a.destroy()
+          true)
+      let conn = m.onPathDeleted(proc (path: TreePath) = order.add("delete " & $path))
+      defer: conn.disconnect()
+      let source = cast[n.PWidget](a.raw)
+      let handler = g.g_signal_connect_data(source, "drag-data-delete", cast[g.TGCallback](countEnd), addr deletes, nil, g.TGConnectFlags(0))
+      defer:
+        if g.g_signal_handler_is_connected(source, handler): g.g_signal_handler_disconnect(source, handler)
+      host.showAll()
+      settle()
+      let target = b.point([0])
+      drag(a.point([0]), shared.point([0]))
+      drag(a.point([1]), target) # Nonleaf is not transferable.
+      drag(a.point([0]), target, proc () = m.setValue(original.path, 0, cell("Changed during drag")))
+      check wrong == 0 and calls == 0 and deletes == 0
+      m.setValue(original.path, 0, cell("Original"))
+      for phase in 0..3:
+        mode = phase
+        if phase == 3: m.setValue(original.path, 0, cell("Original"))
+        drag(a.point(original.path.indices), target, proc () =
+          if phase == 3: discard m.insertRow(0, [cell("Neighbor")]))
+        check calls == phase+1
+        if phase < 3: check original.valid and deletes == 0
+      check deletes == 1 and not original.valid
+      check order == @["commit", "commit", "delete 1"]
+      check m.childCount == 2 and m.value(treePath(0), 0).stringValue == "Neighbor"
+      check m.value(treePath(1, 0), 0).stringValue == "Child"
+      check dst.rowCount == 3
+      mode = 4
+      discard m.insertRow(0, [cell("Original")])
+      original = newTreeRowReference(m, treePath(0))
+      settle()
+      drag(a.point([0]), target)
+      check a.isDestroyed and original.valid and dst.rowCount == 4 and deletes == 1
   discard x.XCloseDisplay(d)
 else:
   quit("Model drag tests require X11/XTEST", 1)
