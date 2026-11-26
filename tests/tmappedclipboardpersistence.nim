@@ -108,7 +108,8 @@ if paramCount() == 1 and paramStr(1).startsWith("--source-"):
   of "--source-rich":
     let buffer = newTextBuffer()
     buffer.text = "Persisted rich λ"
-    c.offerRichText(buffer.serialize(richCodec()), "different fallback").store()
+    let alternate = newTextFormat("persist-alt")
+    c.offerRichText([buffer.serialize(richCodec()), buffer.serialize(alternate)], "different fallback").store()
   of "--source-custom", "--source-custom-auto":
     let offer = c.offerCustom([mime, transientMime], proc (name: string): BinaryData =
       doAssert name == mime
@@ -295,14 +296,19 @@ suite "native clipboard manager persistence":
             check value.kind == bytesUnavailable
         of "rich":
           let format = richCodec()
-          check hints == "HINTS 7 " & format.mimeType & " UTF8_STRING COMPOUND_TEXT TEXT STRING text/plain;charset=utf-8 text/plain"
+          let alternate = newTextFormat("persist-alt")
+          check hints == "HINTS 8 " & format.mimeType & " " & alternate.mimeType &
+            " UTF8_STRING COMPOUND_TEXT TEXT STRING text/plain;charset=utf-8 text/plain"
           check saved.startsWith("SAVED " & format.mimeType & " ")
           var done = false
           var value: RichClipboardResult
-          discard c.requestRichText(format, true, proc (v: RichClipboardResult) = (value = v; done = true))
+          # The fixture saves only the first supported hint. The denied alternate
+          # must fall through to the first (retained) rich representation.
+          discard c.requestRichText([alternate, format], true,
+            proc (v: RichClipboardResult) = (value = v; done = true))
           require awaitUi(proc (): bool = done)
           require value.kind == richDocument
-          check value.document.text == "Persisted rich λ"
+          check value.mime == format.mimeType and value.document.text == "Persisted rich λ"
         of "image":
           check "image/png" in hints
           var done = false

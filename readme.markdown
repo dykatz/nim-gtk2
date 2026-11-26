@@ -328,7 +328,8 @@ See [examples/inputs.nim](examples/inputs.nim) and the
 [inline completion guide](docs/gtk2.md#inline-common-prefix-and-popup-selection),
 including GTK2's documented Unicode preview limitation/optional source patch.
 `testMappedInlineCompletion` requires an explicitly opted-in isolated display.
-Rich clipboard document transfer now offers immutable snapshots and cancellable
+Rich clipboard document transfer offers immutable snapshots, ordered native tagset
+negotiation, optional envelope/preview admission policies, and cancellable
 requests with explicit native-parser trust and text fallback. Imports remain
 detached until the application commits them; plain copy/paste is unchanged.
 See the [rich clipboard guide](docs/gtk2.md#rich-clipboard-negotiation) and expanded

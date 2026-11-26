@@ -98,6 +98,10 @@ proc main() =
   # Native GTK2 binary data, not RTF/HTML. The application
   # explicitly selects this named codec and permits imported tags in a fresh buffer.
   let richFormat = newTextFormat("nim-gtk2-text-example", canCreateTags = true)
+  let standardRich = newTextFormat(canCreateTags = true)
+  let acceptImport: RichPreviewPolicy = proc (value: RichClipboardPreview): bool =
+    # Editor admission, not permission to decode; the trust checkbox is separate.
+    value.text.len <= 256 * 1024
   let editor = newTextView(buffer)
   let mirror = newTextView(buffer)
   editor.wrapMode = wrapWordChar
@@ -176,7 +180,8 @@ proc main() =
   richCopy.onClicked(proc () =
     try:
       # Explicit whole document snapshot: tags/images/hidden text, never widgets.
-      richOffer = clipboard.offerRichText(buffer.serialize(richFormat), buffer.text)
+      richOffer = clipboard.offerRichText(
+        [buffer.serialize(richFormat), buffer.serialize(standardRich)], buffer.text)
       status.text = "Offered a snapshot without retention authorization"
     except CatchableError as error: status.text = error.msg)
   permitRich.onClicked(proc () =
@@ -187,7 +192,7 @@ proc main() =
   trustRich.onToggled(proc () = richRequest.cancel())
   richImport.onClicked(proc () =
     richRequest.cancel()
-    richRequest = clipboard.requestRichText(editor, richFormat, trustRich.active,
+    richRequest = clipboard.requestRichText(editor, [richFormat, standardRich], trustRich.active,
       proc (value: RichClipboardResult) =
         case value.kind
         of richDocument:
@@ -197,7 +202,8 @@ proc main() =
           replaceDocument(newTextBuffer(value.text))
           status.text = "Imported plain text as a new document"
         of richRejected: status.text = "Rich clipboard rejected: " & value.error
-        of richUnavailable: status.text = "Clipboard has no compatible document/text"))
+        of richUnavailable: status.text = "Clipboard has no compatible document/text",
+      maxBytes = 4 * 1024 * 1024, accept = acceptImport))
   saveRich.onClicked(proc () =
     try:
       let snapshot = buffer.serialize(richFormat)

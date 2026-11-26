@@ -1023,7 +1023,11 @@ user/controller teardown; checked handle access is a guard, not a sandbox.
 
 ### Text editing
 
-- [ ] Additional rich clipboard protocols and application acceptance policies.
+- [x] Ordered native rich clipboard tagset alternatives and application admission:
+      multi-snapshot offers, exact target/refusal negotiation, byte cap, pre-decode
+      envelope and post-decode preview policy. No trust bypass or downgrade on
+      rejection. Updated text example, hidden and isolated ARC/ORC regressions,
+      native manager target hints, UI/calculator/ABI, and cross-target checks.
 - [ ] Live rich-text insertion with a safe native reentrancy/commit contract.
 - [ ] Custom ergonomic codecs and any explicit widget save/load representation.
 - [ ] Undo/redo support with an explicit application-facing history contract.

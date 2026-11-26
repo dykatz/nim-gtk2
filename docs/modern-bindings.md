@@ -557,6 +557,11 @@ trusted image pads are also available; MOVE and private layout audits are deferr
 
 ### Rich clipboard negotiation
 
+Offers can publish several explicit native tagset snapshots under one claim.
+List requests negotiate exact targets in caller order, advance only on native
+refusal, and support a copy cap, pre-decode envelope policy, and plain-projection
+admission policy. Explicit native decode trust is independent of admission.
+
 RichClipboardOffer pins immutable native bytes/explicit plain fallback until native
 clear notification, without retaining a source buffer or user callback. Native
 get/clear handlers contain exceptions and release pins once, including replacement

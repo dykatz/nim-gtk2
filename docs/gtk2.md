@@ -6404,6 +6404,11 @@ tagged text. Only offer such data intentionally; buffer.text includes hidden tex
 whereas existing plain copySelection excludes it. There is no rich Entry/password
 copy helper. Existing plain-text Clipboard/Entry/TextView APIs are unchanged.
 
+`offerRichText([snapshotA, snapshotB], plainText)` advertises 1–16 distinct native
+formats under the same ownership claim. Each representation is explicit, and
+persistence (if authorized) includes every offered target and the plain forms.
+Duplicate/uninitialized variants are rejected before changing clipboard ownership.
+
 ### Requests and explicit trust
 
 ```nim
@@ -6436,6 +6441,36 @@ modifies a live buffer or invokes application code while GTK is transferring dat
 Tag creation/shared-schema policy is exactly TextFormat's policy: creation requires
 a fresh table; false may reuse tagsFrom's table/properties without changing its
 text. Invalid policy combinations fail before issuing a selection request.
+
+### Ordered alternatives and application admission
+
+Pass `[preferredFormat, alternateFormat]` (1–16 distinct `TextFormat` values)
+to try the exact native tagsets in that order. An absent/refused conversion
+advances at idle. After exhaustion, the existing `fallbackToText` option applies.
+A reply that arrives but has the wrong envelope, exceeds the cap, fails decoding,
+or is rejected by policy ends the request as `richRejected`: it never tries another
+representation. `result.mime` identifies an answered rich target, including on
+rejection; plain and unavailable results leave it empty. Separate requests may see
+a changed owner; negotiation is not an atomic snapshot of a foreign clipboard.
+
+The list overload accepts `maxBytes` (default 16 MiB, `0..2147483647`), `inspect`,
+and `accept`. The cap checks rich selection length before copying into SDK storage
+and checks the completed plain UTF-8 fallback before admission. It does not bound
+native selection allocation, receive time, decoder work, or decoded memory. The
+single-format overload accepts the same options but retains the native size range
+by default.
+
+- `inspect(RichClipboardEnvelope)` sees the exact MIME and byte count after native
+  target/type/format and framing checks, but before native rich decoding.
+- `accept(RichClipboardPreview)` sees the copied plain projection of an eligible
+  detached rich document or the copied plain fallback. It does not see tag properties
+  or embedded pixels; projections can include hidden text and omit embedded images.
+- Both run at idle on the UI thread under the synchronous pure-function guard.
+  Return false or raise to reject; don't access GTK handles, block, or run a nested
+  event loop. The final observer can inspect the detached buffer and decide whether
+  to use it. Neither hook substitutes for explicit trust or validates arbitrary
+  foreign bytes for safe decoding. With `trusted = false`, only plain preview policy
+  can run, and only when plain fallback is enabled and available.
 
 RichClipboardResult.kind is:
 
@@ -6602,7 +6637,7 @@ an ergonomic entry point. StatusIcon (a GObject, not a widget) and the abstract
 Misc API are also covered; optional HtmlView remains outside the core layer.
 Other gaps include standalone popup positioning and arbitrary/custom cell renderers beyond the audited
 text/pixbuf/toggle column APIs, broader event argument/return-value APIs,
-additional rich clipboard protocols, untrusted image decoding, asynchronous acceptance
+custom rich clipboard codecs, untrusted image decoding, other asynchronous protocols
 acceptance and MOVE/model drag-and-drop,
 undo and live rich-text insertion, actual print jobs,
 arbitrary GObject properties,

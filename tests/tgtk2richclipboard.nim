@@ -15,6 +15,26 @@ proc watched(c: Clipboard, format: TextFormat, released: ptr int): RichTextReque
     fallbackToText = false)
 gtk2.init()
 suite "rich clipboard state/validation without desktop transfers":
+  test "ordered native formats validate before starting and disabled negotiation never invokes policies":
+    let c = getClipboard()
+    let a = newTextFormat("a")
+    let b = newTextFormat("b", canCreateTags = true)
+    let observe = proc (v: RichClipboardResult) = doAssert v.kind == richUnavailable
+    let inspect: RichEnvelopePolicy = proc (v: RichClipboardEnvelope): bool =
+      doAssert false
+      false
+    let accept: RichPreviewPolicy = proc (v: RichClipboardPreview): bool =
+      doAssert false
+      false
+    expect ValueError: discard c.requestRichText(newSeq[TextFormat](), false, observe)
+    expect ValueError: discard c.requestRichText([a, a], false, observe)
+    expect ValueError: discard c.requestRichText([a], false, observe, maxBytes = -1)
+    expect ValueError: discard c.requestRichText([a, b], false, observe, tagsFrom = newTextBuffer())
+    let request = c.requestRichText([a, b], false, observe, fallbackToText = false,
+      maxBytes = 0, inspect = inspect, accept = accept)
+    check request.pending
+    drain()
+    check not request.pending
   test "explicit no-trust/no-fallback is idle unavailable, never synchronous":
     let c = getClipboard()
     let format = newTextFormat()

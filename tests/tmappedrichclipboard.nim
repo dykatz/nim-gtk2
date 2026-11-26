@@ -1,5 +1,5 @@
 # Owns selections on an explicitly isolated virtual display; includes foreign owner.
-import std/[os, osproc, streams, times, unittest]
+import std/[os, osproc, streams, strutils, times, unittest]
 import gtk2
 import headers/gtk2 as n
 import headers/glib2 as g
@@ -111,6 +111,63 @@ suite "rich clipboard negotiation on isolated display":
       proc (value: RichClipboardResult) = doAssert value.kind == richPlainText)
     require awaitUi(proc (): bool = not refused.pending)
     check provider.richCalls == 1 and provider.plainCalls == 1
+  test "ordered variants, guarded admission and no policy downgrade":
+    let c = getClipboard()
+    defer: c.clear()
+    let first = codec()
+    let second = newTextFormat("clipboard-v2", canCreateTags = true)
+    let missing = newTextFormat("missing")
+    let alternate = newTextBuffer("second variant").serialize(second)
+    let original = archived()
+    var variants = @[original, alternate]
+    let offer = c.offerRichText(variants, "plain fallback")
+    variants.setLen(0)
+    expect ValueError: discard c.offerRichText([original, original], "bad replacement")
+    check offer.active
+    var value: RichClipboardResult
+    let report = proc (v: RichClipboardResult) = value = v
+    var inspected, previewed: int
+    var mode = 0
+    let secondMime = second.mimeType
+    let alternateBytes = alternate.byteCount
+    let inspect: RichEnvelopePolicy = proc (v: RichClipboardEnvelope): bool =
+      inc inspected
+      doAssert v.mime == secondMime and v.byteCount == alternateBytes
+      if mode == 2: discard c.raw # guarded; returned as rejection
+      mode != 1
+    let accept: RichPreviewPolicy = proc (v: RichClipboardPreview): bool =
+      inc previewed
+      doAssert v.kind == richDocument and v.mime == secondMime and v.text == "second variant"
+      mode != 3
+    for attempt in 0..4:
+      mode = attempt
+      inspected = 0
+      previewed = 0
+      var order = @[missing, second, first]
+      let request = c.requestRichText(order, true, report, fallbackToText = true,
+        maxBytes = (if attempt == 4: alternate.byteCount - 1 else: alternate.byteCount),
+        inspect = inspect, accept = accept)
+      order[1] = first
+      check request.pending and inspected == 0 and previewed == 0
+      require awaitUi(proc (): bool = not request.pending)
+      checkpoint(value.error)
+      check value.mime == second.mimeType
+      check inspected == (if attempt == 4: 0 else: 1)
+      check previewed == (if attempt in {0, 3}: 1 else: 0)
+      if attempt == 0:
+        check value.kind == richDocument and value.document.text == "second variant"
+      else:
+        check value.kind == richRejected and value.error.len != 0
+        if attempt == 2: check "forbidden" in value.error
+    let reversed = c.requestRichText([first, second], true, report)
+    require awaitUi(proc (): bool = not reversed.pending)
+    check value.kind == richDocument and value.mime == first.mimeType
+    let denyPlain: RichPreviewPolicy = proc (v: RichClipboardPreview): bool =
+      doAssert v.kind == richPlainText and v.mime == "" and v.text == "plain fallback"
+      false
+    let plain = c.requestRichText([first, second], false, report, inspect = inspect, accept = denyPlain)
+    require awaitUi(proc (): bool = not plain.pending)
+    check value.kind == richRejected and value.mime == "" and inspected == 0
   test "fixed schema controls rich tag policy independently of the sender":
     let c = getClipboard()
     defer: c.clear()
